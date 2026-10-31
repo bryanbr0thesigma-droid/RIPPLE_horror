@@ -4,8 +4,7 @@
 
 A co-op VR horror platformer set in the poolrooms: endless tiled halls of still,
 clear water. You have to escape by climbing, jumping and balancing above the water.
-Something lives in it. You can barely see it. It can't see you. It hears the water.
-If you fall in, it's coming.
+Something lives in it, and it hunts by sound. If you fall in, it's coming.
 
 ## Scope
 
@@ -23,21 +22,24 @@ If you fall in, it's coming.
 What makes RIPPLE its own game:
 - A creature that only hears the water, and ripples that show exactly what it hears
 - Horror platforming, where the danger is falling in
-- A nearly invisible creature you can only see properly with a lidar scanner
+- VR hands, where how fast you move underwater decides how much noise you make
+- Dark sections where a lidar scanner is the only way to see
+- Keys, levers and fuse boxes that make progress a risk
 
 The poolrooms are a well-known liminal space, and other co-op VR horror games use
 similar spaces. RIPPLE uses its own version of the poolrooms, with no level numbers,
 established lore or terms from those games. The mechanics carry the identity.
+
+RIPPLE is also inspired by an existing poolrooms game with a creature that hears the
+water. RIPPLE needs its own creature design, its own visual style, and its own
+taglines and wall text, not borrowed ones.
 
 ## Core rules
 
 1. **It hunts by sound in the water.** Anything that disturbs the water makes noise.
 2. **It can't leave the water.** Dry ground is safe.
 3. **It's fast.** You can't outrun it once it's charging.
-4. **It's nearly invisible.** It's translucent, so in clear water you only see a
-   faint distortion, its wake and the ripples it makes. The lidar scanner shows its
-   shape.
-5. **Falling in is the main danger.** A fall is a big splash, and it almost always
+4. **Falling in is the main danger.** A fall is a big splash, and it almost always
    hears it and charges. Most of the game is spent above the water trying not to
    fall in.
 
@@ -88,18 +90,18 @@ sometimes there's no way around the water and you have to go through it slowly.
 
 ## Lidar scanner
 
-A handheld scanner that sprays dots of light onto everything it hits. It's the only
-way to see the creature properly.
+A handheld scanner for dark sections. It sprays dots of light onto everything it
+hits.
 
+- **It's for the dark.** Some sections have the lights out until you restore power at
+  a fuse box. Until then, the lidar is how you see platforms, gaps and the water.
 - **Hold the trigger to scan.** Dots stick to walls, floors, the pool bottom and the
   creature, and fade after about 15 seconds.
-- **It sees through the water.** Rays pass through the surface, so scanning a pool
-  shows the bottom and anything in it.
+- **It sees through the water.** Rays pass through the surface, so scanning a pool in
+  the dark shows the bottom and anything in it.
 - **It's a snapshot.** Dots don't move. The creature's dots show where it was when you
   scanned, not where it is now. That matches the rest of the game: everything you
   know is slightly out of date.
-- **It works in the dark.** Some sections have the lights out until you restore power
-  at a fuse box. Until then, the lidar is how you see.
 - **It's silent,** because the creature only hears the water. Drop it in the water and
   it makes a splash, and it's gone.
 - **Limited battery.** Recharge it at charging points, which only work once their
@@ -122,10 +124,10 @@ way to see the creature properly.
 
    Freezing when it starts investigating is always a valid way to survive a small
    noise. A fall usually skips straight to charge.
-3. **It always gives itself away.** Even though it's nearly invisible, each state has
-   its own tells: a V-shaped wake, distortion in the water, bubbles, and a different
-   sound cue per state. An attentive player always knows what it's doing, and the
-   lidar confirms it.
+3. **It always gives itself away.** Each state has its own tells: a V-shaped wake,
+   its back breaking the surface, bubbles, and a different sound cue per state. An
+   attentive player always knows what it's doing. In dark sections, sound and the
+   lidar are how you track it.
 4. **It waits.** After you climb out, it circles nearby for a while, so going back
    into the water right away is a bad idea.
 
@@ -235,12 +237,10 @@ Everything else is coordination through the level.
 - **Lidar:** each frame while scanning, cast a batch of rays in a cone. Hits are
   written into a fixed-size ring buffer drawn with a MultiMeshInstance3D (small
   unshaded dots that fade over time). The creature has a collision shape on a layer
-  the rays can hit even though its mesh is nearly invisible. The water surface isn't
-  on that layer, so rays pass through it. The dots are only drawn for the holder, so
+  the rays can hit. The water surface isn't on that layer, so rays pass through it. The dots are only drawn for the holder, so
   nothing needs to be sent over the network.
 - **Water visuals:** a clear-water shader drawing ripple rings (the active ripples
-  are passed to the shader as an array), cubemap reflections and caustics. The
-  creature uses a refraction/distortion shader so it's barely visible. No real-time
+  are passed to the shader as an array), cubemap reflections and caustics. No real-time
   reflections or GPU wave simulation, to stay fast on Quest.
 - **"Can't leave the water":** the creature moves on a navigation mesh baked only over
   the water. The edge lunge is an attack with a fixed reach.
@@ -267,7 +267,7 @@ voice.
    climb. Falling in makes a splash, the creature (water-only navigation mesh)
    charges, pool ladders to climb out, getting caught, restart.
 2. **Noise, stealth and lidar:** wading and hand noise, the investigate state,
-   decoys, floating inflatables, the nearly invisible creature and the lidar scanner.
+   decoys, floating inflatables, a dark section and the lidar scanner.
 3. **Interactables:** key and door, lever, fuse box, each with its noise cost.
 4. **Multiplayer:** 2 players over LAN, creature runs on the host, shared noise,
    giving items and pushing.
@@ -276,7 +276,10 @@ voice.
 
 ## Open questions
 
-- What does the creature look like beyond being translucent? Is there any story?
+- What does the creature look like? It should be our own design, not a dark crawling
+  humanoid like the one in the inspiration game. Is there any story?
+- What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
+  inspiration game's look?
 - Which online relay or matchmaking service?
 - Which voice chat solution?
 - Should mic noise (voice reaching the water) be on or off by default?
