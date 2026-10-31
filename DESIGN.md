@@ -128,7 +128,9 @@ by Timsblends (CC BY), reworked to be scarier and RIPPLE's own:
 - **Sound pits along the head,** so players can see it's built to listen.
 - **Twitchy listening movement:** sharp head tilts toward sounds, freezing mid-step,
   then sudden fast scuttling. Done in code on top of its own animations.
-- **Undecided:** longer, thinner limbs and neck.
+- **Wanted: a gaunt, skeletal, long-limbed shape.** Stretching the predator's skeleton
+  that far tears the model, so the options are reshaping it in Blender or switching to a
+  ready-made creature that already has that shape. Being reviewed.
 
 ## Making a fast creature fair
 
@@ -309,7 +311,7 @@ voice.
 
 ## Open questions
 
-- Should the creature get longer, thinner limbs and neck?
+- Which gaunt creature, or reshape the predator?
 - Is there any story?
 - What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
   inspiration game's look?
