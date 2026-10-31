@@ -52,3 +52,16 @@ a new smooth eyeless head with a crooked slit of human teeth, and sound pits.
    blender -b --python build_tar_creature.py -- rake/scene.gltf tar_body.png creature_tar.glb 1.1 14
    ```
    The numbers are the head size (relative to the crawler's own head) and the mouth tilt in degrees.
+
+## Drowned version (being reviewed)
+
+`build_drowned_creature.py` keeps the crawler's own near-human head and gives it matte,
+waterlogged dark grey-brown skin, yellowed teeth, and either blank or empty eyes:
+
+```
+blender -b --python build_drowned_creature.py -- rake/scene.gltf drowned_skin.png creature_drowned.glb hollow
+```
+
+Use `sealed` instead of `hollow` for blank, filmed-over eyes. The unhinged jaw isn't baked in: open
+the jaw bone about 0.75 rad around its X axis and stretch it about 1.3x along its length, in the
+game or in a preview.
