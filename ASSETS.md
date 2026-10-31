@@ -27,9 +27,7 @@ approved.
 | [Industrial Wall Lamp](https://polyhaven.com/a/industrial_wall_lamp) | Wall lighting | Poly Haven | Kuutti Siitonen | CC0 |
 | [Modular Pipes](https://polyhaven.com/a/modular_pipes) | Pump room dressing. 47,428 polygons, needs simplifying for Quest. | Poly Haven | Kuutti Siitonen | CC0 |
 | [Plastic Monobloc Chair 01](https://polyhaven.com/a/plastic_monobloc_chair_01) | Poolside chairs | Poly Haven | Kuutti Siitonen | CC0 |
-| [Godot XR Tools hands](https://github.com/GodotVR/godot-xr-tools/tree/master/addons/godot-xr-tools/hands) — bare hands, smoother skin (light and dark) | The player's hands | Godot XR Tools | DigitalN8m4r3 | CC0 |
-| [Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) | Player avatars seen in multiplayer. Need clothes. The free version has only 2 of the 6 bodies (athletic male and female). | Quaternius | Quaternius | CC0 |
-| [Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) | Avatar animations | Quaternius | Quaternius | CC0 |
+| [Godot XR Tools hands](https://github.com/GodotVR/godot-xr-tools/tree/master/addons/godot-xr-tools/hands) | The player's own hands. Recolored to match the gloves of the suit the player wears. | Godot XR Tools | DigitalN8m4r3 | CC0 |
 | [Anti-radiation suit (OZK)](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) | Player suit. Player color changes the camo. | Sketchfab | sanyaork | CC BY 4.0 |
 | [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) | Player suit. Player color changes the stripes. | Sketchfab | DanlyVostok | CC BY 4.0 |
 | [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins to be removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
@@ -58,6 +56,14 @@ Not added unless they're approved later.
 - **Creature:** must be a ready-made model. Three are on Maybe (above).
 - **Suit color masks:** one mask per approved suit, marking which parts take the
   player's color. Needs the model files (a free Sketchfab account to download).
+- **Avatar movement:** the suits have few or no animations. Other players' bodies
+  will be driven by their real head and hand tracking (IK), with procedural leg
+  movement, so no animation library is needed for now.
+
+## Dropped
+
+- Quaternius Universal Base Characters and Universal Animation Library: the approved
+  suits are complete characters, so the bare bodies aren't needed.
 - **Sounds:** next round
 - **Made by the team:** pool ladders, diving boards
   and towers, water slides, retractable pool covers, inflatable rings and floats,

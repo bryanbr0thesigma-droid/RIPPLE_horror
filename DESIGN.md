@@ -209,9 +209,14 @@ The only direct interaction between players is **giving items** and **pushing**.
 Everything else is coordination through the level.
 
 - **One creature, hears everyone.** One teammate's fall endangers the whole team.
-- **Player color:** each player picks a color for their suit, and everyone sees it. In
-  the game, a mask texture painted once per suit model decides which parts take the
-  color, and a shader applies it. Only the color value is sent over the network.
+- **Player look:** each player picks one of three suits (anti-radiation suit, black
+  jumpsuit, scuba diver) and a color, and everyone sees it. In the game, a mask texture
+  painted once per suit model decides which parts take the color, and a shader applies
+  it. Only the suit choice and color value are sent over the network.
+- **Matching hands:** the hands you see on yourself are recolored to match your suit's
+  gloves, so you see the same hands your teammates see.
+- **Avatar movement:** other players' bodies follow their real head and hand tracking
+  (IK), with procedural leg movement.
 - **Giving items:** hand over keys, fuses, throwables and the lidar scanner.
 - **Pushing:** players can shove each other, including near an edge. Knocking a
   teammate into the water, by accident or not, is part of the tension.
