@@ -140,8 +140,10 @@ func _wall_piece(side: String, a: float, b: float, y0: float, y1: float, x0: flo
 
 
 ## Floor and ceiling slabs over a rectangle.
-func floor_slab(x0: float, x1: float, z0: float, z1: float, top := 0.0, mat: Material = null) -> void:
-	block(x0, x1, top - 0.2, top, z0, z1, mat if mat else mat_white)
+## Floors are thick and solid, so nothing can slip through them. Use `thickness` 0.2 for a bridge
+## over water.
+func floor_slab(x0: float, x1: float, z0: float, z1: float, top := 0.0, mat: Material = null, thickness := 1.5) -> void:
+	block(x0, x1, top - thickness, top, z0, z1, mat if mat else mat_white)
 
 
 func ceiling(x0: float, x1: float, z0: float, z1: float, y: float) -> void:
@@ -151,7 +153,7 @@ func ceiling(x0: float, x1: float, z0: float, z1: float, y: float) -> void:
 ## A pool: tiled floor, walls up to the walkway (y = 0) with gaps where water connects,
 ## grab rims along the top edge for VR climbing, a water volume and a water surface.
 func pool(x0: float, x1: float, z0: float, z1: float, floor_y: float, surface_y: float, gaps := {}, rims := true) -> WaterVolume:
-	block(x0, x1, floor_y - 0.3, floor_y, z0, z1, mat_blue)
+	block(x0, x1, floor_y - 1.5, floor_y, z0, z1, mat_blue)
 	var t := WALL_T
 	for side in ["n", "s", "w", "e"]:
 		if gaps.get(side, null) is String:   # "open": no wall at all on this side

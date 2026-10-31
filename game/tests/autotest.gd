@@ -102,6 +102,26 @@ func _smoke() -> void:
 	var rig := _rig()
 	if Game.vr_mode:
 		check(rig.body.on_ground, "VR player stands on the start room floor (y=%.2f)" % rig.feet_position().y)
+		# A shorter (or seated) player: eyes at 1.2 m. They must stay on the floor, not sink through it.
+		rig.camera.position.y = 1.2
+		rig.teleport(Vector3(4, 0.05, 3))
+		await wait(2.0)
+		check(absf(rig.feet_position().y) < 0.1, "a seated or short VR player stays on the floor (feet y=%.2f)" % rig.feet_position().y)
+		rig.camera.position.y = 1.7
+		# On a headset the first frame can come before tracking starts (head reported at the floor).
+		rig.camera.position.y = 0.0
+		await get_tree().physics_frame
+		await get_tree().physics_frame
+		rig.camera.position.y = 1.6
+		rig.teleport(Vector3(4, 0.05, 3))
+		await wait(2.0)
+		check(absf(rig.feet_position().y) < 0.1, "VR player stays on the floor even if tracking starts late (feet y=%.2f)" % rig.feet_position().y)
+		rig.camera.position.y = 1.7
+		check(not rig.body.player_calibrate_height and rig.body.head_behavior_mode == 0, "VR player uses real height and is pushed back from walls")
+		check(rig.get_node("LeftHand/CollisionHandLeft").collision_mask & LevelGeometry.L_WORLD != 0, "VR hands collide with the level")
+		rig.teleport(Vector3(4, -20, 4))
+		await wait(1.0)
+		check(rig.feet_position().y > -1.0, "falling out of the map returns you to a checkpoint (y=%.2f)" % rig.feet_position().y)
 		rig.teleport(Vector3(2, 0.5, -14))
 		await wait(1.5)
 		check(L.local_player.in_water, "VR player wades in Hall A's pool")
@@ -234,12 +254,15 @@ func _net_client() -> void:
 	var heard := await wait_for(func(): return L.creature.state == L.creature.S.CHARGE, 12.0)
 	check(heard, "client sees the creature charge after its own fall")
 	var bottle = L.items["Bottle1"]
-	rig.held = bottle
-	bottle.grab_desktop(rig)
+	if rig.has_method("hold_transform_for"):
+		rig.held = bottle
+		bottle.grab_desktop(rig)
+	else:
+		bottle._on_xr_picked_up(null)   # what an XR Tools grab does
 	var owned := await wait_for(func(): return bottle.holder == Net.my_id(), 5.0)
 	check(owned, "client holds the bottle")
 	var taken := await wait_for(func(): return bottle.holder == 1, 10.0)
-	check(taken and rig.held == null, "the host took the bottle out of the client's hand")
+	check(taken and (not rig.has_method("hold_transform_for") or rig.held == null), "the host took the bottle out of the client's hand")
 	rig.teleport(Vector3(2, 0.05, -1))
 	await wait(0.5)
 	var before: Vector3 = rig.feet_position()

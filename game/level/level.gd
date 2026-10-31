@@ -163,7 +163,9 @@ func _build_hall_a() -> void:
 	G.walls(-8, 16, -20, 0, 0.0, 4.2, {"s": [[3.0, 5.0, 2.4]], "n": [[2.0, 4.5, 2.4]], "e": [[-6.0, -4.0, 2.4]]})
 	G.ceiling(-8, 16, -20, 0, 4.2)
 	G.floor_slab(-8, 16, -2, 0)
-	G.floor_slab(-8, 16, -20, -18)
+	G.floor_slab(-8, 8, -20, -18)
+	G.floor_slab(8, 10.5, -20, -18, 0.0, null, 0.2)   # bridge over the channel
+	G.floor_slab(10.5, 16, -20, -18)
 	G.floor_slab(-8, -6, -18, -2)
 	G.floor_slab(14, 16, -18, -2)
 	G.pool(-6, 14, -18, -2, -1.3, SURFACE, {"n": [[8.0, 10.5]]})
@@ -215,7 +217,9 @@ func _build_hall_b() -> void:
 	# The dark sector: x -8..16, z -46..-22. The pool fills the room except the entrance strip.
 	G.walls(-8, 16, -46, -22, 0.0, 4.5, {"s": [[2.0, 4.5, 2.4]], "e": [[-37.0, -35.0, 2.4]]})
 	G.ceiling(-8, 16, -46, -22, 4.5)
-	G.floor_slab(-8, 16, -24, -22)
+	G.floor_slab(-8, 8, -24, -22)
+	G.floor_slab(8, 10.5, -24, -22, 0.0, null, 0.2)   # bridge over the channel
+	G.floor_slab(10.5, 16, -24, -22)
 	G.pool(-8, 16, -46, -24, -1.8, SURFACE, {"s": [[8.0, 10.5]], "e": "open"})
 	# Beams and platforms, all at walkway level.
 	G.pillar(2.65, 3.35, -30, -24, -1.8)         # beam north from the entrance

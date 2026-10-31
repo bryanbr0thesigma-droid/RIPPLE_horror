@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://player/vr_rig.gd" id="1"]
 [ext_resource type="PackedScene" path="res://addons/godot-xr-tools/hands/scenes/lowpoly/left_fullglove_low.tscn" id="2"]
@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" path="res://addons/godot-xr-tools/functions/movement_climb.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://addons/godot-xr-tools/player/player_body.tscn" id="9"]
 [ext_resource type="Script" path="res://player/movement_water.gd" id="10"]
+[ext_resource type="PackedScene" path="res://addons/godot-xr-tools/hands/scenes/collision/collision_hand_left.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://addons/godot-xr-tools/hands/scenes/collision/collision_hand_right.tscn" id="12"]
 
 [node name="VRRig" type="XROrigin3D"]
 script = ExtResource("1")
@@ -22,9 +24,11 @@ near = 0.05
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 1.2, -0.3)
 tracker = &"left_hand"
 
-[node name="LeftGlove" parent="LeftHand" instance=ExtResource("2")]
+[node name="CollisionHandLeft" parent="LeftHand" instance=ExtResource("11")]
 
-[node name="FunctionPickup" parent="LeftHand" instance=ExtResource("4")]
+[node name="LeftGlove" parent="LeftHand/CollisionHandLeft" instance=ExtResource("2")]
+
+[node name="FunctionPickup" parent="LeftHand/CollisionHandLeft" instance=ExtResource("4")]
 
 [node name="MovementDirect" parent="LeftHand" instance=ExtResource("5")]
 strafe = true
@@ -33,9 +37,11 @@ strafe = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 1.2, -0.3)
 tracker = &"right_hand"
 
-[node name="RightGlove" parent="RightHand" instance=ExtResource("3")]
+[node name="CollisionHandRight" parent="RightHand" instance=ExtResource("12")]
 
-[node name="FunctionPickup" parent="RightHand" instance=ExtResource("4")]
+[node name="RightGlove" parent="RightHand/CollisionHandRight" instance=ExtResource("3")]
+
+[node name="FunctionPickup" parent="RightHand/CollisionHandRight" instance=ExtResource("4")]
 
 [node name="MovementTurn" parent="RightHand" instance=ExtResource("6")]
 

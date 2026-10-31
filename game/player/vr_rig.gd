@@ -26,10 +26,19 @@ func _ready() -> void:
 	set_as_top_level(true)
 	current = true
 	$MovementWater.rig = self
-	for p in [$LeftHand/FunctionPickup, $RightHand/FunctionPickup]:
+	for p in [$LeftHand/CollisionHandLeft/FunctionPickup, $RightHand/CollisionHandRight/FunctionPickup]:
 		p.grab_collision_mask = LevelGeometry.L_ITEMS | LevelGeometry.L_GRAB
 		p.ranged_collision_mask = LevelGeometry.L_ITEMS
 	body.collision_mask = LevelGeometry.L_WORLD | LevelGeometry.L_DYNAMIC | LevelGeometry.L_AVATARS
+	# Your real height, 1:1 (no calibrating everyone to one height, which can start shorter or
+	# seated players below the floor), and walking into a wall in real life pushes you back
+	# instead of letting your head through.
+	body.player_calibrate_height = false
+	body.player_height_offset = 0.0
+	body.head_behavior_mode = 0
+	# Hands stop at walls, floors and tables instead of passing through them.
+	for hand in [$LeftHand/CollisionHandLeft, $RightHand/CollisionHandRight]:
+		hand.collision_mask = LevelGeometry.L_WORLD | LevelGeometry.L_DYNAMIC | LevelGeometry.L_ITEMS
 	# A black sphere around the head for fading out when caught.
 	_fade = MeshInstance3D.new()
 	var sm := SphereMesh.new()
@@ -60,8 +69,8 @@ func _ready() -> void:
 	camera.add_child(_msg)
 	Game.message.connect(_show_message)
 	# Hands match the suit's gloves; turning follows the player's setting.
-	VRHands.tint($LeftHand/LeftGlove, SuitRig.glove_color(Profile.suit))
-	VRHands.tint($RightHand/RightGlove, SuitRig.glove_color(Profile.suit))
+	VRHands.tint($LeftHand/CollisionHandLeft/LeftGlove, SuitRig.glove_color(Profile.suit))
+	VRHands.tint($RightHand/CollisionHandRight/RightGlove, SuitRig.glove_color(Profile.suit))
 	$RightHand/MovementTurn.turn_mode = 1 if Profile.snap_turn else 2
 	# Pause menu on the left controller's menu button.
 	_pointer = POINTER.instantiate()
@@ -169,7 +178,7 @@ func add_push(impulse: Vector3) -> void:
 
 
 func set_controls_enabled(on: bool) -> void:
-	for path in ["LeftHand/MovementDirect", "RightHand/MovementTurn", "RightHand/MovementJump", "MovementClimb", "LeftHand/FunctionPickup", "RightHand/FunctionPickup"]:
+	for path in ["LeftHand/MovementDirect", "RightHand/MovementTurn", "RightHand/MovementJump", "MovementClimb", "LeftHand/CollisionHandLeft/FunctionPickup", "RightHand/CollisionHandRight/FunctionPickup"]:
 		var n := get_node_or_null(path)
 		if n:
 			n.enabled = on
@@ -181,8 +190,8 @@ func set_fade(a: float) -> void:
 
 
 func drop_all() -> void:
-	$LeftHand/FunctionPickup.drop_object()
-	$RightHand/FunctionPickup.drop_object()
+	$LeftHand/CollisionHandLeft/FunctionPickup.drop_object()
+	$RightHand/CollisionHandRight/FunctionPickup.drop_object()
 
 
 func rumble(amount: float) -> void:

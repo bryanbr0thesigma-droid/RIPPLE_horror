@@ -91,6 +91,13 @@ func _physics_process(delta: float) -> void:
 		vel = Vector3.ZERO
 	_last_feet = feet
 
+	# Safety net: if anything ever drops you out of the map, back to the last checkpoint.
+	if alive and feet.y < -8.0:
+		rig.teleport(respawn_point)
+		_last_feet = respawn_point
+		Game.notify("You fell out of the map. Back to the last checkpoint.")
+		return
+
 	var pool := WaterVolume.below(feet + Vector3.UP * 0.05)
 	in_water = alive and pool != null and feet.y < pool.surface_y - 0.05
 	var surface := Vector3(feet.x, pool.surface_y if pool else feet.y, feet.z)
