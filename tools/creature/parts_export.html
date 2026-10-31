@@ -16,6 +16,8 @@ const headBones = bonesIdx((n) => n === 'DEF-spine006'), tailBones = bonesIdx((n
 const weightIn = (m, i, set) => { const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight; let w = 0; for (let k = 0; k < 4; k++) if (set.has(si.getComponent(i, k))) w += sw.getComponent(i, k); return w; };
 const posed = (m, i, out) => { m.getVertexPosition(i, out); return out.applyMatrix4(m.matrixWorld); };
 const v = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), fwd = new THREE.Vector3(0, 0, 1);
+const P = new URLSearchParams(location.search), num = (k, d) => (P.has(k) ? parseFloat(P.get(k)) : d);
+const hollow = P.get('eyes') === 'hollow';
 
 let obj = 'mtllib parts.mtl\n', vOff = 0, vtOff = 0;
 function writeSubset(mesh, keep, name, mtl) {
@@ -49,9 +51,11 @@ back.multiplyScalar(1 / nb);
 const eyeCs = [];
 for (const m of eyes) {
   const b = new THREE.Box3(); for (let i = 0; i < m.geometry.attributes.position.count; i++) b.expandByPoint(posed(m, i, v));
-  const c = b.getCenter(new THREE.Vector3()), rad = b.getSize(new THREE.Vector3()).x / 2 * 1.15;
+  const c = b.getCenter(new THREE.Vector3()), rad = b.getSize(new THREE.Vector3()).x / 2 * (hollow ? 1.7 : 1.15);
   eyeCs.push(c);
-  writeGeometry(new THREE.SphereGeometry(rad, 24, 16), new THREE.Matrix4().makeTranslation(c.x, c.y, c.z), 'Eye', 'BlindEye');
+  // Hollow sockets: a bigger, pitch-black ball sunk slightly into the head, so the eye reads as an empty hole.
+  const at = hollow ? c.clone().addScaledVector(fwd, -rad * 0.35) : c;
+  writeGeometry(new THREE.SphereGeometry(rad, 24, 16), new THREE.Matrix4().makeTranslation(at.x, at.y, at.z), 'Eye', hollow ? 'Socket' : 'BlindEye');
 }
 const eyeC = eyeCs[0].clone().add(eyeCs[1]).multiplyScalar(0.5);
 
@@ -73,12 +77,13 @@ const mouthC = mouth.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplySca
 // Needle teeth, alternating up and down.
 const picks = [];
 for (const p of mouth.slice().sort((a, b) => a.clone().sub(mouthC).dot(fwd) - b.clone().sub(mouthC).dot(fwd)))
-  if (picks.every((q) => q.distanceTo(p) > headSize * 0.03)) picks.push(p);
+  if (picks.every((q) => q.distanceTo(p) > headSize * num('gap', 0.03))) picks.push(p);
 picks.forEach((p, i) => {
-  const len = headSize * (0.06 + 0.045 * Math.abs(Math.sin(i * 1.7)));
-  const g = new THREE.ConeGeometry(headSize * 0.011, len, 6); g.translate(0, -len / 2, 0);
+  const len = headSize * num('len', 1) * (0.045 + 0.075 * Math.pow(Math.abs(Math.sin(i * 2.3 + 0.7)), 2));
+  const g = new THREE.ConeGeometry(headSize * 0.011 * num('thick', 1), len, 6); g.translate(0, -len / 2, 0);
   const outward = new THREE.Vector3().subVectors(p, mouthC).projectOnPlane(up).normalize();
-  const dir = (i % 2 ? up.clone() : up.clone().negate()).add(outward.multiplyScalar(0.3)).normalize();
+  // Lean the fangs into the mouth (negative 'tilt'), or out of it (positive).
+  const dir = (i % 2 ? up.clone() : up.clone().negate()).add(outward.multiplyScalar(num('tilt', 0.3))).normalize();
   const m = new THREE.Matrix4().compose(p.clone().addScaledVector(dir, -len * 0.2), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir), new THREE.Vector3(1, 1, 1));
   writeGeometry(g, m, 'Tooth', 'Teeth');
 });

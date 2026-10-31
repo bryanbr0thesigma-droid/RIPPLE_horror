@@ -21,10 +21,12 @@ by Timsblends. It adds pale skin, blind eyes, needle teeth and sound pits, and k
    The predator textures were also brightened a little (gamma 0.72) to match the crawler's body.
 3. Export the predator parts. Serve a folder containing `parts_export.html` and the unzipped
    predator model as `predator/` over HTTP, open the page, and it downloads `parts.obj` and
-   `parts.json`. The parts are cut from the predator's rest pose, because its file's bind pose
+   `parts.json`. Options go in the page's URL, for example
+   `parts_export.html?eyes=hollow&gap=0.02&len=1.6&thick=0.85&tilt=-0.45` for hollow eye sockets
+   and more, longer fangs leaning into the mouth. The parts are cut from the predator's rest pose, because its file's bind pose
    has the eyes outside their sockets.
 4. Write `parts.mtl` next to `parts.obj`, pointing `PredHead`, `PredBody` and `PredLimbs` at the
-   pale textures and giving `Teeth`, `Pit` and `BlindEye` plain colors.
+   pale textures and giving `Teeth`, `Pit`, `BlindEye` and `Socket` plain colors.
 5. Build in Blender 4.2:
    ```
    blender -b --python build_creature.py -- rake/scene.gltf parts.obj parts.json tex creature.glb 1.35 0.8 0.34 0.45 0.8
