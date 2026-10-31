@@ -38,3 +38,15 @@ Mixed and cut from these CC0 recordings on Freesound (no credit required, listed
 | Pouring, distiller | [sewer water trickle close echo drips](https://freesound.org/people/kyles/sounds/454177/) | kyles |
 
 The metal clank and door sounds were synthesized for this project.
+
+## Music
+
+Both tracks were made for RIPPLE by slowing these CC0 tracks from OpenGameArt down with a
+spectral stretch (`tools/sound/mix_music.py`):
+
+- Title screen, **Melted piano**: [At the End of Hope](https://opengameart.org/content/at-the-end-of-hope) by Emma_MA.
+- In the level, **Under the surface**: [Underwater Ambient Pad](https://opengameart.org/content/underwater-ambient-pad) by isaiah658.
+
+## Branding
+
+The icon and boot splash were drawn for this project.

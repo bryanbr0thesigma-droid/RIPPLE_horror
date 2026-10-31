@@ -22,7 +22,7 @@ var _yaw := 0.0
 var _pitch := 0.0
 var _push := Vector3.ZERO
 var _fade_rect: ColorRect
-var _esc_time := -10.0
+var _pause: Control = null
 var _eye := EYE
 var _shape: CollisionShape3D
 
@@ -61,6 +61,20 @@ func _ready() -> void:
 	add_child(layer)
 	if not Game.args.has("autotest"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func toggle_pause() -> void:
+	if _pause:
+		_pause.queue_free()
+		_pause = null
+		controls = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		return
+	_pause = preload("res://ui/pause_panel.tscn").instantiate()
+	_fade_rect.get_parent().add_child(_pause)
+	_pause.resumed.connect(toggle_pause)
+	controls = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 # --- Rig interface used by player.gd -------------------------------------------------------------
@@ -131,17 +145,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_yaw -= event.relative.x * 0.0025
 		_pitch = clampf(_pitch - event.relative.y * 0.0025, -1.45, 1.45)
-	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not _pause:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("pause"):
-		var now := Time.get_ticks_msec() / 1000.0
-		if now - _esc_time < 2.0:
-			Game.go_to_menu("You left the game.")
-		else:
-			_esc_time = now
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-			Game.notify("Press Esc again to leave the game. Click to keep playing.")
+		toggle_pause()
 	if not controls:
 		return
 	if event.is_action_pressed("interact"):

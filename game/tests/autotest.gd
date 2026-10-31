@@ -35,9 +35,28 @@ func wait_for(cond: Callable, timeout: float) -> bool:
 
 func _run() -> void:
 	if scenario == "menu_shot":
-		await wait(1.5)
+		var out := str(Game.args.get("out", "user://"))
+		await wait(2.0)
 		await RenderingServer.frame_post_draw
-		get_viewport().get_texture().get_image().save_png("%s/menu.png" % str(Game.args.get("out", "user://")))
+		get_viewport().get_texture().get_image().save_png("%s/title_main.png" % out)
+		var title = get_tree().current_scene
+		for page in ["character", "play", "settings"]:
+			title.menu.show_page(page)
+			if page == "character":
+				Profile.suit = 2
+				Profile.color = Color(0.85, 0.82, 0.2)
+				title.menu._refresh_character()
+			await wait(1.0)
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("%s/title_%s.png" % [out, page])
+		for i in 2:
+			Profile.suit = i
+			Profile.color = [Color(0.3, 0.8, 0.35), Color(0.85, 0.25, 0.3)][i]
+			title.menu.show_page("character")
+			title.menu._refresh_character()
+			await wait(0.8)
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("%s/title_suit%d.png" % [out, i])
 		_finish()
 		return
 	var ok := await wait_for(func(): return Game.level != null and Game.level.local_player != null, 20.0)
@@ -193,7 +212,9 @@ func _net_host() -> void:
 	rig.teleport(bottle.global_position + Vector3(0, -0.5, 0.6))
 	if rig.has_method("hold_transform_for"):
 		rig.held = bottle
-	bottle.grab_desktop(rig)
+		bottle.grab_desktop(rig)
+	else:
+		bottle._on_xr_picked_up(null)   # what an XR Tools grab does
 	var given := await wait_for(func(): return bottle.holder == 1, 5.0)
 	check(given, "the host can take the bottle from the client's hand")
 	await wait(2.0)

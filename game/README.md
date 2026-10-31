@@ -1,9 +1,37 @@
-# RIPPLE: co-op test demo
+# RIPPLE: demo
 
-One test level with every core mechanic, playable in VR or on a flat screen, alone or with up to
-3 friends. Built in Godot 4.7.2 with Godot XR Tools.
+A co-op VR demo of RIPPLE: a title screen, a character selector (three suits, your color, your
+name), and one level, The Shallow Halls, with every core mechanic. Up to 4 players, on Quest
+headsets or PCs, with or without VR. Built in Godot 4.7.2 with Godot XR Tools.
 
 ![Map of the test level](../docs/level1_map.png)
+
+## Install on Quest (APK)
+
+1. Turn on **Developer Mode** for your headset in the Meta Horizon phone app (Devices, your
+   headset, Developer Mode). This needs a free Meta developer account.
+2. Install `ripple-demo.apk` with one of these:
+   - [Meta Quest Developer Hub](https://developers.meta.com/horizon/documentation/android-apps/meta-quest-developer-hub/):
+     plug the headset in with USB, then drag the APK onto the device page.
+   - [SideQuest](https://sidequestvr.com/): plug in, then drag the APK onto the SideQuest window.
+   - Or from a terminal: `adb install -r ripple-demo.apk`
+3. In the headset, open **Library**, choose **Unknown Sources** in the filter menu, and start
+   **RIPPLE Demo**.
+
+Your friend does the same on their Quest. Then on the same Wi-Fi: one of you picks **Play, Host a
+game**, and the other picks **Play** and taps the host's game in the list (or **Join by address**
+and types the address the host sees on their screen).
+
+## The title screen
+
+- **Play:** host a game, play solo, join a game found on your network, or join by address.
+- **Character:** type your name on the keyboard (or press Random), pick one of the three suits with
+  the arrows, and pick a color. Your character stands on the pedestal next to the menu. In the game,
+  your hands match your suit's gloves and other players see your suit in your color.
+- **Settings:** snap or smooth turning, volume and music volume.
+- Your choices are saved on the headset.
+- In the game, press the **menu button** on the left controller (or Esc on desktop) to pause or
+  leave to the title.
 
 ## Run it on a PC
 
@@ -88,19 +116,23 @@ exports a build for the other (see below).
   power is on.
 - **Getting caught:** you respawn at the last dry room you passed through (a checkpoint).
 
-## Quest standalone (no PC)
+## Build the APK yourself
 
-This needs Android export set up in Godot once:
+The project already has an Android export preset called **Quest** (`export_presets.cfg`). Once:
 
-1. In Godot's AssetLib tab, install **Godot OpenXR Vendors plugin** (version 5.x for Godot 4.6 and
-   later) and enable it in Project Settings, Plugins.
-2. Install a **JDK 17** and the **Android SDK**, and set their paths in Editor Settings, Export,
-   Android. Download the export templates (Editor, Manage Export Templates).
-3. Project, **Install Android Build Template**.
-4. Project, Export, add an **Android** preset: turn on **Use Gradle Build**, set **XR Mode** to
-   OpenXR, enable the **Meta** plugin under the vendors section, and give it a package name.
-5. Export the APK and install it on each Quest with Meta Quest Developer Hub or
-   `adb install ripple.apk`. Then one Quest hosts and the other joins over the same Wi-Fi.
+1. In Godot's AssetLib tab, install **Godot OpenXR Vendors plugin** 5.1 (it's not in the repo
+   because it's 82 MB).
+2. Install the Android SDK (platform 36, build-tools 36.1.0) and a JDK 17 or newer, and set their
+   paths in Editor Settings, Export, Android. Download the 4.7.2 export templates (Editor, Manage
+   Export Templates).
+3. Make a keystore, and tell Godot about it with the environment variables
+   `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `GODOT_ANDROID_KEYSTORE_RELEASE_USER` and
+   `GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD` (or fill them in the preset, but don't commit them).
+4. Export from Project, Export, or from a terminal:
+
+```bash
+godot --headless --path game --install-android-build-template --export-release "Quest" build/ripple-demo.apk
+```
 
 ## Export a build for a friend who doesn't have Godot
 
@@ -136,15 +168,16 @@ Add `--fakevr` instead of `--desktop` to build the VR rig without a headset.
 ## Not done yet
 
 - It hasn't been played on a real headset yet. The VR rig is tested by forcing VR mode without one.
-- Gray-box art. Other players are simple suited shapes in their color; the approved suits come later.
+- Gray-box level art. The three suits are stand-ins built in the game until the approved suit
+  models (from Sketchfab) are added.
 - The creature's search shows as its search animation while it circles the area; there's no
   separate arm-reaching animation yet.
 - The creature doesn't lunge at the pool edge, so dry ground is always safe.
-- No music yet (still being chosen), and no voice chat (use Discord or similar).
+- No voice chat yet (use Discord or similar).
 
 ## Files
 
 - `core/` session, noise, water and game state. `level/` the level, built from rectangles at load
-  time. `player/` VR rig, desktop rig, avatars. `creature/` the creature. `items/` key, canteen,
-  lidar, bottles, lever. `ui/` menu and on-screen text. `tests/` the automated tests.
+  time. `player/` VR rig, desktop rig, suits and avatars. `creature/` the creature. `items/` key, canteen,
+  lidar, bottles, lever. `ui/` title screen, menus and on-screen text. `tests/` the automated tests.
 - Third-party assets and their licenses: [CREDITS.md](CREDITS.md).

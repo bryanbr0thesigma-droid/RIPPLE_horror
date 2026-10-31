@@ -4,3 +4,5 @@
 /export/
 *.apk
 *.aab
+addons/godotopenxrvendors/
+android/

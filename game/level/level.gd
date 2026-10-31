@@ -1,3 +1,4 @@
+class_name RippleLevel
 extends Node3D
 ## The test level, "The Shallow Halls": built from rectangles at load time, identically on every peer.
 ##
@@ -53,6 +54,7 @@ var escaped: Dictionary = {}      # host: peer id -> bool
 
 # Things the state drives.
 var hall_b_lights: Array[OmniLight3D] = []
+var hall_b_fittings: Array[MeshInstance3D] = []
 var staff_door: StaticBody3D
 var exit_door: StaticBody3D
 var cover_bridge: AnimatableBody3D
@@ -177,7 +179,9 @@ func _build_hall_a() -> void:
 	G.ladder(Vector3(14, -1.3, -14), Vector3(-1, 0, 0), 0.0)
 	G.ladder(Vector3(0, -1.3, -18), Vector3(0, 0, 1), 0.0)
 	for p in [Vector3(-2, 4.1, -5), Vector3(10, 4.1, -5), Vector3(-2, 4.1, -15), Vector3(10, 4.1, -15)]:
-		G.light(p, 1.5, 13.0)
+		G.fitting(p)
+	G.light(Vector3(4, 4.0, -5), 1.6, 15.0)
+	G.light(Vector3(4, 4.0, -15), 1.6, 15.0)
 	# Channel under the north wall to Hall B (water only, for the creature).
 	G.pool(8, 10.5, -24, -18, -1.8, SURFACE, {"n": "open", "s": "open"}, false)
 	# Corridor to Hall B.
@@ -231,8 +235,10 @@ func _build_hall_b() -> void:
 	G.ladder(Vector3(-6.25, -1.8, -29), Vector3(0, 0, -1), 0.0)
 	G.ladder(Vector3(10, -1.8, -42), Vector3(0, 0, 1), 0.0)
 	G.ladder(Vector3(4.5, -1.8, -31.5), Vector3(1, 0, 0), 0.0)
-	for p in [Vector3(-2, 4.4, -28), Vector3(10, 4.4, -28), Vector3(-2, 4.4, -40), Vector3(10, 4.4, -40), Vector3(4, 4.4, -34)]:
-		var l := G.light(p, 1.4, 13.0, Color(0.85, 0.95, 1.0))
+	for p in [Vector3(-2, 4.4, -28), Vector3(10, 4.4, -28), Vector3(-2, 4.4, -40), Vector3(10, 4.4, -40)]:
+		hall_b_fittings.append(G.fitting(p, Color(0.85, 0.95, 1.0)))
+	for p in [Vector3(4, 4.3, -29), Vector3(4, 4.3, -40)]:
+		var l := G.light(p, 1.6, 15.0, Color(0.85, 0.95, 1.0))
 		hall_b_lights.append(l)
 	# A faint emergency light by the entrance, so the doorway isn't pitch black.
 	var em := OmniLight3D.new()
@@ -306,7 +312,9 @@ func _build_hall_c() -> void:
 	G.ladder(Vector3(18, -2.6, -38.5), Vector3(1, 0, 0), 0.0)
 	G.ladder(Vector3(36, -2.6, -33.5), Vector3(-1, 0, 0), 0.0)
 	for p in [Vector3(22, 4.7, -30), Vector3(32, 4.7, -30), Vector3(22, 4.7, -40), Vector3(32, 4.7, -40)]:
-		G.light(p, 1.0, 12.0, Color(0.9, 0.95, 1.0))
+		G.fitting(p, Color(0.9, 0.95, 1.0))
+	G.light(Vector3(27, 4.6, -30), 1.3, 15.0, Color(0.9, 0.95, 1.0))
+	G.light(Vector3(27, 4.6, -40), 1.3, 15.0, Color(0.9, 0.95, 1.0))
 	# The retractable pool cover, retracted against the west ledge.
 	cover_bridge = AnimatableBody3D.new()
 	cover_bridge.name = "PoolCover"
@@ -457,6 +465,14 @@ func _build_audio() -> void:
 	for k in AMBIENCE:
 		var amb: AudioStreamOggVorbis = AMBIENCE[k]
 		amb.loop = true
+	var music := AudioStreamPlayer.new()
+	var ms: AudioStreamOggVorbis = preload("res://assets/audio/music_under_surface.ogg")
+	ms.loop = true
+	music.stream = ms
+	music.bus = "Music"
+	music.volume_db = -8.0
+	add_child(music)
+	music.play()
 
 
 func _build_lidar_dots() -> void:
@@ -618,9 +634,11 @@ func _apply_state(key: String) -> void:
 	match key:
 		"gen":
 			var on: bool = state.gen == 2
+			var fittings: Array = hall_b_fittings.duplicate()
 			for l in hall_b_lights:
 				l.visible = on
-				var f: MeshInstance3D = l.get_meta("fitting")
+				fittings.append(l.get_meta("fitting"))
+			for f: MeshInstance3D in fittings:
 				(f.material_override as StandardMaterial3D).emission_energy_multiplier = 1.5 if on else 0.0
 			if state.gen == 1:
 				generator_audio.stream = preload("res://assets/audio/generator_start.ogg")
@@ -640,7 +658,10 @@ func _apply_state(key: String) -> void:
 				items["Key"].retire()
 		"all_escaped":
 			if state.all_escaped:
-				Game.notify("Everyone escaped! That's the end of the test level.")
+				Game.notify("Everyone escaped! Back to the title in a few seconds.")
+				get_tree().create_timer(8.0).timeout.connect(func():
+					if Game.level == self:
+						Game.go_to_menu("You escaped the Shallow Halls. Thanks for playing the RIPPLE demo."))
 
 
 ## Ask the host to do something to the world.

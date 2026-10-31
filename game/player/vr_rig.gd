@@ -7,7 +7,13 @@ extends XROrigin3D
 @onready var right: XRController3D = $RightHand
 @onready var body: XRToolsPlayerBody = $PlayerBody
 
+const POINTER := preload("res://addons/godot-xr-tools/functions/function_pointer.tscn")
+const VIEWPORT_3D := preload("res://addons/godot-xr-tools/objects/viewport_2d_in_3d.tscn")
+const PAUSE := preload("res://ui/pause_panel.tscn")
+
 var pending_push := Vector3.ZERO
+var _pointer: Node3D
+var _pause_screen: Node3D
 var _fade: MeshInstance3D
 var _fade_mat: StandardMaterial3D
 var _msg: Label3D
@@ -53,6 +59,18 @@ func _ready() -> void:
 	_msg.visible = false
 	camera.add_child(_msg)
 	Game.message.connect(_show_message)
+	# Hands match the suit's gloves; turning follows the player's setting.
+	VRHands.tint($LeftHand/LeftGlove, SuitRig.glove_color(Profile.suit))
+	VRHands.tint($RightHand/RightGlove, SuitRig.glove_color(Profile.suit))
+	$RightHand/MovementTurn.turn_mode = 1 if Profile.snap_turn else 2
+	# Pause menu on the left controller's menu button.
+	_pointer = POINTER.instantiate()
+	_pointer.enabled = false
+	_pointer.visible = false
+	right.add_child(_pointer)
+	left.button_pressed.connect(func(b):
+		if b == "menu_button":
+			toggle_pause())
 	# Hands that can shove teammates.
 	for c in [left, right]:
 		var a := Area3D.new()
@@ -92,6 +110,30 @@ func _on_hand_hit(other: Node3D, i: int) -> void:
 	var v: Vector3 = (hand.global_position - _last_hand_pos[i]) * Engine.physics_ticks_per_second
 	if v.length() > 1.2:
 		Game.level.push_player(other.get_meta("peer_id"), v.limit_length(4.0) * 0.9)
+
+
+func toggle_pause() -> void:
+	if _pause_screen:
+		_pause_screen.queue_free()
+		_pause_screen = null
+		_pointer.enabled = false
+		_pointer.visible = false
+		return
+	_pause_screen = VIEWPORT_3D.instantiate()
+	get_parent().add_child(_pause_screen)
+	var fwd := -camera.global_transform.basis.z
+	fwd.y = 0
+	fwd = fwd.normalized()
+	_pause_screen.global_position = camera.global_position + fwd * 1.0
+	_pause_screen.look_at(camera.global_position, Vector3.UP)
+	_pause_screen.rotate_object_local(Vector3.UP, PI)
+	_pause_screen.unshaded = true
+	_pause_screen.screen_size = Vector2(0.9, 0.6)
+	_pause_screen.viewport_size = Vector2(720, 480)
+	_pause_screen.scene = PAUSE
+	_pause_screen.get_scene_instance().resumed.connect(toggle_pause)
+	_pointer.enabled = true
+	_pointer.visible = true
 
 
 # --- Rig interface used by player.gd -------------------------------------------------------------

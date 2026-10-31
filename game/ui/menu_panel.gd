@@ -1,135 +1,304 @@
 extends Control
-## The main menu: pick a name and color, host a game, or join one (found on the LAN, or typed in
-## with the keypad so it works in VR without a keyboard).
+## The title screen menu, one page at a time: Main, Play, Join by address, Character, Settings,
+## Connecting. Built for pointing in VR (big buttons, an on-screen keyboard) and works with a
+## mouse and keyboard on desktop.
 
-const COLORS := [Color(0.95, 0.55, 0.15), Color(0.2, 0.6, 0.95), Color(0.3, 0.8, 0.35), Color(0.85, 0.25, 0.3), Color(0.8, 0.8, 0.2), Color(0.7, 0.4, 0.9)]
+signal character_changed
 
+const COLORS := [Color(0.95, 0.55, 0.15), Color(0.2, 0.6, 0.95), Color(0.3, 0.8, 0.35), Color(0.85, 0.25, 0.3),
+	Color(0.85, 0.82, 0.2), Color(0.7, 0.4, 0.9), Color(0.9, 0.9, 0.92), Color(0.15, 0.75, 0.75)]
+const INK := Color(0.85, 0.92, 0.93)
+const DIM := Color(0.55, 0.64, 0.66)
+const ACCENT := Color(0.45, 0.85, 0.9)
+
+var _pages := {}
 var _status: Label
 var _hosts_box: VBoxContainer
-var _ip_label: Label
 var _ip := ""
-var _name_edit: LineEdit
+var _ip_label: Label
+var _name_label: Label
+var _suit_label: Label
+var _suit_about: Label
 var _swatches: Array[Button] = []
+var _turn_btn: Button
+var _vol_label: Label
+var _music_label: Label
+var _connecting_label: Label
+var _caps := true
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
-	bg.color = Color(0.04, 0.07, 0.08)
+	bg.color = Color(0.02, 0.05, 0.06, 0.88)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 28)
+		margin.add_theme_constant_override("margin_" + side, 26)
 	add_child(margin)
-	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 36)
-	margin.add_child(cols)
+	var stack := Control.new()
+	margin.add_child(stack)
+	_build_main(stack)
+	_build_play(stack)
+	_build_address(stack)
+	_build_character(stack)
+	_build_settings(stack)
+	_build_connecting(stack)
+	_status = _label("", 18, Color(1.0, 0.75, 0.5))
+	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_status.position.y -= 70
+	_status.size.y = 64
+	stack.add_child(_status)
+	_status.text = Game.menu_message
+	Net.hosts_changed.connect(_refresh_hosts)
+	Net.session_failed.connect(_on_failed)
+	Net.session_started.connect(func(): Game.start_level())
+	show_page("main")
 
-	var left := VBoxContainer.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 12)
-	cols.add_child(left)
-	left.add_child(_label("RIPPLE", 54, Color(0.6, 0.9, 0.95)))
-	left.add_child(_label("Co-op test level. Something in the water hunts by sound.", 20, Color(0.75, 0.82, 0.84)))
-	left.add_child(_label("Your name", 18))
-	_name_edit = LineEdit.new()
-	_name_edit.text = str(Game.args.get("name", Net.local_info.name))
-	_name_edit.custom_minimum_size = Vector2(0, 44)
-	_name_edit.text_changed.connect(func(t): Net.local_info.name = t if t != "" else "Player")
-	Net.local_info.name = _name_edit.text
-	left.add_child(_name_edit)
-	left.add_child(_label("Your color", 18))
+
+# --- Building pages ------------------------------------------------------------------------------
+
+func _page(page_name: String, parent: Control) -> VBoxContainer:
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_FULL_RECT)
+	v.add_theme_constant_override("separation", 12)
+	parent.add_child(v)
+	_pages[page_name] = v
+	return v
+
+
+func _build_main(parent: Control) -> void:
+	var p := _page("main", parent)
+	p.add_child(_label("RIPPLE", 64, ACCENT))
+	p.add_child(_label("Demo: The Shallow Halls", 22, DIM))
+	p.add_child(_spacer(18))
+	p.add_child(_button("Play", func(): show_page("play"), 30))
+	p.add_child(_button("Character", func(): show_page("character"), 30))
+	p.add_child(_button("Settings", func(): show_page("settings"), 30))
+	p.add_child(_button("Quit", func(): get_tree().quit(), 30))
+	p.add_child(_spacer(10))
+	var hint := _label("Something lives in the water. It hunts by sound. Escape together.", 18, DIM)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_child(hint)
+
+
+func _build_play(parent: Control) -> void:
+	var p := _page("play", parent)
+	p.add_child(_label("Play", 40, ACCENT))
+	p.add_child(_button("Host a game", _host))
+	p.add_child(_button("Play solo", _host))
+	p.add_child(_label("Games on your network", 20, INK))
+	_hosts_box = VBoxContainer.new()
+	_hosts_box.add_theme_constant_override("separation", 8)
+	p.add_child(_hosts_box)
+	p.add_child(_button("Join by address", func(): show_page("address")))
+	p.add_child(_button("Back", func(): show_page("main")))
+
+
+func _build_address(parent: Control) -> void:
+	var p := _page("address", parent)
+	p.add_child(_label("Join by address", 36, ACCENT))
+	var addrs := Net.local_addresses()
+	p.add_child(_label("Ask the host for the address on their screen. Yours: " + (", ".join(addrs) if addrs.size() > 0 else "no network"), 16, DIM))
+	_ip_label = _label("_", 38, INK)
+	p.add_child(_ip_label)
+	var pad := GridContainer.new()
+	pad.columns = 4
+	pad.add_theme_constant_override("h_separation", 8)
+	pad.add_theme_constant_override("v_separation", 8)
+	for k in ["1", "2", "3", "<", "4", "5", "6", ".", "7", "8", "9", "0"]:
+		var b := _button(k, _ip_key.bind(k), 30)
+		b.custom_minimum_size = Vector2(110, 64)
+		pad.add_child(b)
+	p.add_child(pad)
+	p.add_child(_button("Join", func(): _join(_ip)))
+	p.add_child(_button("Back", func(): show_page("play")))
+
+
+func _build_character(parent: Control) -> void:
+	var p := _page("character", parent)
+	p.add_child(_label("Character", 36, ACCENT))
+	var name_row := HBoxContainer.new()
+	name_row.add_child(_label("Name ", 22, DIM))
+	_name_label = _label("", 28, INK)
+	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(_name_label)
+	var rnd := _button("Random", _random_name, 18)
+	rnd.custom_minimum_size = Vector2(110, 44)
+	name_row.add_child(rnd)
+	p.add_child(name_row)
+	p.add_child(_keyboard())
+	var suit_row := HBoxContainer.new()
+	var prev := _button("<", func(): _cycle_suit(-1), 28)
+	prev.custom_minimum_size = Vector2(64, 56)
+	suit_row.add_child(prev)
+	_suit_label = _label("", 24, INK)
+	_suit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_suit_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	suit_row.add_child(_suit_label)
+	var nxt := _button(">", func(): _cycle_suit(1), 28)
+	nxt.custom_minimum_size = Vector2(64, 56)
+	suit_row.add_child(nxt)
+	p.add_child(suit_row)
+	_suit_about = _label("", 16, DIM)
+	_suit_about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_child(_suit_about)
 	var sw := HBoxContainer.new()
+	sw.add_theme_constant_override("separation", 8)
 	for c in COLORS:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(52, 52)
+		b.custom_minimum_size = Vector2(50, 50)
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = c
-		sb.set_corner_radius_all(26)
+		sb.set_corner_radius_all(25)
 		b.add_theme_stylebox_override("normal", sb)
 		b.add_theme_stylebox_override("hover", sb)
-		var pressed := sb.duplicate()
+		var pressed: StyleBoxFlat = sb.duplicate()
 		pressed.border_color = Color.WHITE
 		pressed.set_border_width_all(4)
 		b.add_theme_stylebox_override("pressed", pressed)
 		b.toggle_mode = true
-		b.pressed.connect(_pick_color.bind(c, b))
+		b.pressed.connect(_pick_color.bind(c))
 		sw.add_child(b)
 		_swatches.append(b)
-	left.add_child(sw)
-	_pick_color(Net.local_info.color, _swatches[0])
-	var host := _button("Host a game", _on_host)
-	left.add_child(host)
-	var solo := _button("Play solo", _on_host)
-	left.add_child(solo)
-	_status = _label(Game.menu_message, 18, Color(1.0, 0.75, 0.5))
-	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	left.add_child(_status)
-	var help := _label("Desktop: WASD, mouse, E pick up/use, left mouse use item, right mouse reach down, Space jump/climb out, Ctrl crouch, Shift run, Q drop, F shove.\nVR: left stick move, right stick turn, A/X jump, grip grab, trigger use.", 15, Color(0.6, 0.66, 0.68))
-	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	left.add_child(help)
-
-	var right := VBoxContainer.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.add_theme_constant_override("separation", 10)
-	cols.add_child(right)
-	right.add_child(_label("Join a game on your network", 22))
-	_hosts_box = VBoxContainer.new()
-	right.add_child(_hosts_box)
-	right.add_child(_label("Or type the host's address", 18))
-	_ip_label = _label("_", 30, Color(0.9, 0.95, 0.95))
-	right.add_child(_ip_label)
-	var pad := GridContainer.new()
-	pad.columns = 4
-	for k in ["1", "2", "3", "<", "4", "5", "6", ".", "7", "8", "9", "0"]:
-		var b := Button.new()
-		b.text = k
-		b.custom_minimum_size = Vector2(72, 56)
-		b.add_theme_font_size_override("font_size", 26)
-		b.pressed.connect(_key.bind(k))
-		pad.add_child(b)
-	right.add_child(pad)
-	right.add_child(_button("Join this address", func(): _join(_ip)))
-	var addrs := Net.local_addresses()
-	right.add_child(_label("This computer: " + (", ".join(addrs) if addrs.size() > 0 else "no network found"), 15, Color(0.6, 0.66, 0.68)))
-
-	Net.hosts_changed.connect(_refresh_hosts)
-	Net.session_failed.connect(func(r): _status.text = r)
-	Net.session_started.connect(_on_started)
-	Net.start_listening()
-	_refresh_hosts()
+	p.add_child(sw)
+	p.add_child(_button("Done", func():
+		Profile.save()
+		show_page("main")))
+	_refresh_character()
 
 
-func _exit_tree() -> void:
-	Net.stop_listening()
+func _keyboard() -> Control:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 5)
+	for row in ["1234567890", "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]:
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 5)
+		h.alignment = BoxContainer.ALIGNMENT_CENTER
+		for ch in row:
+			var b := _button(ch, _type.bind(ch), 18)
+			b.custom_minimum_size = Vector2(44, 42)
+			h.add_child(b)
+		v.add_child(h)
+	var last := HBoxContainer.new()
+	last.alignment = BoxContainer.ALIGNMENT_CENTER
+	last.add_theme_constant_override("separation", 5)
+	var caps := _button("Aa", func(): _caps = not _caps, 18)
+	caps.custom_minimum_size = Vector2(70, 42)
+	last.add_child(caps)
+	var space := _button("Space", _type.bind(" "), 18)
+	space.custom_minimum_size = Vector2(220, 42)
+	last.add_child(space)
+	var back := _button("Delete", _type.bind("<"), 18)
+	back.custom_minimum_size = Vector2(110, 42)
+	last.add_child(back)
+	v.add_child(last)
+	return v
 
 
-func _label(text: String, size: int, color := Color(0.85, 0.9, 0.9)) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	return l
+func _build_settings(parent: Control) -> void:
+	var p := _page("settings", parent)
+	p.add_child(_label("Settings", 36, ACCENT))
+	_turn_btn = _button("", func():
+		Profile.snap_turn = not Profile.snap_turn
+		_refresh_settings())
+	p.add_child(_turn_btn)
+	p.add_child(_stepper("Volume", func(d): Profile.volume = clampf(Profile.volume + d, 0.0, 1.0)))
+	_vol_label = p.get_child(p.get_child_count() - 1).get_child(1)
+	p.add_child(_stepper("Music", func(d): Profile.music = clampf(Profile.music + d, 0.0, 1.0)))
+	_music_label = p.get_child(p.get_child_count() - 1).get_child(1)
+	var tips := _label("VR: left stick moves, right stick turns, A or X jumps, grip grabs, trigger uses what you hold. Grab pool edges and ladders to climb out.\nDesktop: WASD, mouse, E pick up and use, left mouse use item, right mouse reach down, Space jump, Ctrl crouch, Q drop, F shove.", 15, DIM)
+	tips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_child(tips)
+	p.add_child(_button("Back", func():
+		Profile.save()
+		show_page("main")))
+	_refresh_settings()
 
 
-func _button(text: String, cb: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(0, 54)
-	b.add_theme_font_size_override("font_size", 22)
-	b.pressed.connect(cb)
-	return b
+func _stepper(title: String, change: Callable) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_child(_label(title, 22, INK))
+	var value := _label("", 22, ACCENT)
+	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	h.add_child(value)
+	for pair in [["-", -0.1], ["+", 0.1]]:
+		var b := _button(pair[0], func():
+			change.call(pair[1])
+			Profile.apply_audio()
+			_refresh_settings(), 26)
+		b.custom_minimum_size = Vector2(70, 56)
+		h.add_child(b)
+	return h
 
 
-func _pick_color(c: Color, which: Button) -> void:
-	Net.local_info.color = c
-	for b in _swatches:
-		b.button_pressed = b == which
+func _build_connecting(parent: Control) -> void:
+	var p := _page("connecting", parent)
+	p.add_child(_label("Connecting", 36, ACCENT))
+	_connecting_label = _label("", 22, INK)
+	_connecting_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	p.add_child(_connecting_label)
+	p.add_child(_button("Cancel", func():
+		Net.leave(true)
+		show_page("play")))
 
 
-func _key(k: String) -> void:
+# --- Behaviour -----------------------------------------------------------------------------------
+
+func show_page(page_name: String) -> void:
+	for k in _pages:
+		_pages[k].visible = k == page_name
+	if page_name == "play":
+		Net.start_listening()
+		_refresh_hosts()
+	elif page_name != "address" and page_name != "connecting":
+		Net.stop_listening()
+	if page_name != "connecting" and page_name != "main":
+		_status.text = ""
+
+
+func _host() -> void:
+	Profile.save()
+	Net.local_info.vr = Game.vr_mode
+	if Net.host() == OK:
+		_connecting_label.text = "Starting your game..."
+		show_page("connecting")
+
+
+func _join(ip: String) -> void:
+	if ip.strip_edges() == "":
+		_status.text = "Type the host's address first."
+		return
+	Profile.save()
+	Net.local_info.vr = Game.vr_mode
+	_connecting_label.text = "Connecting to %s..." % ip
+	show_page("connecting")
+	Net.join(ip)
+
+
+func _on_failed(reason: String) -> void:
+	show_page("play")
+	_status.text = reason
+
+
+func _refresh_hosts() -> void:
+	if not _hosts_box:
+		return
+	for c in _hosts_box.get_children():
+		c.queue_free()
+	if Net.lan_hosts.is_empty():
+		_hosts_box.add_child(_label("Looking for games...", 18, DIM))
+	for ip in Net.lan_hosts:
+		var h: Dictionary = Net.lan_hosts[ip]
+		_hosts_box.add_child(_button("%s's game  (%d/%d)" % [h.name, h.players, Net.MAX_PLAYERS], func(): _join(ip), 22))
+
+
+func _ip_key(k: String) -> void:
 	if k == "<":
 		_ip = _ip.substr(0, maxi(_ip.length() - 1, 0))
 	elif _ip.length() < 15:
@@ -137,30 +306,95 @@ func _key(k: String) -> void:
 	_ip_label.text = _ip if _ip != "" else "_"
 
 
-func _refresh_hosts() -> void:
-	for c in _hosts_box.get_children():
-		c.queue_free()
-	if Net.lan_hosts.is_empty():
-		_hosts_box.add_child(_label("Looking for games...", 16, Color(0.6, 0.66, 0.68)))
-	for ip in Net.lan_hosts:
-		var h: Dictionary = Net.lan_hosts[ip]
-		_hosts_box.add_child(_button("%s's game (%d/%d)  %s" % [h.name, h.players, Net.MAX_PLAYERS, ip], func(): _join(ip)))
+func _type(ch: String) -> void:
+	var n := Profile.player_name
+	if ch == "<":
+		n = n.substr(0, maxi(n.length() - 1, 0))
+	elif n.length() < 16:
+		n += ch if _caps or ch == " " else ch.to_lower()
+		_caps = false
+	Profile.player_name = n
+	_refresh_character()
 
 
-func _on_host() -> void:
-	Net.local_info.vr = Game.vr_mode
-	if Net.host() == OK:
-		_status.text = "Starting..."
-
-
-func _join(ip: String) -> void:
-	if ip.strip_edges() == "":
-		_status.text = "Type the host's address first."
+func _unhandled_key_input(event: InputEvent) -> void:
+	# Desktop: type the name on the real keyboard while the character page is open.
+	if not _pages.get("character") or not _pages.character.visible or not event.pressed:
 		return
-	Net.local_info.vr = Game.vr_mode
-	_status.text = "Connecting to %s..." % ip
-	Net.join(ip)
+	var k := event as InputEventKey
+	if k.keycode == KEY_BACKSPACE:
+		_type("<")
+	elif k.unicode >= 32 and k.unicode < 127:
+		_caps = true
+		var ch := char(k.unicode)
+		Profile.player_name = (Profile.player_name + ch).substr(0, 16)
+		_refresh_character()
+	get_viewport().set_input_as_handled()
 
 
-func _on_started() -> void:
-	Game.start_level()
+func _random_name() -> void:
+	Profile.player_name = Profile.random_name()
+	_refresh_character()
+
+
+func _cycle_suit(d: int) -> void:
+	Profile.suit = posmod(Profile.suit + d, SuitRig.SUITS.size())
+	_refresh_character()
+
+
+func _pick_color(c: Color) -> void:
+	Profile.color = c
+	_refresh_character()
+
+
+func _refresh_character() -> void:
+	_name_label.text = (Profile.player_name if Profile.player_name != "" else "...") + "_"
+	_suit_label.text = SuitRig.SUITS[Profile.suit].name
+	_suit_about.text = SuitRig.SUITS[Profile.suit].about
+	for i in _swatches.size():
+		_swatches[i].button_pressed = COLORS[i].is_equal_approx(Profile.color)
+	Net.local_info.name = Profile.player_name
+	character_changed.emit()
+
+
+func _refresh_settings() -> void:
+	_turn_btn.text = "Turning: " + ("snap" if Profile.snap_turn else "smooth")
+	if _vol_label:
+		_vol_label.text = "%d%%" % roundi(Profile.volume * 100)
+		_music_label.text = "%d%%" % roundi(Profile.music * 100)
+
+
+func _label(text: String, size: int, color := INK) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	return l
+
+
+func _spacer(h: float) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(0, h)
+	return c
+
+
+func _button(text: String, cb: Callable, size := 24) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, 58)
+	b.add_theme_font_size_override("font_size", size)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.08, 0.14, 0.16)
+	normal.border_color = Color(0.25, 0.45, 0.5)
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(6)
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = Color(0.12, 0.24, 0.27)
+	hover.border_color = ACCENT
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", hover)
+	b.add_theme_stylebox_override("focus", hover)
+	b.add_theme_color_override("font_color", INK)
+	b.pressed.connect(cb)
+	return b

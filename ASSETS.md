@@ -74,13 +74,17 @@ and door were synthesized for the project.
 - **Sounds:** the creature's voice is mixed from CC0 Freesound recordings with
   `tools/sound/mix_voice.py` and is approved: hunting (the rattle), close by, and the
   charge (clicks, then a death screech). Ambience loops (`tools/sound/mix_ambience.py`)
-  are approved (lit halls, pump room, dark sector). Music is being reviewed (Round 19).
-  Other sound effects come later.
+  are approved (lit halls, pump room, dark sector). Music is approved: **Melted piano**
+  (title screen) and **Under the surface** (in the level), made by `tools/sound/mix_music.py`
+  from "At the End of Hope" by Emma_MA and "Underwater Ambient Pad" by isaiah658 (both CC0,
+  OpenGameArt). Other sound effects come later.
 - **Made by the team:** pool ladders, diving boards and towers, water slides,
   retractable pool covers, inflatable rings and floats, keys, generators, the water
   canteen, distillers, the lidar scanner, lever handles.
-- **Suit color masks:** one mask per approved suit, marking which parts take the
-  player's color. Needs the model files (a free Sketchfab account to download).
+- **Suit models:** the demo's character selector uses stand-in suits built in the game
+  (anti-radiation suit with camo, Striker jumpsuit with stripes, diver with panels and tank).
+  The approved Sketchfab models replace them once downloaded (a free Sketchfab account is
+  needed), with one color mask per suit marking which parts take the player's color.
 - **Avatar movement:** the suits have few or no animations. Other players' bodies
   will be driven by their real head and hand tracking (IK), with procedural leg
   movement, so no animation library is needed for now.

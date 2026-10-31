@@ -274,6 +274,23 @@ func ladder(base: Vector3, out: Vector3, y_top: float) -> Area3D:
 
 
 ## A ceiling light fitting with a real light. Returns the light so it can be switched with power.
+## A glowing ceiling fitting with no light of its own (real lights are kept few, for the Quest).
+func fitting(pos: Vector3, color := Color(1.0, 0.95, 0.85)) -> MeshInstance3D:
+	var f := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(1.2, 0.06, 0.25)
+	f.mesh = bm
+	var em := StandardMaterial3D.new()
+	em.albedo_color = Color(0.9, 0.9, 0.85)
+	em.emission_enabled = true
+	em.emission = color
+	em.emission_energy_multiplier = 1.5
+	f.material_override = em
+	f.position = pos + Vector3(0, 0.1, 0)
+	geo.add_child(f)
+	return f
+
+
 func light(pos: Vector3, energy := 1.4, rng := 11.0, color := Color(1.0, 0.95, 0.85)) -> OmniLight3D:
 	var fitting := MeshInstance3D.new()
 	var bm := BoxMesh.new()
