@@ -22,7 +22,6 @@ Something lives in it, and it hunts by sound. If you fall in, it's coming.
 What makes RIPPLE its own game:
 - A creature that only hears the water, and ripples that show exactly what it hears
 - Horror platforming, where the danger is falling in
-- VR hands, where how fast you move underwater decides how much noise you make
 - Dark sections where a lidar scanner is the only way to see
 - Keys, levers and fuse boxes that make progress a risk
 
@@ -36,12 +35,16 @@ taglines and wall text, not borrowed ones.
 
 ## Core rules
 
-1. **It hunts by sound in the water.** Anything that disturbs the water makes noise.
+1. **It hunts by sound in the water.** Anything that disturbs the water makes noise,
+   and it hears it almost instantly.
 2. **It can't leave the water.** Dry ground is safe.
 3. **It's fast.** You can't outrun it once it's charging.
 4. **Falling in is the main danger.** A fall is a big splash, and it almost always
    hears it and charges. Most of the game is spent above the water trying not to
    fall in.
+5. **Standing still saves you.** It only attacks what it can hear. If you stop moving
+   completely, it can't find you, even when it's right next to you. The exception is
+   standing on the spot it's charging to.
 
 ## Falling in
 
@@ -56,6 +59,9 @@ Falling in should be terrifying but survivable, or players will stop taking risk
 - **Its distance is your escape window.** It charges from wherever it is, so how
   long you have depends on how far away it was. Its wake and sound cue tell you how
   close it is.
+- **Don't stay where you landed.** A charge goes straight to the splash. If you're
+  still on that spot when it arrives, it gets you. Climb out, or get clear of the
+  spot and freeze.
 - **There's always a way out nearby.** Pool ladders, low ledges, railings and pipes
   are placed so a fallen player can always reach one if they move immediately.
 - **The edge isn't safe.** It can lunge about 1 m out of the water, so you have to
@@ -100,8 +106,7 @@ hits.
 - **It sees through the water.** Rays pass through the surface, so scanning a pool in
   the dark shows the bottom and anything in it.
 - **It's a snapshot.** Dots don't move. The creature's dots show where it was when you
-  scanned, not where it is now. That matches the rest of the game: everything you
-  know is slightly out of date.
+  scanned, not where it is now.
 - **It's silent,** because the creature only hears the water. Drop it in the water and
   it makes a splash, and it's gone.
 - **Limited battery.** Recharge it at charging points, which only work once their
@@ -112,8 +117,8 @@ hits.
 
 ## Making a fast creature fair
 
-1. **Noise takes time to travel.** Every noise spreads as a ripple at a fixed speed.
-   The creature reacts to where the noise *was*, not where you are now.
+1. **Standing still always works.** You can't outrun it, but you can go silent. If
+   you stop moving, it can swim right past you.
 2. **Small noises get investigated first.** The creature has escalating states:
    - **Patrol:** wanders slowly
    - **Investigate:** swims at medium speed to where a small noise came from
@@ -137,14 +142,17 @@ hits.
 |---|---|
 | Falling in | Very loud, louder from higher up. Almost always triggers a charge. |
 | Lowering yourself in slowly | Quiet |
+| Standing still in the water | Silent |
 | Wading slowly | Very quiet |
 | Wading fast | Loud |
-| Hands moving underwater | Depends on hand speed: slow is silent, a flinch is a splash |
 | Landing on a floating inflatable | Small ripples |
 | Dropping an item into the water | Medium |
 | Re-entering the water while dripping | Medium (you drip for a while after climbing out) |
 | Throwing an object into the water | Loud, at the landing point (use as a decoy) |
 | Interactions | See the interactables table |
+
+**How fast it hears:** almost instantly. Only when it's very far away is there a
+delay, of a few seconds at most.
 
 **Cover noise:** filter pumps, water inlets, dripping ceilings, gurgling drains and
 machinery that starts once a section has power all mask the noise you make. Some of
@@ -159,7 +167,7 @@ Every interaction has a cost: noise, or a risky position above the water.
 
 | Interactable | How it works | Noise |
 |---|---|---|
-| **Keys** | Locker and staff-door keys. Usually on hard-to-reach ledges. Some are on the bottom of the shallow end and have to be grabbed slowly. Drop one and it sinks with a plop. Insert and turn in the lock. | Quiet if careful |
+| **Keys** | Locker and staff-door keys. Usually on hard-to-reach ledges. Some are on the bottom of the shallow end, so you have to wade in for them. Drop one and it sinks with a plop. Insert and turn in the lock. | Quiet if careful |
 | **Locked doors** | Staff doors, gates, lockers. Opened with keys. Some are rusted or stuck and have to be forced. | Key: quiet. Forcing: loud |
 | **Levers** | Pulled physically. Extend pool covers, lower platforms, open gates. Heavy ones clank. Some need two levers pulled at the same time by different players (solo version: wedge one with a crowbar). | Loud — time with cover noise or a decoy |
 | **Fuse boxes** | Find fuses, open the panel, slot them in. Restoring power turns on lights, lidar charging points, pool covers and lifts. Often mounted where you have to hang on with one hand while working with the other. | Medium (sparks, buzzing) |
@@ -229,11 +237,12 @@ Everything else is coordination through the level.
 - **Voice chat:** Godot has no built-in voice chat, so this needs an addon or a custom
   setup with microphone capture. Still to be chosen.
 - **Host-authoritative creature:** the creature AI runs on the host. Each player's
-  game detects their own noise (falls, hand speed, wading speed) and sends noise
-  events to the host.
-- **Noise model:** a noise event has an origin, a loudness and a start time. It
-  spreads as a ring at a fixed speed and gets quieter with distance. The creature
-  "hears" a noise when the ring reaches it. This keeps the AI predictable and cheap.
+  game detects their own noise (falls, wading speed) and sends noise events to the
+  host.
+- **Noise model:** a noise event has an origin and a loudness, and gets quieter with
+  distance. The creature hears it almost instantly, with a small delay that grows
+  with distance (a few seconds at most, only when very far away). This keeps the AI
+  predictable and cheap.
 - **Lidar:** each frame while scanning, cast a batch of rays in a cone. Hits are
   written into a fixed-size ring buffer drawn with a MultiMeshInstance3D (small
   unshaded dots that fade over time). The creature has a collision shape on a layer
@@ -266,7 +275,7 @@ voice.
 1. **Solo gray-box:** tiled platforms over a pool made from simple shapes. Walk, jump,
    climb. Falling in makes a splash, the creature (water-only navigation mesh)
    charges, pool ladders to climb out, getting caught, restart.
-2. **Noise, stealth and lidar:** wading and hand noise, the investigate state,
+2. **Noise, stealth and lidar:** wading noise, standing still to survive, the investigate state,
    decoys, floating inflatables, a dark section and the lidar scanner.
 3. **Interactables:** key and door, lever, fuse box, each with its noise cost.
 4. **Multiplayer:** 2 players over LAN, creature runs on the host, shared noise,
