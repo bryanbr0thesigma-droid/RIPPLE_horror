@@ -31,7 +31,8 @@ approved.
 | [Anti-radiation suit (OZK)](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) | Player suit. Player color changes the camo. | Sketchfab | sanyaork | CC BY 4.0 |
 | [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) | Player suit. Player color changes the stripes. | Sketchfab | DanlyVostok | CC BY 4.0 |
 | [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins to be removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
-| [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | The creature, reworked (see "The creature" in `DESIGN.md`) | Sketchfab | Timsblends | CC BY 4.0 |
+| [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | The creature's head and tail (see "The creature" in `DESIGN.md`) | Sketchfab | Timsblends | CC BY 4.0 |
+| [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e) | The creature's body, limbs and animations | Sketchfab | Sealife Fan 3 | CC BY 4.0 |
 
 ## Maybe
 

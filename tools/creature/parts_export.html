@@ -1,0 +1,120 @@
+<!doctype html><html><body>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+// Cut the predator's head and tail out of its rest pose (where its eyes sit right), add blind eyes, needle teeth
+// and sound pits, and write everything as OBJ text plus a little metadata for the Blender step.
+const gltf = await new GLTFLoader().loadAsync('/predator/scene.gltf');
+const root = gltf.scene; root.updateMatrixWorld(true);
+const norm = (name) => name.replace(/_\d+$/, '').replace(/[.:/\[\]]/g, '');
+const meshes = []; root.traverse((o) => { if (o.isSkinnedMesh) meshes.push(o); });
+const eyes = meshes.filter((m) => /Object_1[35]/.test(m.name));
+const head = meshes.find((m) => m.material.name === 'Head' && !eyes.includes(m));
+const bonesIdx = (pred) => new Set(head.skeleton.bones.map((b, i) => (pred(norm(b.name)) ? i : -1)).filter((i) => i >= 0));
+const headBones = bonesIdx((n) => n === 'DEF-spine006'), tailBones = bonesIdx((n) => n.startsWith('DEF-tail'));
+const weightIn = (m, i, set) => { const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight; let w = 0; for (let k = 0; k < 4; k++) if (set.has(si.getComponent(i, k))) w += sw.getComponent(i, k); return w; };
+const posed = (m, i, out) => { m.getVertexPosition(i, out); return out.applyMatrix4(m.matrixWorld); };
+const v = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), fwd = new THREE.Vector3(0, 0, 1);
+
+let obj = 'mtllib parts.mtl\n', vOff = 0, vtOff = 0;
+function writeSubset(mesh, keep, name, mtl) {
+  const pos = mesh.geometry.attributes.position, uv = mesh.geometry.attributes.uv, idx = mesh.geometry.index;
+  const map = new Map(); let lines = `o ${name}\nusemtl ${mtl}\n`;
+  for (let i = 0; i < pos.count; i++) if (keep(i)) { map.set(i, map.size); const p = posed(mesh, i, v); lines += `v ${p.x} ${p.y} ${p.z}\n`; }
+  for (const i of map.keys()) lines += `vt ${uv.getX(i)} ${1 - uv.getY(i)}\n`;
+  for (let f = 0; f < idx.count; f += 3) {
+    const a = idx.getX(f), b = idx.getX(f + 1), c = idx.getX(f + 2);
+    if (map.has(a) && map.has(b) && map.has(c)) { const A = map.get(a) + 1, B = map.get(b) + 1, C = map.get(c) + 1; lines += `f ${A + vOff}/${A + vtOff} ${B + vOff}/${B + vtOff} ${C + vOff}/${C + vtOff}\n`; }
+  }
+  obj += lines; vOff += map.size; vtOff += map.size;
+  return [...map.keys()].map((i) => posed(mesh, i, new THREE.Vector3()));
+}
+function writeGeometry(geo, matrix, name, mtl) {
+  geo = geo.toNonIndexed(); geo.applyMatrix4(matrix);
+  const pos = geo.attributes.position; let lines = `o ${name}\nusemtl ${mtl}\n`;
+  for (let i = 0; i < pos.count; i++) lines += `v ${pos.getX(i)} ${pos.getY(i)} ${pos.getZ(i)}\n`;
+  for (let i = 0; i < pos.count; i += 3) lines += `f ${vOff + i + 1} ${vOff + i + 2} ${vOff + i + 3}\n`;
+  obj += lines; vOff += pos.count;
+}
+
+// Head.
+const headPts = writeSubset(head, (i) => weightIn(head, i, headBones) > 0.4, 'PredHead', 'PredHead');
+const hb = new THREE.Box3().setFromPoints(headPts), headSize = hb.getSize(new THREE.Vector3()).length(), headC = hb.getCenter(new THREE.Vector3());
+const zmin = hb.min.z, back = new THREE.Vector3(); let nb = 0;
+for (const p of headPts) if (p.z < zmin + 0.12 * (hb.max.z - zmin)) { back.add(p); nb++; }
+back.multiplyScalar(1 / nb);
+
+// Blind eyes, from the eye meshes (in place in the rest pose).
+const eyeCs = [];
+for (const m of eyes) {
+  const b = new THREE.Box3(); for (let i = 0; i < m.geometry.attributes.position.count; i++) b.expandByPoint(posed(m, i, v));
+  const c = b.getCenter(new THREE.Vector3()), rad = b.getSize(new THREE.Vector3()).x / 2 * 1.15;
+  eyeCs.push(c);
+  writeGeometry(new THREE.SphereGeometry(rad, 24, 16), new THREE.Matrix4().makeTranslation(c.x, c.y, c.z), 'Eye', 'BlindEye');
+}
+const eyeC = eyeCs[0].clone().add(eyeCs[1]).multiplyScalar(0.5);
+
+// Mouth line from the lip and gum reds in the texture, below eye level.
+const img = await new THREE.ImageLoader().loadAsync('/predator/textures/Head_baseColor.png');
+const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+const tex = cx.getImageData(0, 0, img.width, img.height).data, uv = head.geometry.attributes.uv;
+const mouth = [];
+for (let i = 0; i < uv.count; i++) {
+  if (weightIn(head, i, headBones) <= 0.5) continue;
+  const px = Math.min(img.width - 1, Math.floor(uv.getX(i) * img.width)), py = Math.min(img.height - 1, Math.floor(uv.getY(i) * img.height));
+  const k = (py * img.width + px) * 4, R = tex[k] / 255, G = tex[k + 1] / 255, B = tex[k + 2] / 255;
+  const p = posed(head, i, new THREE.Vector3());
+  if (R > 0.16 && R > G * 1.25 && R > B * 1.25 && p.y < eyeC.y - 0.03 * headSize && p.distanceTo(eyeC) > 0.16 * headSize) mouth.push(p);
+}
+const mouthC = mouth.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplyScalar(1 / mouth.length);
+
+// Needle teeth, alternating up and down.
+const picks = [];
+for (const p of mouth.slice().sort((a, b) => a.clone().sub(mouthC).dot(fwd) - b.clone().sub(mouthC).dot(fwd)))
+  if (picks.every((q) => q.distanceTo(p) > headSize * 0.03)) picks.push(p);
+picks.forEach((p, i) => {
+  const len = headSize * (0.06 + 0.045 * Math.abs(Math.sin(i * 1.7)));
+  const g = new THREE.ConeGeometry(headSize * 0.011, len, 6); g.translate(0, -len / 2, 0);
+  const outward = new THREE.Vector3().subVectors(p, mouthC).projectOnPlane(up).normalize();
+  const dir = (i % 2 ? up.clone() : up.clone().negate()).add(outward.multiplyScalar(0.3)).normalize();
+  const m = new THREE.Matrix4().compose(p.clone().addScaledVector(dir, -len * 0.2), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir), new THREE.Vector3(1, 1, 1));
+  writeGeometry(g, m, 'Tooth', 'Teeth');
+});
+
+// Sound pits on the upper sides of the head, behind the eyes.
+const side = new THREE.Vector3(1, 0, 0), cands = [];
+for (const p of headPts) {
+  const along = p.clone().sub(eyeC).dot(fwd), height = p.clone().sub(eyeC).dot(up);
+  if (along < -headSize * 0.04 && along > -headSize * 0.4 && height > 0 && height < headSize * 0.2 && Math.abs(p.clone().sub(headC).dot(side)) > headSize * 0.06) cands.push(p);
+}
+const pits = [];
+for (const p of cands.sort((a, b) => b.clone().sub(headC).dot(up) - a.clone().sub(headC).dot(up)))
+  if (pits.every((q) => q.distanceTo(p) > headSize * 0.055)) pits.push(p);
+for (const p of pits.slice(0, 16)) {
+  const n = p.clone().sub(headC).normalize();
+  const m = new THREE.Matrix4().compose(p, new THREE.Quaternion().setFromUnitVectors(up, n), new THREE.Vector3(1.25, 0.3, 1));
+  writeGeometry(new THREE.SphereGeometry(headSize * 0.02, 12, 8), m, 'Pit', 'Pit');
+}
+
+// Tail.
+const tailPts = [];
+for (const m of meshes) {
+  if (eyes.includes(m)) continue;
+  let count = 0; for (let i = 0; i < m.geometry.attributes.position.count; i++) if (weightIn(m, i, tailBones) > 0.5) count++;
+  if (count > 20) tailPts.push(...writeSubset(m, (i) => weightIn(m, i, tailBones) > 0.5, 'PredTail_' + m.material.name, 'Pred' + m.material.name));
+}
+const tb = new THREE.Box3().setFromPoints(tailPts), tz = tb.max.z, tailBase = new THREE.Vector3(); let nt = 0;
+for (const p of tailPts) if (p.z > tz - 0.06 * (tz - tb.min.z)) { tailBase.add(p); nt++; }
+tailBase.multiplyScalar(1 / nt);
+const tailTip = tailPts.reduce((best, p) => (p.distanceTo(tailBase) > best.distanceTo(tailBase) ? p : best), tailBase);
+
+// Download both files so they can be passed to build_creature.py.
+const save = (name, text) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text])); a.download = name; a.click(); };
+window.partsObj = obj;
+window.partsMeta = { headSize, back: back.toArray(), tailBase: tailBase.toArray(), tailTip: tailTip.toArray(), teeth: picks.length, pits: Math.min(16, pits.length), mouth: mouth.length };
+save('parts.obj', obj);
+save('parts.json', JSON.stringify(window.partsMeta));
+document.title = 'done';
+</script></body></html>

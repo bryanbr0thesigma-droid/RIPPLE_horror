@@ -131,7 +131,9 @@ by Timsblends (CC BY), reworked to be scarier and RIPPLE's own:
 - **A gaunt, skeletal, long-limbed shape, made by mixing two models:** the body and
   limbs of a pale crawling humanoid ([The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e)
   by Sealife Fan 3, CC BY) with the predator's head and tail. The reptile head and
-  tail also keep it from looking like the inspiration game's crawling humanoid.
+  tail also keep it from looking like the inspiration game's crawling humanoid. It
+  uses the crawler's animations (walk, run, idle, search, screech and more). Built with
+  the scripts in `tools/creature/`.
 
 ## Making a fast creature fair
 
@@ -312,8 +314,7 @@ voice.
 
 ## Open questions
 
-- Does the mixed creature (crawler body, predator head and tail) work once it's
-  previewed?
+- Is the mixed creature approved as built, or does it need changes (head size, tail)?
 - Is there any story?
 - What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
   inspiration game's look?
