@@ -15,6 +15,8 @@ RAKE, PARTS, META, TEX, OUT = argv[:5]
 HEAD_K = float(argv[5]) if len(argv) > 5 else 1.6
 TAIL_K = float(argv[6]) if len(argv) > 6 else 0.9
 TRIM = float(argv[7]) if len(argv) > 7 else 0.2
+THIN_BASE = float(argv[8]) if len(argv) > 8 else 1.0
+THIN_TIP = float(argv[9]) if len(argv) > 9 else 1.0
 meta = json.load(open(META))
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -89,8 +91,17 @@ head_obj.data.transform(Matrix.Translation(neck_r - fwd_r * rake_head_size * 0.0
 # ---- Tail onto the hips. The crawler stands in its rest pose and pitches forward to crawl,
 # so a tail hanging down and slightly back here trails behind it when it crawls.
 base, tip = tail_base, Vector(meta['tailTip'])
+# Slim the tail: squeeze it toward its own axis, most at the base and less toward the tip.
+axis = tip - base
+length = axis.length
+axis.normalize()
+for v in tail_obj.data.vertices:
+    rel = v.co - base
+    t = min(1.0, max(0.0, rel.dot(axis) / length))
+    along = axis * rel.dot(axis)
+    v.co = base + along + (rel - along) * (THIN_BASE + (THIN_TIP - THIN_BASE) * t)
 rot = (tip - base).normalized().rotation_difference((-up_r - fwd_r * 1.0).normalized()).to_matrix().to_4x4()
-tail_obj.data.transform(Matrix.Translation(hips_r - fwd_r * rake_head_size * 0.12) @ rot @ Matrix.Scale(TAIL_K * s_head, 4) @ Matrix.Translation(-base))
+tail_obj.data.transform(Matrix.Translation(hips_r - fwd_r * rake_head_size * 0.02 + up_r * rake_head_size * 0.05) @ rot @ Matrix.Scale(TAIL_K * s_head, 4) @ Matrix.Translation(-base))
 
 # ---- Bind both to the crawler's skeleton, the same way its body is bound.
 for obj, bone in ((head_obj, bone_name('head')), (tail_obj, bone_name('spine_'))):

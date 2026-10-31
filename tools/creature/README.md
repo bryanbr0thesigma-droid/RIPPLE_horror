@@ -27,10 +27,10 @@ by Timsblends. It adds pale skin, blind eyes, needle teeth and sound pits, and k
    pale textures and giving `Teeth`, `Pit` and `BlindEye` plain colors.
 5. Build in Blender 4.2:
    ```
-   blender -b --python build_creature.py -- rake/scene.gltf parts.obj parts.json tex creature.glb 1.35 0.8 0.34
+   blender -b --python build_creature.py -- rake/scene.gltf parts.obj parts.json tex creature.glb 1.35 0.8 0.34 0.45 0.8
    ```
-   The last three numbers are the head scale (relative to the crawler's own head), the tail
-   scale, and how much of the tail's thick base to trim.
+   The numbers are the head scale (relative to the crawler's own head), the tail scale, how much
+   of the tail's thick base to trim, and how thin to make the tail at its base and at its tip.
 
 ## Known rough spots
 
