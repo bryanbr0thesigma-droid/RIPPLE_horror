@@ -139,20 +139,21 @@ by Sealife Fan 3 (CC BY), reworked into RIPPLE's own "drowned" creature:
 
 ### Its voice
 
-It clicks: deep, wet throat clicks that echo off the tiles. The clicks are its voice,
-not how it finds you. It still hunts only by listening to the water. The clicks are
-3D positional audio, so you can tell where it is in the dark, and each state sounds
+It clicks: deep throat clicks with only a short echo. The clicks are its voice, not
+how it finds you. It still hunts only by listening to the water. Its voice is 3D
+positional audio, so you can tell where it is in the dark, and each state sounds
 different:
 
 - **Patrol:** slow, occasional clicks
 - **Investigate:** steady clicking
-- **Close by:** slower, rattling clicks with water at its mouth
-- **Charge:** clicks speeding up into a harsh rasp. This is the warning to get off
-  the spot it's charging to.
+- **Close by:** higher, rattling clicks and teeth
+- **Charge:** a death screech. This is the warning to get off the spot it's charging
+  to.
 
-The voice is mixed from CC0 recordings made by people (throat clicks, a death rattle,
-a jumping spider's call, underwater bubbles), lowered to suit a big body. It must not
-copy the sound of any existing game's creature. Mixing script: `tools/sound/`.
+The voice is mixed from CC0 recordings (throat clicks, a death rattle, teeth, recorded
+screams, and dry ice on piano strings for an inhuman whine), changed in pitch and
+layered. It must not copy the sound of any existing game's creature. Mixing script:
+`tools/sound/`.
 
 ## Making a fast creature fair
 
