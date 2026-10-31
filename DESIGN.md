@@ -47,9 +47,9 @@ download.
    fall in.
 5. **Going still is your best chance, not a sure thing.** When you stop moving, it
    only knows roughly where you were. It comes to that area and feels around with its
-   arm. If the arm finds you, it has you. Small, slow movements are safe, so you can
-   ease away from the arm, but moving your body too much gives you away (see
-   "Searching by feel").
+   arm. Even if you stay perfectly still, there's about a 30% chance the arm finds
+   you. Any movement gives you away, even a flick of the wrist in the water or barely
+   stepping forward (see "Searching by feel").
 
 ## Falling in
 
@@ -187,18 +187,16 @@ layered. It must not copy the sound of any existing game's creature. Mixing scri
 
 What happens when you go still in the water with the creature on its way:
 
-- **It knows the area, not the spot.** It heads to where it thinks the noise came
-  from. That guess is off by a random amount: more for quiet noises and noises heard
-  from far away, less for loud noises heard up close.
+- **It knows the area, not the spot.** It heads to roughly where it last heard you.
 - **It feels around with its arm.** It stops at the surface and sweeps its long arm
-  through the water around its guess, a few passes over several seconds. Its close-by
+  through the water around that area, a few passes over several seconds. Its close-by
   rattling clicks play the whole time.
-- **The arm is the danger.** If the arm touches you, it has you. Because its guess is
-  off, there's a real chance it misses you, but never a guarantee.
-- **You can ease away, slowly.** Small, slow body movement is safe, so you can lean or
-  edge away from the arm as it passes. Moving your body too much (stepping, turning
-  fast, ducking quickly) gives you away and it grabs you. "Body" means your head and
-  torso, tracked by the headset. Hand movement still makes no noise.
+- **The arm is the danger.** If the arm touches you, it has you. Even if you stay
+  perfectly still, there's about a 30% chance it finds you. Otherwise it passes close
+  by and moves on.
+- **Don't move at all.** Even a tiny movement gives you away: a movement of the wrist
+  in the water, or barely stepping forward. Your head and body count, and so do your
+  hands while they're in the water.
 - **You can hear it coming.** The arm makes small sloshes as it sweeps, so you can
   follow it in the dark. The lidar shows it too.
 - **Teammates can help.** A decoy thrown elsewhere pulls it away mid-search.
@@ -210,7 +208,8 @@ What happens when you go still in the water with the creature on its way:
 | Falling in | Very loud, louder from higher up. Almost always triggers a charge. |
 | Lowering yourself in slowly | Quiet |
 | Standing still in the water | Silent |
-| Moving your body while it searches near you | Too much gives you away (see "Searching by feel") |
+| Moving your hands in the water | Makes noise, more the faster you move. Hands out of the water are silent. |
+| Any movement while it searches near you | Gives you away, even a tiny one (see "Searching by feel") |
 | Wading slowly | Very quiet |
 | Wading fast | Loud |
 | Landing on a floating inflatable | Small ripples |
@@ -239,10 +238,10 @@ Every interaction has a cost: noise, or a risky position above the water.
 | **Keys** | Locker and staff-door keys. Usually on hard-to-reach ledges. Some are on the bottom of the shallow end, so you have to wade in for them. Drop one and it sinks with a plop. Insert and turn in the lock. | Quiet if careful |
 | **Locked doors** | Staff doors, gates, lockers. Opened with keys. Some are rusted or stuck and have to be forced. | Key: quiet. Forcing: loud |
 | **Levers** | Pulled physically. Extend pool covers, lower platforms, open gates. Heavy ones clank. Some need two levers pulled at the same time by different players (solo version: wedge one with a crowbar). | Loud — time with cover noise or a decoy |
-| **Generators** | Restore power to a section: lights, lidar charging points, pool covers and lifts. They run on mineral water: pour a canteen of it into the tank. Bigger generators need several canteens. Once running, their hum is cover noise. | Medium while starting up |
-| **Mineral water** | Only certain patches of water carry the minerals that power generators. Fill the canteen there, which means reaching into the water. | Filling: quiet if slow |
+| **Generators** | Restore power to a section: lights, lidar charging points, pool covers and lifts. They run on mineral water: every generator takes 2 canteens of it, poured into the tank. Once running, their hum is cover noise. | Medium while starting up |
+| **Mineral water** | Only certain patches of water carry the minerals that power generators. They're slightly darker than the water around them. Fill the canteen there, which means reaching into the water. | Filling: quiet if slow |
 | **Water canteen** | A physics object. It spills if you tip it, drop it or fall, and spilled water is lost. Getting it back across the platforms without spilling is part of the challenge. It can be handed to a teammate. | Spilling into the pool: small splash |
-| **Distillers** | Found later in the game. Running mineral water through one concentrates it, so each canteen gives more power and you need fewer trips. | Quiet |
+| **Distillers** | Found later in the game. Distilled mineral water makes a generator power on faster than normal, so you spend less time making startup noise. It still takes 2 canteens. | Quiet |
 | **Throwables** | Broken tiles, bottles, rubber balls. Throw to make noise somewhere else. | Loud at the landing point |
 
 Typical level chain: **find key → open the staff room to get the canteen → find the
@@ -335,11 +334,13 @@ Everything else is coordination through the level.
   reflections or GPU wave simulation, to stay fast on Quest.
 - **"Can't leave the water":** the creature moves on a navigation mesh baked only over
   the water. The edge lunge is an attack with a fixed reach.
-- **Searching by feel:** runs on the host. The search point is the last noise position
-  plus a random offset that grows with distance and shrinks with loudness. The arm is
-  an IK chain driven along sweep paths, with a collision shape that catches players.
-  Each player's game checks its own headset speed and distance moved while the
-  creature is searching nearby, and sends a noise event when it's too much.
+- **Searching by feel:** runs on the host. When a search starts, the host rolls the
+  30% chance for each still player in the area and plans the arm's sweeps to either
+  reach them or pass close by without touching. The arm is an IK chain driven along
+  those sweeps, with a collision shape that catches players. While the creature is
+  searching nearby, each player's game watches its own headset and hands (hands only
+  while in the water) against a very small movement threshold, and sends a noise event
+  the moment it's crossed.
 - **Canteen:** the water is a fill level, not a fluid simulation. It drains while the
   canteen is tipped past an angle, faster the further it's tipped, with a small
   particle stream. Dropping it or falling empties some or all of it.
@@ -380,12 +381,6 @@ voice.
 
 ## Open questions
 
-- How do players recognize mineral water (color, cloudiness, a shimmer, only on the
-  lidar)?
-- How much body movement is too much during a search? Needs playtesting.
-- How often should the arm miss? It should feel tense, not random.
-- How much more efficient do distillers make the water (for example, one canteen
-  counts as two)?
 - Is there any story?
 - What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
   inspiration game's look?
