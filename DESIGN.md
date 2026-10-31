@@ -208,7 +208,7 @@ What happens when you go still in the water with the creature on its way:
 | Falling in | Very loud, louder from higher up. Almost always triggers a charge. |
 | Lowering yourself in slowly | Quiet |
 | Standing still in the water | Silent |
-| Moving your hands in the water | Makes noise, more the faster you move. Hands out of the water are silent. |
+| Moving your hands in the water | Makes noise, more the faster you move them. Only hand movement relative to your body counts: walking carries your hands along without extra noise (wading has its own). Hands out of the water are silent. |
 | Any movement while it searches near you | Gives you away, even a tiny one (see "Searching by feel") |
 | Wading slowly | Very quiet |
 | Wading fast | Loud |
@@ -260,6 +260,31 @@ sections of the poolrooms.
    platforms.
 4. **The dark sector** — lights out. Lidar-heavy until you restore power.
 5. **The slides** — water slides, fast movement, the finale.
+
+## Level 1: The Shallow Halls (test level)
+
+The first playable level, built in the co-op demo in `game/`. It uses every core mechanic once,
+in order, so a team learns them by playing.
+
+![Map of the test level](docs/level1_map.png)
+
+| # | Room | Water | What happens | What it teaches |
+|---|---|---|---|---|
+| 1 | Start room | none | Plaque with the rules. Checkpoint. | The goal and the rules |
+| 2 | Hall A | 1 m, shallow | The staff room key is on an island in the middle of the pool, reached by stepping columns from either side, or by wading slowly. | Platforming, falling in, wading noise, going still |
+| 3 | Staff room | none | Locked; the key opens it. Two canteens, the lidar on its charger, the distiller, bottles. Checkpoint. | Keys, items, decoys |
+| 4 | Hall B, the dark sector | 1.5 m | Lights out. Narrow beams and stepping columns across the pool. The darker mineral water is in the far corner beside a platform; the generator is on the far side. Two canteen trips (or two players with one canteen each). The generator is noisy while starting, then lights the room, powers the charger and masks noise nearby. | The lidar, mineral water, carrying the canteen, generators, distillers, co-op |
+| 5 | Hall C | 2.3 m, deep | The lever on the west ledge (loud) extends the pool cover across to the exit ledge. Swimming across is possible but very dangerous. | Timing a loud action, waiting for the creature to lose interest |
+| 6 | Exit | none | The level ends when everyone is inside. | |
+
+- **The creature** starts in Hall B. Water channels under the walls connect all three pools, so it
+  can reach anyone in any pool, and it tends to patrol toward players near the water.
+- **Ladders and grab edges:** every pool has ladders, and VR players can grab any pool edge or
+  platform edge to pull themselves out.
+- **Decoys:** four bottles, placed at the start of Hall A, in the staff room, at the Hall B
+  entrance and on Hall C's ledge.
+- **Co-op moments:** splitting the two canteen trips, one player scanning with the lidar while the
+  other carries, throwing a decoy to pull the creature away from a teammate, and handing items over.
 
 ## Comfort
 
@@ -339,8 +364,8 @@ Everything else is coordination through the level.
   reach them or pass close by without touching. The arm is an IK chain driven along
   those sweeps, with a collision shape that catches players. While the creature is
   searching nearby, each player's game watches its own headset and hands (hands only
-  while in the water) against a very small movement threshold, and sends a noise event
-  the moment it's crossed.
+  while in the water, measured relative to the body) against a very small movement
+  threshold, and sends a noise event the moment it's crossed.
 - **Canteen:** the water is a fill level, not a fluid simulation. It drains while the
   canteen is tipped past an angle, faster the further it's tipped, with a small
   particle stream. Dropping it or falling empties some or all of it.
@@ -369,14 +394,16 @@ voice.
 
 1. **Solo gray-box:** tiled platforms over a pool made from simple shapes. Walk, jump,
    climb. Falling in makes a splash, the creature (water-only navigation mesh)
-   charges, pool ladders to climb out, getting caught, restart.
-2. **Noise, stealth and lidar:** wading noise, going still, the investigate state, searching by feel,
-   decoys, floating inflatables, a dark section and the lidar scanner.
+   charges, pool ladders to climb out, getting caught, restart. *Done in the test demo.*
+2. **Noise, stealth and lidar:** wading noise, going still, the investigate state, searching by
+   feel, decoys, a dark section and the lidar scanner. *Done in the test demo, except floating
+   inflatables.*
 3. **Interactables:** key and door, lever, a generator with the canteen and mineral
-   water, each with its noise cost.
+   water, each with its noise cost. *Done in the test demo.*
 4. **Multiplayer:** 2 players over LAN, creature runs on the host, shared noise,
-   giving items and pushing.
-5. **Level 1:** the shallow halls, fully built with human-made art and audio.
+   giving items and pushing. *Done in the test demo (up to 4 players).*
+5. **Level 1:** the shallow halls, fully built with human-made art and audio. *The layout is in the
+   test demo; the art is still gray-box.*
 6. **Online play, voice chat, more levels, polish.**
 
 ## Open questions

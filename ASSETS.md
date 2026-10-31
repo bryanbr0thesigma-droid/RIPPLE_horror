@@ -53,6 +53,15 @@ Not added unless they're approved later.
 - Backup creature: [Ocean Creature](https://sketchfab.com/3d-models/ocean-creature-5c17cca6086e4910aa12e7d701ccd6a1) by bast_yy (Sketchfab, CC BY)
 - Backup creature: [Snake attack animations](https://sketchfab.com/3d-models/snake-attack-animations-multiple-83c4290cd4b648fd942d4bbc2280a3f6) by Imagigoo (Sketchfab, CC BY)
 
+## In the test demo
+
+The co-op demo in `game/` already uses these approved assets (credits in `game/CREDITS.md`):
+Tiles 132 A and Tiles 133 A (pool and wall tiles), the Godot XR Tools hands, the creature (The
+Rake, reworked, with Brown Leather skin detail, built by `tools/creature/` at 1024 px textures),
+the creature's voice, and the three ambience loops. Its other sounds (splashes, wading, plop,
+pouring, generator, distiller) are cut from the same approved CC0 recordings; the metal clank
+and door were synthesized for the project.
+
 ## Still needed
 
 - **Creature import:** build it with the scripts in `tools/creature/` (the drowned
