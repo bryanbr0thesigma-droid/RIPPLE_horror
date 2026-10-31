@@ -303,7 +303,10 @@ Everything else is coordination through the level.
 - **"Can't leave the water":** the creature moves on a navigation mesh baked only over
   the water. The edge lunge is an attack with a fixed reach.
 - **Audio:** 3D positional audio is essential. Half the game is hearing where it is.
-  Tiled rooms should echo. Underwater muffling when your head goes under.
+  Tiled rooms should echo. Underwater muffling when your head goes under. Each area has
+  a quiet looping ambience (lit halls with fluorescent hum, pump rooms, dark sectors
+  with no hum), with drips and water placed around the room as 3D sounds. Music is
+  slightly eerie and sparse, and stays quiet so it never hides the creature.
 - **Performance target:** 72–90 Hz on Quest 3 / 3S.
 
 ## Asset policy
