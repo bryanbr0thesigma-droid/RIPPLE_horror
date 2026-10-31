@@ -39,3 +39,16 @@ by Timsblends. It adds pale skin, blind eyes, needle teeth and sound pits, and k
 - The tail is rigid. It needs its own bones, or procedural sway in the game.
 - The joins at the neck and hips need smoothing.
 - The textures are 2048 px and the crawler's normal map is large. Downsize for Quest.
+
+## Glossy black version (being reviewed)
+
+`build_tar_creature.py` makes a different take from the crawler alone: wet, glossy black skin,
+a new smooth eyeless head with a crooked slit of human teeth, and sound pits.
+
+1. Make a near-black version of the crawler's base color texture (keep its detail as faint
+   variation; the one used was a ramp from about 0.01 to 0.07).
+2. Build:
+   ```
+   blender -b --python build_tar_creature.py -- rake/scene.gltf tar_body.png creature_tar.glb 1.1 14
+   ```
+   The numbers are the head size (relative to the crawler's own head) and the mouth tilt in degrees.
