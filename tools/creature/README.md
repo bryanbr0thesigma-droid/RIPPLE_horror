@@ -78,5 +78,19 @@ python3 skin_bake.py rake/textures leather skin pale 9
 blender -b --python build_drowned_creature.py -- rake/scene.gltf skin/skin_pale_color.png creature.glb hollow skin/skin_normal.png skin/skin_pale_mr.png
 ```
 
-Use `dark` instead of `pale` for the dark tone. The last number is how many times the leather tiles
-across the texture.
+Use `dark` instead of `pale` for the dark tone, or `dark2` for dark skin with more contrast
+(near-black creases, lighter ridges) and an oily sheen, so its shape still reads in low light. The
+last number is how many times the leather tiles across the texture.
+
+## Decorative mouths (being reviewed)
+
+Add `mouths` after the metallic-roughness map to grow four small toothy slits into the skin as
+decoration: on the neck, the forearm, the shoulder and the back. Each is a black slit with two rows
+of blunt teeth, riding on its own bone.
+
+```
+python3 skin_bake.py rake/textures leather skin dark2 9
+blender -b --python build_drowned_creature.py -- rake/scene.gltf skin/skin_dark2_color.png creature.glb hollow skin/skin_normal.png skin/skin_dark2_mr.png mouths
+```
+
+The shoulder slit still bulges a little where the skin curves; it needs sinking or a smaller size.

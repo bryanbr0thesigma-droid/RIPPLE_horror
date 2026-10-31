@@ -1,6 +1,6 @@
 # Realistic skin for the crawler: its own texture for the big shapes, photographed leather (real animal
 # skin, Poly Haven CC0) for pores and wrinkles, plus color blotches, veins, and wet creases.
-#   python3 skin_bake.py <rake textures dir> <leather dir> <out dir> <dark|pale> [tiles]
+#   python3 skin_bake.py <rake textures dir> <leather dir> <out dir> <dark|dark2|pale> [tiles]
 import sys
 
 import numpy as np
@@ -57,6 +57,11 @@ if TONE == 'pale':
     crease, mid, high = np.array([0.30, 0.28, 0.29]), np.array([0.60, 0.58, 0.56]), np.array([0.80, 0.77, 0.73])
     vein_col, bruise, green, red = np.array([0.33, 0.32, 0.46]), np.array([0.50, 0.42, 0.52]), np.array([0.55, 0.58, 0.52]), np.array([0.66, 0.50, 0.48])
     vein_amt = 0.2
+elif TONE == 'dark2':
+    # Dark, but with real contrast: near-black creases and lighter ridges, so the form still reads in low light.
+    crease, mid, high = np.array([0.018, 0.016, 0.016]), np.array([0.13, 0.115, 0.105]), np.array([0.42, 0.38, 0.33])
+    vein_col, bruise, green, red = np.array([0.07, 0.06, 0.09]), np.array([0.17, 0.12, 0.17]), np.array([0.14, 0.16, 0.13]), np.array([0.24, 0.12, 0.10])
+    vein_amt = 0.12
 else:
     crease, mid, high = np.array([0.045, 0.040, 0.040]), np.array([0.19, 0.17, 0.16]), np.array([0.34, 0.31, 0.28])
     vein_col, bruise, green, red = np.array([0.09, 0.08, 0.12]), np.array([0.20, 0.15, 0.20]), np.array([0.17, 0.19, 0.16]), np.array([0.26, 0.15, 0.13])
@@ -73,6 +78,8 @@ Image.fromarray((np.clip(col, 0, 1) * 255).astype(np.uint8)).save(f'{OUT}/skin_{
 # Roughness (glTF metallic-roughness: G = roughness, B = metallic): damp and shinier in creases, drier on top.
 rough = tiled(f'{LEATHER}/brown_leather_rough_2k.jpg', S, 'L')
 r = 0.5 + 0.35 * (rough - rough.mean()) - 0.18 * (1 - shape) + 0.08 * (b2 - 0.5)
+if TONE == 'dark2':
+    r = r - 0.14                                                  # an oily sheen, so dark skin catches light
 r = np.clip(r, 0.22, 0.85)
 mr = np.stack([np.zeros_like(r), r, np.zeros_like(r)], axis=-1)
 Image.fromarray((mr * 255).astype(np.uint8)).save(f'{OUT}/skin_{TONE}_mr.png')
