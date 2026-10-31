@@ -53,8 +53,13 @@ Not added unless they're approved later.
 
 ## Still needed
 
-- **Creature model file:** the Four Legged Predator's glTF, downloaded from Sketchfab
-  (needs a free account), so the rework can start.
+- **Creature model file:** received (glTF, CC BY 4.0, 7 animations: idle, walk, run,
+  attack, powerful attack, roar, sleeping). It goes into the project when the Godot
+  project is set up. Two things to fix on import:
+  - The eyes are bound to a `pivot` bone that doesn't follow the animated head. Bind
+    them to the head bone (`DEF-spine.006`).
+  - The animations scale the body up about 100x compared with the rest pose. Check the
+    import scale and the root transforms in Godot.
 - **Suit color masks:** one mask per approved suit, marking which parts take the
   player's color. Needs the model files (a free Sketchfab account to download).
 - **Avatar movement:** the suits have few or no animations. Other players' bodies
