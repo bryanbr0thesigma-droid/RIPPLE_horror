@@ -79,7 +79,7 @@ def save(name, st):
 
 room = bed(band(load('670070', 10, 120), lo=40), 1.0)                       # empty-building room tone
 hum = bed(band(load('451918', 2, 54), lo=60, hi=3000), 0.45)                 # fluorescent tubes, softened
-water = bed(band(load('480855', 0, 73), lo=80, hi=5000), 0.5)                # water moving against the edges
+water = bed(band(load('480855', 0, 73), lo=80, hi=2500), 0.18)               # water moving against the edges: soft, in the background
 pump = bed(band(load('658155', 5, 180), lo=40, hi=900), 1.4)                 # pump room, heard through a wall
 cave_drops = bed(band(load('609161', 1, 47), lo=300), 0.3)                   # far-off drops
 

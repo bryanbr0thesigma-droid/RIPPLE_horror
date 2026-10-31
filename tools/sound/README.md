@@ -79,3 +79,21 @@ python3 mix_ambience.py recordings out
 
 In the game, play the bed quietly and loop it. Better still, play the drips and water
 as separate 3D sounds placed around the room.
+
+## Music
+
+`mix_music.py` makes background music that barely sounds like music: CC0 recordings
+slowed down 6 to 10 times with a spectral stretch (big overlapping windows with their
+phases scrambled, the "paulstretch" method), so notes melt into slow, drifting tones.
+Each ear gets a different stretch, for a wide sound, and each piece loops. Being
+reviewed (Round 19), alongside human-made CC0 drone tracks from OpenGameArt:
+
+- `music_melted_piano.wav`: [At the End of Hope](https://opengameart.org/content/at-the-end-of-hope)
+  by Emma_MA, stretched 8 times.
+- `music_singing_drips.wav`: the cave drips and the dry ice on piano strings, stretched.
+- `music_under_surface.wav`: [Underwater Ambient Pad](https://opengameart.org/content/underwater-ambient-pad)
+  by isaiah658, lowered and stretched 10 times.
+
+```
+python3 mix_music.py out hope=at_the_end_of_hope.mp3 drips=177958.mp3 dryice=10347.mp3 pad=Underwater-Ambient-Pad-isaiah658.ogg
+```
