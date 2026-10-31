@@ -209,6 +209,9 @@ The only direct interaction between players is **giving items** and **pushing**.
 Everything else is coordination through the level.
 
 - **One creature, hears everyone.** One teammate's fall endangers the whole team.
+- **Player color:** each player picks a color for their suit, and everyone sees it. In
+  the game, a mask texture painted once per suit model decides which parts take the
+  color, and a shader applies it. Only the color value is sent over the network.
 - **Giving items:** hand over keys, fuses, throwables and the lidar scanner.
 - **Pushing:** players can shove each other, including near an edge. Knocking a
   teammate into the water, by accident or not, is part of the tension.
