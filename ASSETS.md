@@ -62,9 +62,10 @@ Not added unless they're approved later.
   - Some of the model's normals face inward. Check for missing faces.
   - The shoulder mouth bulges a little and needs sinking.
   - Downsize the 2048 px textures and the 4096 px normal map for Quest.
-- **Sounds:** the creature's clicking voice is being reviewed (Round 14), mixed from
-  CC0 Freesound recordings with `tools/sound/mix_voice.py`. The rest of the sounds
-  come later.
+- **Sounds:** the creature's voice is mixed from CC0 Freesound recordings with
+  `tools/sound/mix_voice.py`. The close-by clicks and the charge (clicks, then a death
+  screech) are approved. The hunting clicks are still being reviewed. The rest of the
+  sounds come later.
 - **Made by the team:** pool ladders, diving boards and towers, water slides,
   retractable pool covers, inflatable rings and floats, keys, fuses, the lidar
   scanner, lever handles.

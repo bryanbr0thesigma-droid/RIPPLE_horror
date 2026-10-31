@@ -51,13 +51,14 @@ def fades(x, a=0.02, b=0.3):
     return x
 
 
-def pool_reverb(x, wet, rt_low=2.6, rt_high=1.1):
+def pool_reverb(x, wet, rt_low=2.6, rt_high=1.1, seed=7):
     # Hard tiles and water: long, bright early, highs dying faster than lows. Different noise per ear.
     n = int(rt_low * SR)
     t = np.arange(n) / SR
     out = []
+    r = np.random.default_rng(seed)          # the same room every run, whatever was mixed before
     for ch in range(2):
-        noise = rng.standard_normal(n)
+        noise = r.standard_normal(n)
         lowp, highp = band(noise, hi=1800), band(noise, lo=1800)
         ir = lowp * 10 ** (-3 * t / rt_low) + highp * 10 ** (-3 * t / rt_high)
         ir[: int(0.012 * SR)] = 0                                  # pre-delay
@@ -137,16 +138,46 @@ def click_bursts(gs, seconds, seed):
 
 small_room = dict(wet=0.12, rt_low=1.0, rt_high=0.45)
 
-# ---- 1. Hunting: throat clicks with the vowel taken out and a distorted edge. Two takes: the natural
-# rhythm of the recording, and clicks rearranged into bursts.
+def shuffle_pieces(x, seconds, seed, piece=(0.12, 0.3), jitter=1.0):
+    # Cut a recording into pieces shorter than a spoken word and join them in a random order, each a
+    # little higher or lower. No whole "yeah" survives, but the clicks stay wet and natural (not the
+    # fixed tone that made it sound like a machine).
+    r = np.random.default_rng(seed)
+    rms = np.sqrt((x ** 2).mean())
+    out = np.zeros(int(seconds * SR) + SR); pos, xf = 0, int(0.015 * SR)
+    while pos < int(seconds * SR):
+        L = int(r.uniform(*piece) * SR)
+        i = int(r.integers(0, len(x) - L))
+        chunk = x[i:i + L]
+        if np.sqrt((chunk ** 2).mean()) < 0.4 * rms:
+            continue                                   # skip the quiet gaps
+        chunk = pitch(chunk, r.uniform(-jitter, jitter)) * r.uniform(0.75, 1.0)
+        w = np.ones(len(chunk)); w[:xf] = np.linspace(0, 1, xf); w[-xf:] = np.linspace(1, 0, xf)
+        m = min(len(chunk), len(out) - pos)
+        out[pos:pos + m] += (chunk * w)[:m]
+        pos += len(chunk) - xf
+    return out[:int(seconds * SR)]
+
+
+small_room = dict(wet=0.12, rt_low=1.0, rt_high=0.45)
 dur = 12.0; N = int(dur * SR)
-throat = devoice(fit(pitch(load('688417', 1.5, 12.0), -4), N))
-save('voice_search', pool_reverb(fades(drive(throat, 2.5)), **small_room))
-gs = grains(devoice(pitch(load('688417', 1.5, 23.4), -4)), 40, length=0.035)
-save('voice_search_bursts', pool_reverb(fades(drive(click_bursts(gs, dur, 3), 2.5)), **small_room))
+
+# ---- 1. Hunting. Three takes:
+#   rattle: the same rattling voice as "close by", deeper and steadier, so it's one creature.
+#   pieces: the throat clicks cut into short pieces and shuffled, so they can't form a word.
+#   both:   the two together.
+rattle_src = np.concatenate([load('830016', 7.6, 13.7), load('830016', 22.5, 31.7)])
+rattle_hunt = fit(pitch(rattle_src, -3), N)
+throat_src = pitch(load('688417', 1.5, 23.4), -4)
+pieces = shuffle_pieces(throat_src, dur, 5)
+save('voice_search_rattle', pool_reverb(fades(drive(rattle_hunt, 1.8)), **small_room))
+save('voice_search_pieces', pool_reverb(fades(drive(pieces, 1.8)), **small_room))
+both = rattle_hunt / np.abs(rattle_hunt).max() + 0.7 * pieces / np.abs(pieces).max()
+save('voice_search_both', pool_reverb(fades(drive(both, 1.8)), **small_room))
+gs = grains(devoice(throat_src), 40, length=0.035)    # single clicks for the charge's lead-in
 
 # ---- 2. Close by: rattling clicks and teeth, between the first pitch and the recorded pitch, distorted.
-dur = 8.0; N = int(dur * SR)
+N = int(8.0 * SR)
 teeth = fit(band(load('470902', 0.9, 9.5), lo=600), N)
 rattle = fit(pitch(load('830016', 0.0, 6.9), -1.5), N)
 save('voice_close', pool_reverb(fades(drive(rattle / np.abs(rattle).max() + teeth * 0.5, 2.0)), wet=0.1, rt_low=0.9, rt_high=0.4))

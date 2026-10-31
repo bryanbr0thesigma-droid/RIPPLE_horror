@@ -1,17 +1,26 @@
 # Creature voice
 
 `mix_voice.py` mixes the creature's voice from CC0 recordings on Freesound. It writes
-stereo WAVs:
+stereo WAVs.
 
-- `voice_search.wav`: hunting. Deep throat clicks with a short, small echo. The
-  recording's changing mouth shape (which made it sound like a person saying "yeah")
-  is flattened out and replaced with one fixed, non-human tone, then distorted.
-- `voice_search_bursts.wav`: the same clicks cut apart and rearranged into bursts.
+Approved in review:
+
 - `voice_close.wav`: close by. Rattling clicks and teeth, distorted.
-- `voice_charge.wav`: charging. A death screech from two recorded screams together,
-  each lowered for size with a second throat an octave under it, with dry ice on piano
-  strings whining on top.
-- `voice_charge_clicks.wav`: a burst of speeding-up clicks, then the screech.
+- `voice_charge_clicks.wav`: charging. A burst of speeding-up clicks, then a death
+  screech from two recorded screams together, each lowered for size with a second
+  throat an octave under it, with dry ice on piano strings whining on top.
+
+Still being reviewed (hunting), all lightly distorted with a short echo:
+
+- `voice_search_rattle.wav`: the same rattling voice as close by, deeper and steadier.
+- `voice_search_pieces.wav`: the throat clicks cut into short pieces and shuffled, so
+  they can't form a word.
+- `voice_search_both.wav`: the two together.
+
+Tried and rejected: the throat clicks as recorded (sounded like a person saying
+"yeah"), and with their tone flattened (sounded like a printer).
+
+Also written: `voice_charge.wav`, the screech without the clicks.
 
 ## Recordings
 
