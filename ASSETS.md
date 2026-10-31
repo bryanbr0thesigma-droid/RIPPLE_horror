@@ -1,0 +1,59 @@
+# RIPPLE — Assets
+
+Every asset must allow full commercial use and must not be AI-generated (see the
+Asset policy in `DESIGN.md`). Assets are reviewed with previews before they're
+approved.
+
+## Rules
+
+- **Licenses:** CC0 preferred. Anything else needs a license that allows commercial
+  use in a game.
+- **No AI:** check each source. Prefer sources that state they don't use generative AI.
+- **Public repo:** this repository is public. Assets whose license forbids
+  redistributing the raw files (for example the Sonniss GDC sound bundles or Mixamo)
+  can be used in the game but must not be committed here.
+- **Quest:** download textures at 1K and simplify heavy models.
+
+## Approved
+
+| Asset | What it's for | Source | Author | License |
+|---|---|---|---|---|
+| [Tiles 132 A](https://ambientcg.com/view?id=Tiles132A) — blue pool tiles, clean | Pool walls and floors | ambientCG | ambientCG | CC0 |
+| [Tiles 132 C](https://ambientcg.com/view?id=Tiles132C) — blue pool tiles, broken | Damaged areas | ambientCG | ambientCG | CC0 |
+| [Tiles 133 A](https://ambientcg.com/view?id=Tiles133A) — white square tiles, clean | Walls, walkways, platforms | ambientCG | ambientCG | CC0 |
+| [Tiles 036](https://ambientcg.com/view?id=Tiles036) — white subway tiles | Corridors and staff areas | ambientCG | ambientCG | CC0 |
+| [Prototype Textures](https://kenney.nl/assets/prototype-textures) | Gray-box test level | Kenney | Kenney | CC0 |
+| [Wet Floor Sign 01](https://polyhaven.com/a/WetFloorSign_01) | Poolside dressing | Poly Haven | Fran Calvente | CC0 |
+| [Industrial Wall Lamp](https://polyhaven.com/a/industrial_wall_lamp) | Wall lighting | Poly Haven | Kuutti Siitonen | CC0 |
+| [Modular Pipes](https://polyhaven.com/a/modular_pipes) | Pump room dressing. 47,428 polygons, needs simplifying for Quest. | Poly Haven | Kuutti Siitonen | CC0 |
+| [Plastic Monobloc Chair 01](https://polyhaven.com/a/plastic_monobloc_chair_01) | Poolside chairs | Poly Haven | Kuutti Siitonen | CC0 |
+
+## Maybe
+
+Not added unless they're approved later.
+
+- [Tiles 133 D](https://ambientcg.com/view?id=Tiles133D) — white square tiles, broken (ambientCG)
+- [Utility Box 01](https://polyhaven.com/a/utility_box_01) — fuse box housing (Poly Haven)
+- [Rollershutter Door](https://polyhaven.com/a/rollershutter_door) — gates (Poly Haven)
+- [Crowbar 01](https://polyhaven.com/a/crowbar_01) — solo lever wedge (Poly Haven)
+- [Mounted Fluorescent Lights](https://polyhaven.com/a/mounted_fluorescent_lights) (Poly Haven)
+- [Caged Hanging Light](https://polyhaven.com/a/caged_hanging_light) (Poly Haven)
+- [Modular Airduct Rectangular 01](https://polyhaven.com/a/modular_airduct_rectangular_01) (Poly Haven)
+- [Rubber Duck Toy](https://polyhaven.com/a/rubber_duck_toy) (Poly Haven)
+- [Plastic Crate 01](https://polyhaven.com/a/plastic_crate_01) (Poly Haven)
+- [Plastic Bottle Gallon](https://polyhaven.com/a/plastic_bottle_gallon) — throwable (Poly Haven)
+- [Can Rusted](https://polyhaven.com/a/can_rusted) — throwable (Poly Haven)
+- [Godot XR Tools hands](https://github.com/GodotVR/godot-xr-tools/tree/master/addons/godot-xr-tools/hands) — being decided in round 2
+
+## Still needed
+
+- **Hands, player avatar, creature:** being reviewed in round 2
+- **Sounds:** next round
+- **Made by the team:** the creature (or commissioned), pool ladders, diving boards
+  and towers, water slides, retractable pool covers, inflatable rings and floats,
+  keys, fuses, the lidar scanner, lever handles
+
+## Files
+
+The approved files will be downloaded into the project when the Godot project is set
+up.
