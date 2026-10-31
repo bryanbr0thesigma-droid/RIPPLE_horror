@@ -128,9 +128,10 @@ by Timsblends (CC BY), reworked to be scarier and RIPPLE's own:
 - **Sound pits along the head,** so players can see it's built to listen.
 - **Twitchy listening movement:** sharp head tilts toward sounds, freezing mid-step,
   then sudden fast scuttling. Done in code on top of its own animations.
-- **Wanted: a gaunt, skeletal, long-limbed shape.** Stretching the predator's skeleton
-  that far tears the model, so the options are reshaping it in Blender or switching to a
-  ready-made creature that already has that shape. Being reviewed.
+- **A gaunt, skeletal, long-limbed shape, made by mixing two models:** the body and
+  limbs of a pale crawling humanoid ([The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e)
+  by Sealife Fan 3, CC BY) with the predator's head and tail. The reptile head and
+  tail also keep it from looking like the inspiration game's crawling humanoid.
 
 ## Making a fast creature fair
 
@@ -311,7 +312,8 @@ voice.
 
 ## Open questions
 
-- Which gaunt creature, or reshape the predator?
+- Does the mixed creature (crawler body, predator head and tail) work once it's
+  previewed?
 - Is there any story?
 - What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
   inspiration game's look?
