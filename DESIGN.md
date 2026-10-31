@@ -139,14 +139,15 @@ by Sealife Fan 3 (CC BY), reworked into RIPPLE's own "drowned" creature:
 
 ### Its voice
 
-It clicks: deep throat clicks with only a short echo. The clicks are its voice, not
+It clicks: deep, distorted throat clicks with only a short echo, and nothing human
+in their tone. The clicks are its voice, not
 how it finds you. It still hunts only by listening to the water. Its voice is 3D
 positional audio, so you can tell where it is in the dark, and each state sounds
 different:
 
 - **Patrol:** slow, occasional clicks
 - **Investigate:** steady clicking
-- **Close by:** higher, rattling clicks and teeth
+- **Close by:** rattling clicks and teeth
 - **Charge:** a death screech. This is the warning to get off the spot it's charging
   to.
 

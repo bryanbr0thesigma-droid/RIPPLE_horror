@@ -87,25 +87,81 @@ def grains(x, count, length=0.07):
     return [x[i - L // 4: i - L // 4 + L] * win for i in picks]
 
 
-# ---- 1. Hunting: the click voice it makes while searching. Mostly dry: a short, small-room echo.
-dur = 12.0; N = int(dur * SR)
-throat = fit(pitch(load('688417', 1.5, 12.0), -4), N)
-save('voice_search', pool_reverb(fades(throat), wet=0.12, rt_low=1.0, rt_high=0.45))
+def devoice(x, n=1024, hop=256, passes=2):
+    # Take the vowel out of a voice: flatten each moment's spectral shape (the moving mouth shape that
+    # makes throat clicks sound like someone saying "yeah"), then give every frame the same fixed,
+    # non-human resonance. Each frame keeps its loudness, so the click rhythm stays.
+    win = np.hanning(n)
+    fr = np.fft.rfftfreq(n, 1 / SR)
+    lf = np.log2(np.maximum(fr, 20))
+    target = (0.35 + np.exp(-((lf - np.log2(260)) / 0.6) ** 2) + 0.8 * np.exp(-((lf - np.log2(1300)) / 0.35) ** 2)
+              + 0.6 * np.exp(-((lf - np.log2(3400)) / 0.3) ** 2)) / np.sqrt(1 + (fr / 7000) ** 4)
+    kernel = np.ones(5) / 5                       # about 230 Hz: narrow enough to catch the vowel peaks
+    xp = np.pad(x, (n, n))
+    out = np.zeros_like(xp); norm = np.zeros_like(xp)
+    for i in range(0, len(xp) - n, hop):
+        f = xp[i:i + n] * win
+        X = np.fft.rfft(f)
+        Y = X
+        for _ in range(passes):                   # flatten twice: one pass leaves some of the vowel
+            env = np.exp(np.convolve(np.log(np.abs(Y) + 1e-9), kernel, 'same'))
+            Y = Y / env
+        Y = Y * target
+        y = np.fft.irfft(Y, n)
+        y *= np.sqrt((f ** 2).sum() / ((y * win) ** 2).sum().clip(1e-12))
+        out[i:i + n] += y * win; norm[i:i + n] += win ** 2
+    return (out / np.maximum(norm, 1e-6))[n:n + len(x)]
 
-# ---- 2. Close by: rattling clicks and teeth, near you. Two higher pitches to choose from.
+
+def drive(x, amount):
+    # Distortion: a rough, torn edge on the clicks.
+    x = x / (np.abs(x).max() + 1e-9)
+    return np.tanh(x * amount) / np.tanh(amount)
+
+
+def click_bursts(gs, seconds, seed):
+    # Clicks in bursts with pauses between them, rather than one even buzz.
+    r = np.random.default_rng(seed)
+    out = np.zeros(int(seconds * SR)); pos, k = int(0.1 * SR), 0
+    while pos < len(out) - int(0.3 * SR):
+        for _ in range(r.integers(4, 13)):
+            g = gs[k % len(gs)] * r.uniform(0.6, 1.0); k += 1
+            m = min(len(g), len(out) - pos)
+            out[pos:pos + m] += g[:m]
+            pos += int(r.uniform(0.028, 0.065) * SR)
+            if pos >= len(out) - len(g):
+                break
+        pos += int(r.uniform(0.25, 0.9) * SR)
+    return out
+
+
+small_room = dict(wet=0.12, rt_low=1.0, rt_high=0.45)
+
+# ---- 1. Hunting: throat clicks with the vowel taken out and a distorted edge. Two takes: the natural
+# rhythm of the recording, and clicks rearranged into bursts.
+dur = 12.0; N = int(dur * SR)
+throat = devoice(fit(pitch(load('688417', 1.5, 12.0), -4), N))
+save('voice_search', pool_reverb(fades(drive(throat, 2.5)), **small_room))
+gs = grains(devoice(pitch(load('688417', 1.5, 23.4), -4)), 40, length=0.035)
+save('voice_search_bursts', pool_reverb(fades(drive(click_bursts(gs, dur, 3), 2.5)), **small_room))
+
+# ---- 2. Close by: rattling clicks and teeth, between the first pitch and the recorded pitch, distorted.
 dur = 8.0; N = int(dur * SR)
 teeth = fit(band(load('470902', 0.9, 9.5), lo=600), N)
-for name, semis in (('voice_close_high', 0), ('voice_close_higher', 3)):
-    rattle = fit(pitch(load('830016', 0.0, 6.9), semis), N)
-    save(name, pool_reverb(fades(rattle + teeth * 0.5), wet=0.1, rt_low=0.9, rt_high=0.4))
+rattle = fit(pitch(load('830016', 0.0, 6.9), -1.5), N)
+save('voice_close', pool_reverb(fades(drive(rattle / np.abs(rattle).max() + teeth * 0.5, 2.0)), wet=0.1, rt_low=0.9, rt_high=0.4))
 
-# ---- 3. Charging: a death screech. A recorded scream, lowered for size, with a second throat an octave
-# under it (not quite human), a torn edge, and dry ice on piano strings whining on top.
-def screech(voice, start, end, drive):
+# ---- 3. Charging: a death screech. Two recorded screams together, each lowered for size with a second
+# throat an octave under it (not quite human), a torn edge, and dry ice on piano strings whining on top.
+def screech_voice(voice, start, end, drive_amt):
     v = load(voice, start, end)
     body = pitch(v, -4)
     s = body + fit(pitch(v, -12), len(body)) * 0.45
-    s = np.tanh(band(s, lo=120) * drive) / np.tanh(drive)
+    s = np.tanh(band(s, lo=120) * drive_amt) / np.tanh(drive_amt)
+    return s / np.abs(s).max()
+
+
+def finish(s):
     s = s + fit(band(pitch(load('10347', 1.5, 3.75), -2), lo=900), len(s)) * 0.35
     s *= np.minimum(1, np.arange(len(s)) / (0.01 * SR))
     s[-int(0.08 * SR):] *= np.linspace(1, 0, int(0.08 * SR))
@@ -113,19 +169,19 @@ def screech(voice, start, end, drive):
 
 
 def click_lead(length=0.75):
-    # Clicks speeding up, to lead into the screech.
-    gs = grains(pitch(load('688417', 1.5, 23.4), -3), 24)
+    # Clicks speeding up, in the same voice as the hunting clicks, to lead into the screech.
     lead = np.zeros(int(length * SR)); pos, k, iv = 0, 0, 0.09
     while pos < len(lead) - 3000:
         g = gs[k % len(gs)]; m = min(len(g), len(lead) - pos)
         lead[pos:pos + m] += g[:m]; pos += int(iv * SR); k += 1; iv = max(0.02, iv * 0.82)
-    return lead * 0.8
+    return drive(lead, 2.5) * 0.8
 
 
+a = screech_voice('633958', 0.0, 2.2, 0.8)       # screeched into a mic: already harsh, little extra edge
+c = screech_voice('398802', 0.0, 2.0, 1.0)       # long, rough monster scream
+n = max(len(a), len(c))
+both = finish(fit(a, n) + fit(c, n) * 0.8)
 short_room = dict(wet=0.15, rt_low=1.1, rt_high=0.5)
-mic = screech('633958', 0.0, 2.2, 0.8)              # already harsh, so little extra edge
-save('voice_charge_a', pool_reverb(mic, **short_room))
-save('voice_charge_a_clicks', pool_reverb(np.concatenate([click_lead(), mic]), **short_room))
-save('voice_charge_b', pool_reverb(screech('249813', 0.42, 1.2, 2.2), **short_room))
-save('voice_charge_c', pool_reverb(screech('398802', 0.0, 2.0, 1.0), **short_room))
+save('voice_charge', pool_reverb(both, **short_room))
+save('voice_charge_clicks', pool_reverb(np.concatenate([click_lead(), both]), **short_room))
 print('mixed')
