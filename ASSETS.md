@@ -31,8 +31,8 @@ approved.
 | [Anti-radiation suit (OZK)](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) | Player suit. Player color changes the camo. | Sketchfab | sanyaork | CC BY 4.0 |
 | [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) | Player suit. Player color changes the stripes. | Sketchfab | DanlyVostok | CC BY 4.0 |
 | [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins to be removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
-| [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | The creature's head and tail (see "The creature" in `DESIGN.md`) | Sketchfab | Timsblends | CC BY 4.0 |
-| [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e) | The creature's body, limbs and animations | Sketchfab | Sealife Fan 3 | CC BY 4.0 |
+| [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | Not used by the current creature, which is built from The Rake alone. Kept in case. | Sketchfab | Timsblends | CC BY 4.0 |
+| [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e) | The creature: body, head, limbs and animations (see "The creature" in `DESIGN.md`) | Sketchfab | Sealife Fan 3 | CC BY 4.0 |
 | [Brown Leather](https://polyhaven.com/a/brown_leather) | Pore and wrinkle detail for the creature's skin | Poly Haven | Poly Haven | CC0 |
 
 ## Maybe
@@ -55,13 +55,19 @@ Not added unless they're approved later.
 
 ## Still needed
 
-- **Creature model file:** received (glTF, CC BY 4.0, 7 animations: idle, walk, run,
-  attack, powerful attack, roar, sleeping). It goes into the project when the Godot
-  project is set up. Two things to fix on import:
-  - The eyes are bound to a `pivot` bone that doesn't follow the animated head. Bind
-    them to the head bone (`DEF-spine.006`).
-  - The animations scale the body up about 100x compared with the rest pose. Check the
-    import scale and the root transforms in Godot.
+- **Creature import:** build it with the scripts in `tools/creature/` (the drowned
+  version with dark skin and decorative mouths). Things to handle in Godot:
+  - Pose the unhinged jaw: rotate the jaw bone about 0.75 rad around its X axis and
+    stretch it about 1.3x along its length.
+  - Some of the model's normals face inward. Check for missing faces.
+  - The shoulder mouth bulges a little and needs sinking.
+  - Downsize the 2048 px textures and the 4096 px normal map for Quest.
+- **Sounds:** the creature's clicking voice is being reviewed (Round 14), mixed from
+  CC0 Freesound recordings with `tools/sound/mix_voice.py`. The rest of the sounds
+  come later.
+- **Made by the team:** pool ladders, diving boards and towers, water slides,
+  retractable pool covers, inflatable rings and floats, keys, fuses, the lidar
+  scanner, lever handles.
 - **Suit color masks:** one mask per approved suit, marking which parts take the
   player's color. Needs the model files (a free Sketchfab account to download).
 - **Avatar movement:** the suits have few or no animations. Other players' bodies
@@ -72,10 +78,6 @@ Not added unless they're approved later.
 
 - Quaternius Universal Base Characters and Universal Animation Library: the approved
   suits are complete characters, so the bare bodies aren't needed.
-- **Sounds:** next round
-- **Made by the team:** pool ladders, diving boards
-  and towers, water slides, retractable pool covers, inflatable rings and floats,
-  keys, fuses, the lidar scanner, lever handles
 
 ## Files
 

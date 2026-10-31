@@ -119,21 +119,40 @@ hits.
 
 ## The creature
 
-Based on the ready-made [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e)
-by Timsblends (CC BY), reworked to be scarier and RIPPLE's own:
+Built from the ready-made [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e)
+by Sealife Fan 3 (CC BY), reworked into RIPPLE's own "drowned" creature:
 
-- **Pale, drowned skin and blind, milky eyes.** It has lived its whole life in dark
-  water and hunts only by sound.
-- **Needle teeth,** with the jaw hanging slightly open.
-- **Sound pits along the head,** so players can see it's built to listen.
+- **Dark, wet, realistic skin:** near-black creases, lighter ridges and an oily
+  sheen, with pores and wrinkles taken from photographed leather
+  ([Brown Leather](https://polyhaven.com/a/brown_leather), Poly Haven, CC0). Its
+  shape still shows in low light.
+- **Empty eye holes.** It has lived its whole life in dark water and hunts only by
+  sound.
+- **An unhinged jaw:** the jaw opens wider and stretches longer than a human jaw.
+  Posed in the game by rotating and stretching the jaw bone.
+- **A few toothy slits in its skin,** on the neck, forearm, shoulder and back, as
+  decoration.
 - **Twitchy listening movement:** sharp head tilts toward sounds, freezing mid-step,
   then sudden fast scuttling. Done in code on top of its own animations.
-- **A gaunt, skeletal, long-limbed shape, made by mixing two models:** the body and
-  limbs of a pale crawling humanoid ([The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e)
-  by Sealife Fan 3, CC BY) with the predator's head and tail. The reptile head and
-  tail also keep it from looking like the inspiration game's crawling humanoid. It
-  uses the crawler's animations (walk, run, idle, search, screech and more). Built with
-  the scripts in `tools/creature/`.
+- **A gaunt, long-limbed crawling shape** that uses the model's own animations (walk,
+  run, idle, search, screech and more). Built with the scripts in `tools/creature/`.
+
+### Its voice
+
+It clicks: deep, wet throat clicks that echo off the tiles. The clicks are its voice,
+not how it finds you. It still hunts only by listening to the water. The clicks are
+3D positional audio, so you can tell where it is in the dark, and each state sounds
+different:
+
+- **Patrol:** slow, occasional clicks
+- **Investigate:** steady clicking
+- **Close by:** slower, rattling clicks with water at its mouth
+- **Charge:** clicks speeding up into a harsh rasp. This is the warning to get off
+  the spot it's charging to.
+
+The voice is mixed from CC0 recordings made by people (throat clicks, a death rattle,
+a jumping spider's call, underwater bubbles), lowered to suit a big body. It must not
+copy the sound of any existing game's creature. Mixing script: `tools/sound/`.
 
 ## Making a fast creature fair
 
@@ -314,7 +333,7 @@ voice.
 
 ## Open questions
 
-- Is the mixed creature approved as built, or does it need changes (head size, tail)?
+- Does the clicking voice fit, and which recordings should it be built from?
 - Is there any story?
 - What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
   inspiration game's look?
