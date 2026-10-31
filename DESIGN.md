@@ -117,6 +117,19 @@ hits.
 - **Only the holder sees the dots.** Everyone else relies on what the holder tells
   them.
 
+## The creature
+
+Based on the ready-made [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e)
+by Timsblends (CC BY), reworked to be scarier and RIPPLE's own:
+
+- **Pale, drowned skin and blind, milky eyes.** It has lived its whole life in dark
+  water and hunts only by sound.
+- **Needle teeth,** with the jaw hanging slightly open.
+- **Sound pits along the head,** so players can see it's built to listen.
+- **Twitchy listening movement:** sharp head tilts toward sounds, freezing mid-step,
+  then sudden fast scuttling. Done in code on top of its own animations.
+- **Undecided:** longer, thinner limbs and neck.
+
 ## Making a fast creature fair
 
 1. **Standing still always works.** You can't outrun it, but you can go silent. If
@@ -296,8 +309,8 @@ voice.
 
 ## Open questions
 
-- Which ready-made creature? (Being reviewed.) It shouldn't be a dark crawling
-  humanoid like the one in the inspiration game. Is there any story?
+- Should the creature get longer, thinner limbs and neck?
+- Is there any story?
 - What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
   inspiration game's look?
 - Which online relay or matchmaking service?

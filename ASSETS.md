@@ -31,6 +31,7 @@ approved.
 | [Anti-radiation suit (OZK)](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) | Player suit. Player color changes the camo. | Sketchfab | sanyaork | CC BY 4.0 |
 | [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) | Player suit. Player color changes the stripes. | Sketchfab | DanlyVostok | CC BY 4.0 |
 | [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins to be removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
+| [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | The creature, reworked (see "The creature" in `DESIGN.md`) | Sketchfab | Timsblends | CC BY 4.0 |
 
 ## Maybe
 
@@ -47,13 +48,13 @@ Not added unless they're approved later.
 - [Plastic Crate 01](https://polyhaven.com/a/plastic_crate_01) (Poly Haven)
 - [Plastic Bottle Gallon](https://polyhaven.com/a/plastic_bottle_gallon) — throwable (Poly Haven)
 - [Can Rusted](https://polyhaven.com/a/can_rusted) — throwable (Poly Haven)
-- Creature: [Ocean Creature](https://sketchfab.com/3d-models/ocean-creature-5c17cca6086e4910aa12e7d701ccd6a1) by bast_yy (Sketchfab, CC BY)
-- Creature: [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) by Timsblends (Sketchfab, CC BY)
-- Creature: [Snake attack animations](https://sketchfab.com/3d-models/snake-attack-animations-multiple-83c4290cd4b648fd942d4bbc2280a3f6) by Imagigoo (Sketchfab, CC BY)
+- Backup creature: [Ocean Creature](https://sketchfab.com/3d-models/ocean-creature-5c17cca6086e4910aa12e7d701ccd6a1) by bast_yy (Sketchfab, CC BY)
+- Backup creature: [Snake attack animations](https://sketchfab.com/3d-models/snake-attack-animations-multiple-83c4290cd4b648fd942d4bbc2280a3f6) by Imagigoo (Sketchfab, CC BY)
 
 ## Still needed
 
-- **Creature:** must be a ready-made model. Three are on Maybe (above).
+- **Creature model file:** the Four Legged Predator's glTF, downloaded from Sketchfab
+  (needs a free account), so the rework can start.
 - **Suit color masks:** one mask per approved suit, marking which parts take the
   player's color. Needs the model files (a free Sketchfab account to download).
 - **Avatar movement:** the suits have few or no animations. Other players' bodies
