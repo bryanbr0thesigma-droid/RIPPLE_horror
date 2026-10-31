@@ -30,8 +30,10 @@ similar spaces. RIPPLE uses its own version of the poolrooms, with no level numb
 established lore or terms from those games. The mechanics carry the identity.
 
 RIPPLE is also inspired by an existing poolrooms game with a creature that hears the
-water. RIPPLE needs its own creature design, its own visual style, and its own
-taglines and wall text, not borrowed ones.
+water. RIPPLE needs its own visual style and its own taglines and wall text, not
+borrowed ones. The creature will be a ready-made model, so it should be retextured or
+changed enough that it doesn't look like the inspiration game's creature or a stock
+download.
 
 ## Core rules
 
@@ -263,7 +265,8 @@ No AI-generated assets: no AI-made models, textures, images, sound effects, musi
 voice.
 
 - Assets are made by the team, or come from human-made libraries with a clear
-  license. Examples: Kenney (CC0), Poly Haven (CC0), ambientCG (CC0), and Freesound
+  license that allows commercial use. CC0 is preferred; CC BY is fine with credit in
+  the game. Examples: Kenney (CC0), Poly Haven (CC0), ambientCG (CC0), and Freesound
   (license varies per sound).
 - Check each asset before using it. Some libraries now contain AI-made content.
 - Every third-party asset goes in a credits file with its source, author and license.
@@ -285,7 +288,7 @@ voice.
 
 ## Open questions
 
-- What does the creature look like? It should be our own design, not a dark crawling
+- Which ready-made creature? (Being reviewed.) It shouldn't be a dark crawling
   humanoid like the one in the inspiration game. Is there any story?
 - What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
   inspiration game's look?
