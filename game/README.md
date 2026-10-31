@@ -29,6 +29,7 @@ and types the address the host sees on their screen).
   the arrows, and pick a color. Your character stands on the pedestal next to the menu. In the game,
   your hands match your suit's gloves and other players see your suit in your color.
 - **Settings:** snap or smooth turning, volume and music volume.
+- **Credits:** the artists whose models, sounds and music are in the game.
 - Your choices are saved on the headset.
 - In the game, press the **menu button** on the left controller (or Esc on desktop) to pause or
   leave to the title.
@@ -168,8 +169,10 @@ Add `--fakevr` instead of `--desktop` to build the VR rig without a headset.
 ## Not done yet
 
 - It hasn't been played on a real headset yet. The VR rig is tested by forcing VR mode without one.
-- Gray-box level art. The three suits are stand-ins built in the game until the approved suit
-  models (from Sketchfab) are added.
+- Gray-box level art. The key, doors, lever, canteen, generator, lidar scanner, distiller, bottles
+  and ladders are still simple shapes; real models for them are in review (Round 20 in ASSETS.md).
+- Other players' suits follow their head and hands, but their legs don't step when they walk;
+  the body glides.
 - The creature's search shows as its search animation while it circles the area; there's no
   separate arm-reaching animation yet.
 - The creature doesn't lunge at the pool edge, so dry ground is always safe.

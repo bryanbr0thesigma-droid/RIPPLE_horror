@@ -40,7 +40,7 @@ func _run() -> void:
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("%s/title_main.png" % out)
 		var title = get_tree().current_scene
-		for page in ["character", "play", "settings"]:
+		for page in ["character", "play", "settings", "credits"]:
 			title.menu.show_page(page)
 			if page == "character":
 				Profile.suit = 2
@@ -280,7 +280,9 @@ func _screens() -> void:
 		["start", Vector3(4, 0.05, 4.0), 180.0, -5.0],
 		["hall_a", Vector3(-7, 0.05, -1), -40.0, -12.0],
 		["hall_a_island", Vector3(-5.5, 0.05, -9.5), 270.0, -10.0],
-		["staff", Vector3(17, 0.05, -1), 135.0, -15.0],
+		["staff", Vector3(17, 0.05, -1), 307.0, -12.0],
+		["generator", Vector3(7.5, 0.05, -43.0), 300.0, -10.0],
+		["exit", Vector3(39, 0.05, -33), 344.0, -5.0],
 		["hall_b_dark", Vector3(3, 0.05, -23), 0.0, -8.0],
 		["hall_c", Vector3(17, 0.05, -38.5), 270.0, -6.0],
 	]

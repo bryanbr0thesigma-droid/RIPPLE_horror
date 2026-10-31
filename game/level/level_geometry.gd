@@ -6,6 +6,10 @@ extends RefCounted
 const WALL_T := 0.3
 const CLIMBABLE := preload("res://addons/godot-xr-tools/objects/climbable.gd")
 const WATER_SHADER := preload("res://core/water.gdshader")
+const WALL_LAMP := preload("res://assets/props/wall_lamp.glb")
+const CHAIR := preload("res://assets/props/chair.glb")
+const WET_SIGN := preload("res://assets/props/wet_floor_sign.glb")
+const PIPES := preload("res://assets/props/pipes_kit.glb")
 
 const L_WORLD := 1
 const L_DYNAMIC := 1 << 1
@@ -29,6 +33,7 @@ var mineral_mat: ShaderMaterial
 ## Pool floors for the creature's navigation mesh, and obstacles standing in pools.
 var nav_rects: Array[Rect2] = []
 var nav_obstacles: Array[Rect2] = []
+var _pipe_meshes := {}
 
 
 func _init(level_root: Node3D) -> void:
@@ -293,7 +298,17 @@ func fitting(pos: Vector3, color := Color(1.0, 0.95, 0.85)) -> MeshInstance3D:
 	return f
 
 
-func light(pos: Vector3, energy := 1.4, rng := 11.0, color := Color(1.0, 0.95, 0.85)) -> OmniLight3D:
+func light(pos: Vector3, energy := 1.4, rng := 11.0, color := Color(1.0, 0.95, 0.85), with_fitting := true) -> OmniLight3D:
+	if not with_fitting:
+		var bare := OmniLight3D.new()
+		bare.position = pos
+		bare.light_color = color
+		bare.light_energy = energy
+		bare.omni_range = rng
+		bare.omni_attenuation = 1.2
+		bare.shadow_enabled = false
+		root.get_node("Lights").add_child(bare)
+		return bare
 	var fitting := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = Vector3(1.2, 0.06, 0.25)
@@ -331,3 +346,135 @@ func plaque(text: String, pos: Vector3, facing_y_deg: float, size := 0.006) -> L
 	l.width = 900
 	root.add_child(l)
 	return l
+
+
+# --- Props (Poly Haven, CC0) ---------------------------------------------------------------------
+
+## A caged industrial lamp on a wall, with its light just in front. normal points into the room.
+func wall_lamp(pos: Vector3, normal: Vector3, energy := 1.2, rng := 9.0, color := Color(1.0, 0.9, 0.75)) -> OmniLight3D:
+	var lamp: Node3D = WALL_LAMP.instantiate()
+	geo.add_child(lamp)
+	lamp.transform = Transform3D(_facing(normal), pos)
+	return light(pos + normal * 0.35 + Vector3.DOWN * 0.1, energy, rng, color, false)
+
+
+## A plastic chair standing on the floor, turned to face yaw (degrees).
+func chair(pos: Vector3, yaw_deg: float) -> void:
+	_solid_prop(CHAIR, pos, yaw_deg, Vector3(0.6, 0.85, 0.6))
+
+
+## A yellow wet floor sign.
+func wet_sign(pos: Vector3, yaw_deg: float) -> void:
+	_solid_prop(WET_SIGN, pos, yaw_deg, Vector3(0.3, 0.63, 0.34))
+
+
+func _solid_prop(scene: PackedScene, pos: Vector3, yaw_deg: float, box: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.collision_layer = L_WORLD
+	body.collision_mask = 0
+	geo.add_child(body)
+	body.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(yaw_deg)), pos)
+	body.add_child(scene.instantiate())
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = box
+	cs.shape = sh
+	cs.position = Vector3(0, box.y * 0.5, 0)
+	body.add_child(cs)
+
+
+## A pipe along a wall from a to b (same height), held by brackets every 2 m. normal points into
+## the room; the pipe's axis is 10 cm off the wall. One draw call per run.
+func pipe_run(a: Vector3, b: Vector3, normal: Vector3, thin := false) -> void:
+	var d := (b - a)
+	var length := d.length()
+	if length < 0.05:
+		return
+	d = d / length
+	var n := normal.normalized()
+	var axis := a + n * 0.1
+	var pipe_basis: Basis
+	if thin:
+		pipe_basis = Basis(d, n.cross(d), n)          # the thin piece runs along its X, centred
+	else:
+		pipe_basis = Basis(d.cross(n), d, n)          # the big piece runs along its Y from 0 to 2
+	var count := int(ceil(length / 2.0))
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = _pipe_mesh("pipe_thin_200cm_metal" if thin else "pipe_200cm_metal")
+	mm.instance_count = count
+	for i in count:
+		var seg := minf(2.0, length - i * 2.0)
+		var k := seg / 2.0
+		var start := axis + d * (i * 2.0)
+		var sb := pipe_basis
+		if thin:
+			sb = Basis(pipe_basis.x * k, pipe_basis.y, pipe_basis.z)
+			mm.set_instance_transform(i, Transform3D(sb, start + d * seg * 0.5))
+		else:
+			sb = Basis(pipe_basis.x, pipe_basis.y * k, pipe_basis.z)
+			mm.set_instance_transform(i, Transform3D(sb, start))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	geo.add_child(mmi)
+	var brackets := MultiMesh.new()
+	brackets.transform_format = MultiMesh.TRANSFORM_3D
+	brackets.mesh = _pipe_mesh("pipe_thin_support_metal" if thin else "pipe_support_metal")
+	var nb := int(floor(length / 2.0)) + 1
+	brackets.instance_count = nb
+	for i in nb:
+		var t := minf(0.3 + i * 2.0, length - 0.3)
+		brackets.set_instance_transform(i, Transform3D(pipe_basis, axis + d * t))
+	var bmi := MultiMeshInstance3D.new()
+	bmi.multimesh = brackets
+	bmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	geo.add_child(bmi)
+
+
+## A vertical pipe from the floor to the ceiling against a wall, with a hand valve at valve_y.
+func pipe_riser(base: Vector3, top_y: float, normal: Vector3, valve_y := -1.0) -> void:
+	var n := normal.normalized()
+	var side := Vector3.UP.cross(n)
+	var b := Basis(side, Vector3.UP, n)
+	var axis := base + n * 0.1
+	var parts: Array = []   # [from, to]
+	if valve_y > base.y:
+		parts = [[base.y, valve_y], [valve_y + 0.4, top_y]]
+		var valve := MeshInstance3D.new()
+		valve.mesh = _pipe_mesh("pipe_valve_small_1_metal")
+		valve.transform = Transform3D(b, Vector3(axis.x, valve_y, axis.z))
+		geo.add_child(valve)
+	else:
+		parts = [[base.y, top_y]]
+	for pr in parts:
+		var y := float(pr[0])
+		while y < float(pr[1]) - 0.01:
+			var seg := minf(2.0, float(pr[1]) - y)
+			var mi := MeshInstance3D.new()
+			mi.mesh = _pipe_mesh("pipe_200cm_metal")
+			mi.transform = Transform3D(Basis(b.x, b.y * (seg / 2.0), b.z), Vector3(axis.x, y, axis.z))
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			geo.add_child(mi)
+			y += seg
+	for y in [base.y + 0.6, top_y - 0.4]:
+		var br := MeshInstance3D.new()
+		br.mesh = _pipe_mesh("pipe_support_metal")
+		br.transform = Transform3D(b, Vector3(axis.x, y, axis.z))
+		geo.add_child(br)
+
+
+func _pipe_mesh(piece: String) -> Mesh:
+	if _pipe_meshes.is_empty():
+		var kit: Node3D = PIPES.instantiate()
+		for mi: MeshInstance3D in kit.find_children("*", "MeshInstance3D", true, false):
+			_pipe_meshes[String(mi.name)] = mi.mesh
+		kit.free()
+	return _pipe_meshes.get(piece)
+
+
+## A basis whose +Z points along normal (props are modelled sticking out along +Z).
+func _facing(normal: Vector3) -> Basis:
+	var z := normal.normalized()
+	var x := Vector3.UP.cross(z).normalized()
+	return Basis(x, z.cross(x), z)

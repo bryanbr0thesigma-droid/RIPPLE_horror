@@ -46,6 +46,7 @@ func _ready() -> void:
 	_build_address(stack)
 	_build_character(stack)
 	_build_settings(stack)
+	_build_credits(stack)
 	_build_connecting(stack)
 	_status = _label("", 18, Color(1.0, 0.75, 0.5))
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -79,6 +80,7 @@ func _build_main(parent: Control) -> void:
 	p.add_child(_button("Play", func(): show_page("play"), 30))
 	p.add_child(_button("Character", func(): show_page("character"), 30))
 	p.add_child(_button("Settings", func(): show_page("settings"), 30))
+	p.add_child(_button("Credits", func(): show_page("credits"), 30))
 	p.add_child(_button("Quit", func(): get_tree().quit(), 30))
 	p.add_child(_spacer(10))
 	var hint := _label("Something lives in the water. It hunts by sound. Escape together.", 18, DIM)
@@ -218,6 +220,39 @@ func _build_settings(parent: Control) -> void:
 		Profile.save()
 		show_page("main")))
 	_refresh_settings()
+
+
+const CREDITS := """[b]Models[/b] (CC BY 4.0, changed for the game)
+The creature: "The Rake" by Sealife Fan 3
+Anti-radiation suit: "Antiradiation suit - OZK" by sanyaork
+Striker jumpsuit: "Jumpsuit Low Poly Game Ready (Striker14)" by DanlyVostok
+Diver: "Nanando diver" by Marco Lopez
+All on sketchfab.com. creativecommons.org/licenses/by/4.0
+
+[b]CC0[/b] (free to use, credited anyway)
+Props and textures: Poly Haven (Wet Floor Sign, Industrial Wall Lamp, Modular Pipes, Plastic Monobloc Chair, Brown Leather) and ambientCG (tiles)
+Hands: Godot XR Tools, by DigitalN8m4r3
+Sounds: Freesound users Fupicat, Moss___6, Zrte, DatBloxyBirb, DangAdv64, batchku, Kinoton, kyles, craigsmith, courter, nomadas, Sclolex
+Music made from "At the End of Hope" by Emma_MA and "Underwater Ambient Pad" by isaiah658 (OpenGameArt)
+
+[b]Code[/b]
+Godot Engine and Godot XR Tools (MIT)"""
+
+
+func _build_credits(parent: Control) -> void:
+	var p := _page("credits", parent)
+	p.add_child(_label("Credits", 36, ACCENT))
+	var t := RichTextLabel.new()
+	t.bbcode_enabled = true
+	t.text = CREDITS
+	t.fit_content = false
+	t.scroll_active = true
+	t.custom_minimum_size = Vector2(0, 470)
+	t.add_theme_font_size_override("normal_font_size", 15)
+	t.add_theme_font_size_override("bold_font_size", 17)
+	t.add_theme_color_override("default_color", INK)
+	p.add_child(t)
+	p.add_child(_button("Back", func(): show_page("main")))
 
 
 func _stepper(title: String, change: Callable) -> HBoxContainer:

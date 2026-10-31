@@ -23,10 +23,10 @@ approved.
 | [Tiles 133 A](https://ambientcg.com/view?id=Tiles133A) — white square tiles, clean | Walls, walkways, platforms | ambientCG | ambientCG | CC0 |
 | [Tiles 036](https://ambientcg.com/view?id=Tiles036) — white subway tiles | Corridors and staff areas | ambientCG | ambientCG | CC0 |
 | [Prototype Textures](https://kenney.nl/assets/prototype-textures) | Gray-box test level | Kenney | Kenney | CC0 |
-| [Wet Floor Sign 01](https://polyhaven.com/a/WetFloorSign_01) | Poolside dressing | Poly Haven | Fran Calvente | CC0 |
-| [Industrial Wall Lamp](https://polyhaven.com/a/industrial_wall_lamp) | Wall lighting | Poly Haven | Kuutti Siitonen | CC0 |
-| [Modular Pipes](https://polyhaven.com/a/modular_pipes) | Pump room dressing. 47,428 polygons, needs simplifying for Quest. | Poly Haven | Kuutti Siitonen | CC0 |
-| [Plastic Monobloc Chair 01](https://polyhaven.com/a/plastic_monobloc_chair_01) | Poolside chairs | Poly Haven | Kuutti Siitonen | CC0 |
+| [Wet Floor Sign 01](https://polyhaven.com/a/WetFloorSign_01) | Poolside dressing. In the game (0.3). | Poly Haven | Fran Calvente | CC0 |
+| [Industrial Wall Lamp](https://polyhaven.com/a/industrial_wall_lamp) | Wall lighting in the small rooms. In the game (0.3). | Poly Haven | Kuutti Siitonen | CC0 |
+| [Modular Pipes](https://polyhaven.com/a/modular_pipes) | Pipe runs along the hall walls and a riser by the generator. Only 5 pieces of the kit are used. In the game (0.3). | Poly Haven | Kuutti Siitonen | CC0 |
+| [Plastic Monobloc Chair 01](https://polyhaven.com/a/plastic_monobloc_chair_01) | Poolside and staff room chairs. In the game (0.3). | Poly Haven | Kuutti Siitonen | CC0 |
 | [Godot XR Tools hands](https://github.com/GodotVR/godot-xr-tools/tree/master/addons/godot-xr-tools/hands) | The player's own hands. Recolored to match the gloves of the suit the player wears. | Godot XR Tools | DigitalN8m4r3 | CC0 |
 | [Anti-radiation suit (OZK)](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) | Player suit. Player color changes the camo. | Sketchfab | sanyaork | CC BY 4.0 |
 | [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) | Player suit. Player color changes the stripes. | Sketchfab | DanlyVostok | CC BY 4.0 |
@@ -78,9 +78,11 @@ and door were synthesized for the project.
   (title screen) and **Under the surface** (in the level), made by `tools/sound/mix_music.py`
   from "At the End of Hope" by Emma_MA and "Underwater Ambient Pad" by isaiah658 (both CC0,
   OpenGameArt). Other sound effects come later.
-- **Made by the team:** pool ladders, diving boards and towers, water slides,
-  retractable pool covers, inflatable rings and floats, keys, generators, the water
-  canteen, distillers, the lidar scanner, lever handles.
+- **Made by the team:** diving boards and towers, water slides, retractable pool covers,
+  inflatable rings and floats.
+- **Round 20 (waiting for picks):** real models for the key, doors, lever, canteen,
+  generator, lidar scanner body, distiller, throwable bottles and pool ladder. Until they're
+  picked, the game uses simple stand-in shapes for these.
 - **Suit models:** in the game since 0.3 (`game/assets/suits/`). Each was prepared in
   Blender by the scripts in `tools/suits/`: the anti-radiation suit is rebuilt from the
   author's source FBX (the download's hands and boots hung off IK control bones), the

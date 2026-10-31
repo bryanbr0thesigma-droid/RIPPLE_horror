@@ -154,7 +154,8 @@ func _build_start_room() -> void:
 	G.floor_slab(0, 8, 0, 8)
 	G.walls(0, 8, 0, 8, 0.0, 3.4, {"n": [[3.0, 5.0, 2.4]]})
 	G.ceiling(0, 8, 0, 8, 3.4)
-	G.light(Vector3(4, 3.3, 4), 1.2, 9.0)
+	G.wall_lamp(Vector3(0, 2.5, 4), Vector3.RIGHT, 1.3, 9.5)
+	G.chair(Vector3(7.2, 0, 7.0), -135)
 	G.plaque("RIPPLE test level\n\nSomething lives in the water and hunts by sound. Falling in is loud. Wading fast is loud. Moving your hands in the water makes noise.\n\nIf you hear it coming, freeze. It knows roughly where you are and feels around with its arm. Don't move at all.\n\nFind the key, get into the staff room, power the generator with the darker mineral water (2 canteens), and get across the deep pool.", Vector3(4, 1.7, 7.95), 180, 0.0022)
 
 
@@ -191,6 +192,14 @@ func _build_hall_a() -> void:
 	G.walls(2, 4.5, -22, -20, 0.0, 2.6, {"n": [[2.0, 4.5, 3.0]], "s": [[2.0, 4.5, 3.0]]})
 	G.ceiling(2, 4.5, -22, -20, 2.6)
 	G.plaque("STAFF ONLY", Vector3(15.98, 2.6, -5.0), -90, 0.006)
+	# Dressing: wet floor signs, poolside chairs, pipes along the walls.
+	G.wet_sign(Vector3(-5.0, 0, -0.35), 30)
+	G.wet_sign(Vector3(13.0, 0, -0.9), -20)
+	G.chair(Vector3(-7.3, 0, -10.0), 90)
+	G.chair(Vector3(-7.3, 0, -11.1), 80)
+	G.pipe_run(Vector3(-8, 3.6, -20), Vector3(16, 3.6, -20), Vector3.BACK)
+	G.pipe_run(Vector3(-8, 3.35, -20), Vector3(16, 3.35, -20), Vector3.BACK, true)
+	G.pipe_run(Vector3(-8, 3.85, 0), Vector3(-8, 3.85, -20), Vector3.RIGHT)
 	G.plaque("WET FLOOR", Vector3(3.25, 2.75, -20.01), 0, 0.005)
 
 
@@ -199,7 +208,9 @@ func _build_staff_room() -> void:
 	G.floor_slab(16, 24, -10, 0)
 	G.walls(16, 24, -10, 0, 0.0, 3.2, {"w": [[-6.0, -4.0, 2.4]]})
 	G.ceiling(16, 24, -10, 0, 3.2)
-	G.light(Vector3(20, 3.1, -5), 1.3, 9.0)
+	G.wall_lamp(Vector3(24, 2.4, -3.5), Vector3.LEFT, 1.3, 9.5)
+	G.chair(Vector3(20.5, 0, -3.15), 0)
+	G.chair(Vector3(21.6, 0, -3.2), 12)
 	staff_door = G.block(15.85, 16.15, 0.0, 2.4, -6.0, -4.0, G.mat_metal, LevelGeometry.L_DYNAMIC, $Props)
 	staff_door.name = "StaffDoor"
 	var lock := G.block(15.75, 15.85, 0.9, 1.1, -5.65, -5.45, G.mat_rail, 0, $Props)
@@ -244,6 +255,10 @@ func _build_hall_b() -> void:
 	for p in [Vector3(4, 4.3, -29), Vector3(4, 4.3, -40)]:
 		var l := G.light(p, 1.6, 15.0, Color(0.85, 0.95, 1.0))
 		hall_b_lights.append(l)
+	G.wet_sign(Vector3(6.5, 0, -23.0), 20)
+	G.pipe_run(Vector3(-8, 3.8, -22), Vector3(-8, 3.8, -46), Vector3.RIGHT)
+	G.pipe_run(Vector3(-8, 3.5, -46), Vector3(16, 3.5, -46), Vector3.BACK, true)
+	G.pipe_riser(Vector3(12.3, 0, -46), 4.5, Vector3.BACK, 1.0)
 	# A faint emergency light by the entrance, so the doorway isn't pitch black.
 	var em := OmniLight3D.new()
 	em.position = Vector3(3.25, 2.3, -22.6)
@@ -319,6 +334,8 @@ func _build_hall_c() -> void:
 		G.fitting(p, Color(0.9, 0.95, 1.0))
 	G.light(Vector3(27, 4.6, -30), 1.3, 15.0, Color(0.9, 0.95, 1.0))
 	G.light(Vector3(27, 4.6, -40), 1.3, 15.0, Color(0.9, 0.95, 1.0))
+	G.pipe_run(Vector3(38, 4.0, -22), Vector3(38, 4.0, -46), Vector3.LEFT)
+	G.wet_sign(Vector3(17.4, 0, -39.4), 45)
 	# The retractable pool cover, retracted against the west ledge.
 	cover_bridge = AnimatableBody3D.new()
 	cover_bridge.name = "PoolCover"
@@ -376,7 +393,8 @@ func _build_exit() -> void:
 	G.floor_slab(38, 44, -40, -32)
 	G.walls(38, 44, -40, -32, 0.0, 3.2, {"w": [[-37.0, -35.0, 2.4]]})
 	G.ceiling(38, 44, -40, -32, 3.2)
-	G.light(Vector3(41, 3.1, -36), 1.6, 9.0, Color(0.85, 1.0, 0.85))
+	G.wall_lamp(Vector3(41, 2.4, -40), Vector3.BACK, 1.6, 9.5, Color(0.85, 1.0, 0.85))
+	G.chair(Vector3(43.2, 0, -32.8), -135)
 	G.plaque("EXIT\nYou made it. Wait here for the others.", Vector3(43.95, 1.7, -36), -90, 0.006)
 
 

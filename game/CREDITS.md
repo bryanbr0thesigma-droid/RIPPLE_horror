@@ -19,6 +19,10 @@ Everything here allows commercial use. None of it is AI-generated.
   - [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) by **DanlyVostok**.
   - [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) by **Marco Lopez** (fins removed).
 - [Brown Leather](https://polyhaven.com/a/brown_leather), Poly Haven, CC0: skin detail.
+- Poly Haven, CC0: [Wet Floor Sign 01](https://polyhaven.com/a/WetFloorSign_01),
+  [Industrial Wall Lamp](https://polyhaven.com/a/industrial_wall_lamp),
+  [Modular Pipes](https://polyhaven.com/a/modular_pipes) and
+  [Plastic Monobloc Chair 01](https://polyhaven.com/a/plastic_monobloc_chair_01).
 - [Tiles 132 A](https://ambientcg.com/view?id=Tiles132A) and
   [Tiles 133 A](https://ambientcg.com/view?id=Tiles133A), ambientCG, CC0: pool and wall tiles.
 
