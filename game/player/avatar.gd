@@ -72,7 +72,7 @@ func _process(delta: float) -> void:
 		_hands[i] = (_hands[i] as Transform3D).interpolate_with(_t_hands[i], k)
 	_feet = _feet.lerp(_t_feet, k)
 	suit.pose(_head, _hands[0], _hands[1], _feet)
-	var yaw := atan2(-_head.basis.z.x, -_head.basis.z.z)
+	var yaw := atan2(_head.basis.z.x, _head.basis.z.z)
 	body.global_transform = Transform3D(Basis(Vector3.UP, yaw), _feet)
 	label.global_position = _head.origin + Vector3.UP * 0.32
 	visible = _alive or _flash > 0.0

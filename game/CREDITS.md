@@ -13,6 +13,11 @@ Everything here allows commercial use. None of it is AI-generated.
 - **The creature:** [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e)
   by **Sealife Fan 3**, CC BY 4.0, reworked (new skin, eyes, jaw and mouths; see
   `tools/creature/` in the repo).
+- **Player suits** (all CC BY 4.0; re-rigged, resized and recolored for the game, see
+  `tools/suits/` in the repo):
+  - [Antiradiation suit - OZK](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) by **sanyaork**.
+  - [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) by **DanlyVostok**.
+  - [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) by **Marco Lopez** (fins removed).
 - [Brown Leather](https://polyhaven.com/a/brown_leather), Poly Haven, CC0: skin detail.
 - [Tiles 132 A](https://ambientcg.com/view?id=Tiles132A) and
   [Tiles 133 A](https://ambientcg.com/view?id=Tiles133A), ambientCG, CC0: pool and wall tiles.

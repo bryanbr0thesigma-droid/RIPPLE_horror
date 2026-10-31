@@ -30,7 +30,7 @@ approved.
 | [Godot XR Tools hands](https://github.com/GodotVR/godot-xr-tools/tree/master/addons/godot-xr-tools/hands) | The player's own hands. Recolored to match the gloves of the suit the player wears. | Godot XR Tools | DigitalN8m4r3 | CC0 |
 | [Anti-radiation suit (OZK)](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) | Player suit. Player color changes the camo. | Sketchfab | sanyaork | CC BY 4.0 |
 | [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) | Player suit. Player color changes the stripes. | Sketchfab | DanlyVostok | CC BY 4.0 |
-| [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins to be removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
+| [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
 | [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | Not used by the current creature, which is built from The Rake alone. Kept in case. | Sketchfab | Timsblends | CC BY 4.0 |
 | [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e) | The creature: body, head, limbs and animations (see "The creature" in `DESIGN.md`) | Sketchfab | Sealife Fan 3 | CC BY 4.0 |
 | [Brown Leather](https://polyhaven.com/a/brown_leather) | Pore and wrinkle detail for the creature's skin | Poly Haven | Poly Haven | CC0 |
@@ -81,13 +81,16 @@ and door were synthesized for the project.
 - **Made by the team:** pool ladders, diving boards and towers, water slides,
   retractable pool covers, inflatable rings and floats, keys, generators, the water
   canteen, distillers, the lidar scanner, lever handles.
-- **Suit models:** the demo's character selector uses stand-in suits built in the game
-  (anti-radiation suit with camo, Striker jumpsuit with stripes, diver with panels and tank).
-  The approved Sketchfab models replace them once downloaded (a free Sketchfab account is
-  needed), with one color mask per suit marking which parts take the player's color.
-- **Avatar movement:** the suits have few or no animations. Other players' bodies
-  will be driven by their real head and hand tracking (IK), with procedural leg
-  movement, so no animation library is needed for now.
+- **Suit models:** in the game since 0.3 (`game/assets/suits/`). Each was prepared in
+  Blender by the scripts in `tools/suits/`: the anti-radiation suit is rebuilt from the
+  author's source FBX (the download's hands and boots hung off IK control bones), the
+  diver is stood upright, and the jumpsuit's skeleton is refitted to its mesh. The
+  jumpsuit's own gloves can't be used (they are stored half a metre from the hands), so it
+  wears the XR Tools gloves, the same ones the player sees in first person. One color mask
+  per suit marks the parts that take the player's color.
+- **Avatar movement:** other players' suits follow their real head and hand tracking
+  (`game/player/suit_ik.gd`): the hips drop and the legs bend when they crouch, the arms
+  reach for their hands, the head turns with theirs. No animation library is needed.
 
 ## Dropped
 
