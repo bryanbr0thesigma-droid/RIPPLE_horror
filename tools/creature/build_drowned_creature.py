@@ -10,6 +10,8 @@ from mathutils import Matrix, Vector
 
 argv = sys.argv[sys.argv.index('--') + 1:]
 RAKE, SKIN_TEX, OUT, EYES = argv[:4]
+NORMAL_TEX = argv[4] if len(argv) > 4 else None
+MR_TEX = argv[5] if len(argv) > 5 else None
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=RAKE)
@@ -68,11 +70,20 @@ for m in rake_body.data.materials:
     for n in nt.nodes:
         if n.type == 'TEX_IMAGE' and 'baseColor' in n.image.name:
             n.image = bpy.data.images.load(SKIN_TEX)
-    for link in list(nt.links):
-        if link.to_node == bsdf and link.to_socket.name in ('Roughness', 'Metallic'):
-            nt.links.remove(link)
-    bsdf.inputs['Roughness'].default_value = 0.55
-    bsdf.inputs['Metallic'].default_value = 0.0
+        elif n.type == 'TEX_IMAGE' and 'normal' in n.image.name and NORMAL_TEX:
+            img = bpy.data.images.load(NORMAL_TEX)
+            img.colorspace_settings.name = 'Non-Color'
+            n.image = img
+        elif n.type == 'TEX_IMAGE' and 'metallicRoughness' in n.image.name and MR_TEX:
+            img = bpy.data.images.load(MR_TEX)
+            img.colorspace_settings.name = 'Non-Color'
+            n.image = img
+    if not MR_TEX:
+        for link in list(nt.links):
+            if link.to_node == bsdf and link.to_socket.name in ('Roughness', 'Metallic'):
+                nt.links.remove(link)
+        bsdf.inputs['Roughness'].default_value = 0.55
+        bsdf.inputs['Metallic'].default_value = 0.0
     bsdf.inputs['Specular IOR Level'].default_value = 0.35
 
 # Yellowed teeth.

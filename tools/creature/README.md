@@ -65,3 +65,18 @@ blender -b --python build_drowned_creature.py -- rake/scene.gltf drowned_skin.pn
 Use `sealed` instead of `hollow` for blank, filmed-over eyes. The unhinged jaw isn't baked in: open
 the jaw bone about 0.75 rad around its X axis and stretch it about 1.3x along its length, in the
 game or in a preview.
+
+## Realistic skin (being reviewed)
+
+`skin_bake.py` builds realistic skin textures for the crawler: its own texture for the big shapes,
+[Brown Leather](https://polyhaven.com/a/brown_leather) from Poly Haven (CC0, photographed) tiled on
+top for pores and wrinkles, blotchy color, faint veins, and a roughness map that is damp in the creases
+and drier on top. It writes a color map, a glTF metallic-roughness map and a combined normal map.
+
+```
+python3 skin_bake.py rake/textures leather skin pale 9
+blender -b --python build_drowned_creature.py -- rake/scene.gltf skin/skin_pale_color.png creature.glb hollow skin/skin_normal.png skin/skin_pale_mr.png
+```
+
+Use `dark` instead of `pale` for the dark tone. The last number is how many times the leather tiles
+across the texture.

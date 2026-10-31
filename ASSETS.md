@@ -33,6 +33,7 @@ approved.
 | [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins to be removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
 | [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | The creature's head and tail (see "The creature" in `DESIGN.md`) | Sketchfab | Timsblends | CC BY 4.0 |
 | [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e) | The creature's body, limbs and animations | Sketchfab | Sealife Fan 3 | CC BY 4.0 |
+| [Brown Leather](https://polyhaven.com/a/brown_leather) | Pore and wrinkle detail for the creature's skin | Poly Haven | Poly Haven | CC0 |
 
 ## Maybe
 
