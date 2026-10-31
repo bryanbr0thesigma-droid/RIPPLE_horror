@@ -40,7 +40,7 @@ approved.
 Not added unless they're approved later.
 
 - [Tiles 133 D](https://ambientcg.com/view?id=Tiles133D) — white square tiles, broken (ambientCG)
-- [Utility Box 01](https://polyhaven.com/a/utility_box_01) — fuse box housing (Poly Haven)
+- [Utility Box 01](https://polyhaven.com/a/utility_box_01) — control box housing (Poly Haven)
 - [Rollershutter Door](https://polyhaven.com/a/rollershutter_door) — gates (Poly Haven)
 - [Crowbar 01](https://polyhaven.com/a/crowbar_01) — solo lever wedge (Poly Haven)
 - [Mounted Fluorescent Lights](https://polyhaven.com/a/mounted_fluorescent_lights) (Poly Haven)
@@ -65,10 +65,11 @@ Not added unless they're approved later.
 - **Sounds:** the creature's voice is mixed from CC0 Freesound recordings with
   `tools/sound/mix_voice.py` and is approved: hunting (the rattle), close by, and the
   charge (clicks, then a death screech). Ambience loops (`tools/sound/mix_ambience.py`)
-  and music are being reviewed (Round 18). Other sound effects come later.
+  are approved (lit halls, pump room, dark sector). Music is being reviewed (Round 19).
+  Other sound effects come later.
 - **Made by the team:** pool ladders, diving boards and towers, water slides,
-  retractable pool covers, inflatable rings and floats, keys, fuses, the lidar
-  scanner, lever handles.
+  retractable pool covers, inflatable rings and floats, keys, generators, the water
+  canteen, distillers, the lidar scanner, lever handles.
 - **Suit color masks:** one mask per approved suit, marking which parts take the
   player's color. Needs the model files (a free Sketchfab account to download).
 - **Avatar movement:** the suits have few or no animations. Other players' bodies

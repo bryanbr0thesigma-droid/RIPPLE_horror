@@ -23,7 +23,8 @@ What makes RIPPLE its own game:
 - A creature that only hears the water, and ripples that show exactly what it hears
 - Horror platforming, where the danger is falling in
 - Dark sections where a lidar scanner is the only way to see
-- Keys, levers and fuse boxes that make progress a risk
+- Keys, levers, and generators that run on mineral water you have to carry without
+  spilling, so progress is always a risk
 
 The poolrooms are a well-known liminal space, and other co-op VR horror games use
 similar spaces. RIPPLE uses its own version of the poolrooms, with no level numbers,
@@ -44,9 +45,11 @@ download.
 4. **Falling in is the main danger.** A fall is a big splash, and it almost always
    hears it and charges. Most of the game is spent above the water trying not to
    fall in.
-5. **Standing still saves you.** It only attacks what it can hear. If you stop moving
-   completely, it can't find you, even when it's right next to you. The exception is
-   standing on the spot it's charging to.
+5. **Going still is your best chance, not a sure thing.** When you stop moving, it
+   only knows roughly where you were. It comes to that area and feels around with its
+   arm. If the arm finds you, it has you. Small, slow movements are safe, so you can
+   ease away from the arm, but moving your body too much gives you away (see
+   "Searching by feel").
 
 ## Falling in
 
@@ -91,7 +94,7 @@ Platform types:
 - **Broken pool ladders:** missing rungs you have to reach past
 - **Water slides:** fast, and some end in the water
 - **Powered platforms:** retractable pool covers that extend over the water as
-  bridges, lifts, and moving platforms, switched on by levers and fuse boxes
+  bridges, lifts, and moving platforms, switched on by levers and generators
 
 Short wading sections through the shallow ends keep the stealth part alive:
 sometimes there's no way around the water and you have to go through it slowly.
@@ -102,7 +105,7 @@ A handheld scanner for dark sections. It sprays dots of light onto everything it
 hits.
 
 - **It's for the dark.** Some sections have the lights out until you restore power at
-  a fuse box. Until then, the lidar is how you see platforms, gaps and the water.
+  a generator. Until then, the lidar is how you see platforms, gaps and the water.
 - **Hold the trigger to scan.** Dots stick to walls, floors, the pool bottom and the
   creature, and fade after about 15 seconds.
 - **It sees through the water.** Rays pass through the surface, so scanning a pool in
@@ -134,6 +137,8 @@ by Sealife Fan 3 (CC BY), reworked into RIPPLE's own "drowned" creature:
   decoration.
 - **Twitchy listening movement:** sharp head tilts toward sounds, freezing mid-step,
   then sudden fast scuttling. Done in code on top of its own animations.
+- **Long arms for feeling around.** When it can't pinpoint you, it sweeps one long arm
+  through the water to find you by touch.
 - **A gaunt, long-limbed crawling shape** that uses the model's own animations (walk,
   run, idle, search, screech and more). Built with the scripts in `tools/creature/`.
 
@@ -158,24 +163,45 @@ layered. It must not copy the sound of any existing game's creature. Mixing scri
 
 ## Making a fast creature fair
 
-1. **Standing still always works.** You can't outrun it, but you can go silent. If
-   you stop moving, it can swim right past you.
+1. **Going still gives you a chance.** You can't outrun it, but you can go silent.
+   Once you stop, it only knows the area you were in and has to search it by feel.
 2. **Small noises get investigated first.** The creature has escalating states:
    - **Patrol:** wanders slowly
    - **Investigate:** swims at medium speed to where a small noise came from
    - **Charge:** full speed, triggered by a big splash like a fall, or more noise
      near the spot it's investigating
-   - **Lose interest:** reaches the spot, hears nothing for a few seconds, goes back
-     to patrolling
+   - **Search:** reaches the area where it last heard you and feels around with its
+     arm (see below)
+   - **Lose interest:** finds nothing after a few sweeps, goes back to patrolling
 
-   Freezing when it starts investigating is always a valid way to survive a small
-   noise. A fall usually skips straight to charge.
+   Freezing when it starts investigating is the best way to survive a small noise. A
+   fall usually skips straight to charge.
 3. **It always gives itself away.** Each state has its own tells: a V-shaped wake,
    its back breaking the surface, bubbles, and a different sound cue per state. An
    attentive player always knows what it's doing. In dark sections, sound and the
    lidar are how you track it.
 4. **It waits.** After you climb out, it circles nearby for a while, so going back
    into the water right away is a bad idea.
+
+### Searching by feel
+
+What happens when you go still in the water with the creature on its way:
+
+- **It knows the area, not the spot.** It heads to where it thinks the noise came
+  from. That guess is off by a random amount: more for quiet noises and noises heard
+  from far away, less for loud noises heard up close.
+- **It feels around with its arm.** It stops at the surface and sweeps its long arm
+  through the water around its guess, a few passes over several seconds. Its close-by
+  rattling clicks play the whole time.
+- **The arm is the danger.** If the arm touches you, it has you. Because its guess is
+  off, there's a real chance it misses you, but never a guarantee.
+- **You can ease away, slowly.** Small, slow body movement is safe, so you can lean or
+  edge away from the arm as it passes. Moving your body too much (stepping, turning
+  fast, ducking quickly) gives you away and it grabs you. "Body" means your head and
+  torso, tracked by the headset. Hand movement still makes no noise.
+- **You can hear it coming.** The arm makes small sloshes as it sweeps, so you can
+  follow it in the dark. The lidar shows it too.
+- **Teammates can help.** A decoy thrown elsewhere pulls it away mid-search.
 
 ## Noise
 
@@ -184,12 +210,14 @@ layered. It must not copy the sound of any existing game's creature. Mixing scri
 | Falling in | Very loud, louder from higher up. Almost always triggers a charge. |
 | Lowering yourself in slowly | Quiet |
 | Standing still in the water | Silent |
+| Moving your body while it searches near you | Too much gives you away (see "Searching by feel") |
 | Wading slowly | Very quiet |
 | Wading fast | Loud |
 | Landing on a floating inflatable | Small ripples |
 | Dropping an item into the water | Medium |
 | Re-entering the water while dripping | Medium (you drip for a while after climbing out) |
 | Throwing an object into the water | Loud, at the landing point (use as a decoy) |
+| Spilling the canteen into the pool | Small splash |
 | Interactions | See the interactables table |
 
 **How fast it hears:** almost instantly. Only when it's very far away is there a
@@ -211,11 +239,15 @@ Every interaction has a cost: noise, or a risky position above the water.
 | **Keys** | Locker and staff-door keys. Usually on hard-to-reach ledges. Some are on the bottom of the shallow end, so you have to wade in for them. Drop one and it sinks with a plop. Insert and turn in the lock. | Quiet if careful |
 | **Locked doors** | Staff doors, gates, lockers. Opened with keys. Some are rusted or stuck and have to be forced. | Key: quiet. Forcing: loud |
 | **Levers** | Pulled physically. Extend pool covers, lower platforms, open gates. Heavy ones clank. Some need two levers pulled at the same time by different players (solo version: wedge one with a crowbar). | Loud — time with cover noise or a decoy |
-| **Fuse boxes** | Find fuses, open the panel, slot them in. Restoring power turns on lights, lidar charging points, pool covers and lifts. Often mounted where you have to hang on with one hand while working with the other. | Medium (sparks, buzzing) |
+| **Generators** | Restore power to a section: lights, lidar charging points, pool covers and lifts. They run on mineral water: pour a canteen of it into the tank. Bigger generators need several canteens. Once running, their hum is cover noise. | Medium while starting up |
+| **Mineral water** | Only certain patches of water carry the minerals that power generators. Fill the canteen there, which means reaching into the water. | Filling: quiet if slow |
+| **Water canteen** | A physics object. It spills if you tip it, drop it or fall, and spilled water is lost. Getting it back across the platforms without spilling is part of the challenge. It can be handed to a teammate. | Spilling into the pool: small splash |
+| **Distillers** | Found later in the game. Running mineral water through one concentrates it, so each canteen gives more power and you need fewer trips. | Quiet |
 | **Throwables** | Broken tiles, bottles, rubber balls. Throw to make noise somewhere else. | Loud at the landing point |
 
-Typical level chain: **find key → open the staff room → collect fuses → power the
-section → pull the lever to extend the pool cover → cross to the exit.**
+Typical level chain: **find key → open the staff room to get the canteen → find the
+mineral water → fill the canteen → carry it back without spilling → power the
+generator → pull the lever to extend the pool cover → cross to the exit.**
 
 ## Levels
 
@@ -225,7 +257,7 @@ sections of the poolrooms.
 1. **The shallow halls** — tutorial. Low ledges and shallow water. Teaches climbing,
    jumping, decoys, the lidar and what happens when you fall in.
 2. **The deep end** — diving towers and high ledges over deep water. Falls are huge.
-3. **The pump rooms** — machinery for cover noise, lots of fuse boxes and powered
+3. **The pump rooms** — machinery for cover noise, lots of generators and powered
    platforms.
 4. **The dark sector** — lights out. Lidar-heavy until you restore power.
 5. **The slides** — water slides, fast movement, the finale.
@@ -256,11 +288,12 @@ Everything else is coordination through the level.
   gloves, so you see the same hands your teammates see.
 - **Avatar movement:** other players' bodies follow their real head and hand tracking
   (IK), with procedural leg movement.
-- **Giving items:** hand over keys, fuses, throwables and the lidar scanner.
+- **Giving items:** hand over keys, the canteen (carefully), throwables and the lidar
+  scanner.
 - **Pushing:** players can shove each other, including near an edge. Knocking a
   teammate into the water, by accident or not, is part of the tension.
 - **Indirect co-op:** two levers that must be pulled at the same time, one player
-  making a decoy noise while another works a fuse box, the lidar holder calling out
+  making a decoy noise while another fills the canteen, the lidar holder calling out
   what they see.
 - **Rescue:** when someone falls in, the team can throw a decoy to buy them time while
   they climb out.
@@ -275,7 +308,7 @@ Everything else is coordination through the level.
 
 - **Engine:** Godot 4 (latest stable), OpenXR
 - **VR toolkit:** Godot XR Tools for movement (direct movement, turning, jumping,
-  climbing), picking up objects, and snap zones for keys and fuses
+  climbing), picking up objects, and snap zones for keys and the canteen
 - **Quest export:** Godot OpenXR Vendors plugin. Mobile renderer, or Compatibility if
   performance needs it.
 - **Physics:** Jolt (built into Godot 4.4+), for stable climbing and platform physics
@@ -302,6 +335,14 @@ Everything else is coordination through the level.
   reflections or GPU wave simulation, to stay fast on Quest.
 - **"Can't leave the water":** the creature moves on a navigation mesh baked only over
   the water. The edge lunge is an attack with a fixed reach.
+- **Searching by feel:** runs on the host. The search point is the last noise position
+  plus a random offset that grows with distance and shrinks with loudness. The arm is
+  an IK chain driven along sweep paths, with a collision shape that catches players.
+  Each player's game checks its own headset speed and distance moved while the
+  creature is searching nearby, and sends a noise event when it's too much.
+- **Canteen:** the water is a fill level, not a fluid simulation. It drains while the
+  canteen is tipped past an angle, faster the further it's tipped, with a small
+  particle stream. Dropping it or falling empties some or all of it.
 - **Audio:** 3D positional audio is essential. Half the game is hearing where it is.
   Tiled rooms should echo. Underwater muffling when your head goes under. Each area has
   a quiet looping ambience (lit halls with fluorescent hum, pump rooms, dark sectors
@@ -328,9 +369,10 @@ voice.
 1. **Solo gray-box:** tiled platforms over a pool made from simple shapes. Walk, jump,
    climb. Falling in makes a splash, the creature (water-only navigation mesh)
    charges, pool ladders to climb out, getting caught, restart.
-2. **Noise, stealth and lidar:** wading noise, standing still to survive, the investigate state,
+2. **Noise, stealth and lidar:** wading noise, going still, the investigate state, searching by feel,
    decoys, floating inflatables, a dark section and the lidar scanner.
-3. **Interactables:** key and door, lever, fuse box, each with its noise cost.
+3. **Interactables:** key and door, lever, a generator with the canteen and mineral
+   water, each with its noise cost.
 4. **Multiplayer:** 2 players over LAN, creature runs on the host, shared noise,
    giving items and pushing.
 5. **Level 1:** the shallow halls, fully built with human-made art and audio.
@@ -338,7 +380,12 @@ voice.
 
 ## Open questions
 
-- Does the clicking voice fit, and which recordings should it be built from?
+- How do players recognize mineral water (color, cloudiness, a shimmer, only on the
+  lidar)?
+- How much body movement is too much during a search? Needs playtesting.
+- How often should the arm miss? It should feel tense, not random.
+- How much more efficient do distillers make the water (for example, one canteen
+  counts as two)?
 - Is there any story?
 - What's RIPPLE's own visual style (colors, lighting), so it doesn't share the
   inspiration game's look?

@@ -58,7 +58,7 @@ pitch changes) so the clicking doesn't loop audibly.
 `mix_ambience.py` mixes seamless 60-second ambience loops from CC0 Freesound
 recordings: a room tone bed, fluorescent hum, water moving against the pool edges, a
 pump behind a wall, and single drips (each with its own echo) scattered around the
-loop. Being reviewed (Round 18):
+loop. Approved in review:
 
 - `amb_halls.wav`: shallow halls, lights on.
 - `amb_pumproom.wav`: next to a pump room.
