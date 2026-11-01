@@ -93,7 +93,7 @@ exports a build for the other (see below).
 3. **Staff room.** Unlock it with the key. Inside: two canteens, the lidar scanner on its charger,
    the distiller, and bottles to throw as decoys.
 4. **Hall B, the dark sector.** The lights are out. Scan with the lidar to find the narrow
-   beams. The slightly darker water in the north-west corner is the mineral water: kneel at the
+   beams. The softly glowing water in the north-west corner is the mineral water: kneel at the
    platform's edge and dip a canteen in it, then carry it along the beams without spilling and pour
    it into the generator's funnel. It takes 2 canteens. Distilled water starts it faster. Starting
    the generator makes noise; once it runs, the lights come on and its hum masks your noise nearby.

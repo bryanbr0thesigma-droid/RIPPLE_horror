@@ -68,6 +68,8 @@ func _init(level_root: Node3D) -> void:
 	mineral_mat = ShaderMaterial.new()
 	mineral_mat.shader = WATER_SHADER
 	mineral_mat.set_shader_parameter("water_color", Color(0.05, 0.13, 0.15, 0.6))
+	mineral_mat.set_shader_parameter("glow_color", Color(0.3, 0.95, 0.8))   # a soft teal glow
+	mineral_mat.set_shader_parameter("glow", 0.35)
 	mineral_mat.render_priority = 1   # always drawn over the pool's own surface
 
 
@@ -201,6 +203,15 @@ func water(r: Rect2, surface_y: float, floor_y: float, is_mineral: bool) -> Wate
 	mi.material_override = mineral_mat if is_mineral else water_mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = Vector3(r.position.x + r.size.x * 0.5, surface_y + (0.015 if is_mineral else 0.0), r.position.y + r.size.y * 0.5)
+	if is_mineral:     # its glow lights the edges and whoever wades in it, faintly
+		var glow := OmniLight3D.new()
+		glow.light_color = Color(0.35, 0.95, 0.8)
+		glow.light_energy = 0.45
+		glow.omni_range = maxf(r.size.x, r.size.y) * 0.75
+		glow.omni_attenuation = 1.6
+		glow.shadow_enabled = false
+		glow.position = Vector3(mi.position.x, surface_y + 0.3, mi.position.z)
+		water_root.add_child(glow)
 	w.add_child(mi)
 	return w
 

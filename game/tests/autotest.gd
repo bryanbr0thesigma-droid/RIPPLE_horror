@@ -486,6 +486,7 @@ func _props_shot() -> void:
 		["p_bunker", Vector3(4.0, 0.05, 3.0), -90.0, -5.0],
 		["p_generator", Vector3(7.0, 0.05, -43.0), -60.0, -15.0],
 		["p_distiller", Vector3(20.2, 0.05, -5.0), 8.0, -14.0],
+		["p_mineral", Vector3(-6.2, 0.05, -31.0), 0.0, -32.0],
 	]
 	for v in views:
 		rig.teleport(v[1])

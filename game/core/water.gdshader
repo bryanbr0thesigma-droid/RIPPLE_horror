@@ -4,6 +4,9 @@ shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, specular_schlick_ggx;
 
 uniform vec4 water_color : source_color = vec4(0.32, 0.62, 0.68, 0.5);
+// A soft glow from within (the mineral water), slowly shimmering. 0 = none.
+uniform vec3 glow_color : source_color = vec3(0.0);
+uniform float glow = 0.0;
 uniform float time_now = 0.0;
 // xy = world x, z; z = start time; w = strength (0 = unused)
 uniform vec4 ripples[16];
@@ -40,6 +43,8 @@ void fragment() {
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 	ALBEDO = water_color.rgb + vec3(h * 0.12);
 	ALPHA = clamp(water_color.a + abs(h) * 0.1, 0.0, 1.0);
+	float shimmer = 0.85 + 0.1 * sin(time_now * 0.7 + p.x * 0.9 + p.y * 0.6) + 0.05 * sin(time_now * 1.9 - p.x * 2.3);
+	EMISSION = glow_color * glow * shimmer * (1.0 + h * 0.6);
 	ROUGHNESS = 0.06;
 	SPECULAR = 0.7;
 }
