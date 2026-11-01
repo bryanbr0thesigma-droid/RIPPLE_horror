@@ -18,6 +18,7 @@ var avatar: Node3D = null
 var net_feet := Vector3.ZERO
 var net_in_water := false
 var net_alive := true
+var net_ghost := false
 
 # Local noise state.
 var _last_feet := Vector3.ZERO
@@ -36,6 +37,10 @@ var _zone_timer := 0.0
 var _escaped_reported := false
 var respawn_point := Vector3(4, 0.05, 5)
 var alive := true
+## Dead in co-op: a ghost until a teammate reaches a dry room (or carries my bag into one). Can walk
+## about, can't hold anything, makes no noise, and the creature takes no notice.
+var ghost := false
+var _in_room := false
 var in_water := false
 var _wade_audio: AudioStreamPlayer3D
 
@@ -101,6 +106,10 @@ func _physics_process(delta: float) -> void:
 
 	var pool := WaterVolume.below(feet + Vector3.UP * 0.05)
 	in_water = alive and pool != null and feet.y < pool.surface_y - 0.05
+	# Hanging on the pool's edge or a ladder, feet just out of the water, still counts: holding the
+	# wall isn't a way to be out of reach. (Standing on a column or the deck is above this.)
+	if alive and not in_water and pool != null and feet.y < pool.surface_y + 0.22:
+		in_water = true
 	var surface := Vector3(feet.x, pool.surface_y if pool else feet.y, feet.z)
 
 	# Falling in: how fast were we going down just before we hit the water?
@@ -193,6 +202,11 @@ func _physics_process(delta: float) -> void:
 		if z.has("checkpoint") and alive:
 			respawn_point = z.checkpoint
 		var at_exit: bool = z.get("exit", false)
+		# Stepping into a dry room (or the exit) alive brings any ghosts in the team back there.
+		var room: bool = z.has("checkpoint") or at_exit
+		if room and not _in_room and alive:
+			Game.level.request("checkpoint", [z.checkpoint if z.has("checkpoint") else feet])
+		_in_room = room
 		if at_exit != _escaped_reported:
 			_escaped_reported = at_exit
 			Game.level.request("escaped", [at_exit])
@@ -204,7 +218,7 @@ func _physics_process(delta: float) -> void:
 	if _send_timer <= 0.0:
 		_send_timer = 1.0 / 30.0
 		var hands_xf: Array = rig.hand_transforms()
-		var flags := (1 if in_water else 0) | (2 if alive else 0)
+		var flags := (1 if in_water else 0) | (2 if alive else 0) | (4 if ghost else 0)
 		Net.send(self, &"_state", [rig.head_transform(), hands_xf[0], hands_xf[1], feet, flags])
 
 
@@ -215,8 +229,12 @@ func _state(head: Transform3D, lh: Transform3D, rh: Transform3D, feet: Vector3, 
 	net_feet = feet
 	net_in_water = (flags & 1) != 0
 	net_alive = (flags & 2) != 0
+	var g := (flags & 4) != 0
 	if avatar:
-		avatar.set_target(head, lh, rh, feet, net_alive)
+		if g != net_ghost:
+			avatar.set_ghost(g)
+		avatar.set_target(head, lh, rh, feet, net_alive or g)
+	net_ghost = g
 
 
 func _on_my_noise(loudness: float) -> void:
@@ -226,14 +244,18 @@ func _on_my_noise(loudness: float) -> void:
 
 ## The creature got me. (Teammates see it on my avatar; the creature plays that part.)
 ## In my own view: when it pulls my head off, my vision blurs and then cuts to black; when it tears
-## me in half, it cuts straight to black. Then back at the last checkpoint.
+## me in half, it cuts straight to black. Then: alone, back at the last checkpoint; with teammates
+## still alive, I'm a ghost; if I was the last one standing, everyone comes back together.
+## Everything I carried goes into my bag, which floats where I died.
 func on_caught(kind := 0) -> void:
 	if not is_local or not alive:
 		return
 	alive = false
 	in_water = false
 	Game.notify("It got you.")
+	var carried: Array = Game.level.items_carried_by(Net.my_id())
 	rig.drop_all()
+	Game.level.request("bag_drop", [rig.feet_position(), carried])
 	rig.set_controls_enabled(false)
 	var cam: Camera3D = rig.get("camera") if rig.get("camera") else rig.get("cam")
 	var grab: float = 0.55
@@ -253,13 +275,44 @@ func on_caught(kind := 0) -> void:
 		tw.tween_interval(cut - grab)
 		tw.tween_callback(func(): rig.set_fade(1.0))
 	tw.tween_interval(2.4)
+	tw.tween_callback(_after_death)
+
+
+func _after_death() -> void:
+	var L = Game.level
+	if L.teammates().is_empty():                 # playing alone: straight back
+		revive(respawn_point, true, false)       # (my bag stays where I died, to go back for)
+	elif L.living_teammates() > 0:               # a ghost, where I died
+		ghost = true
+		rig.set_controls_enabled(true)
+		rig.set_pickups_enabled(false)
+		rig.set_ghost_view(true)
+		create_tween().tween_method(rig.set_fade, 1.0, 0.0, 0.8)
+		Game.notify("You're a ghost. You come back when a teammate reaches a dry room, or carries your bag into one.")
+	else:                                         # I was the last one: everyone comes back
+		L.request("all_down", [])
+
+
+## Back to life at `point` (the black screen covers the move). My bag's contents come back to me.
+func revive(point: Vector3, already_black := false, give_back := true) -> void:
+	if not is_local:
+		return
+	var tw := create_tween()
+	if not already_black:
+		tw.tween_method(rig.set_fade, 0.0, 1.0, 0.4)
 	tw.tween_callback(func():
-		rig.teleport(respawn_point)
-		_last_feet = respawn_point
+		rig.teleport(point)
+		_last_feet = point
+		respawn_point = point
 		_was_in_water = false
 		_drip_timer = 0.0
+		ghost = false
 		alive = true
-		rig.set_controls_enabled(true))
+		rig.set_ghost_view(false)
+		rig.set_pickups_enabled(true)
+		rig.set_controls_enabled(true)
+		if give_back:
+			Game.level.request("bag_return", []))
 	tw.tween_method(rig.set_fade, 1.0, 0.0, 0.8)
 
 

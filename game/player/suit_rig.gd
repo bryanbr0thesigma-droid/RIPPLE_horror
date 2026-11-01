@@ -44,6 +44,8 @@ var eye_height := 1.6
 ## and legs). Each holds that part's meshes.
 var parts := {"head": [], "upper": [], "lower": []}
 var variant := ""
+var backpack_mesh: MeshInstance3D = null
+var _ghost_saved := {}            # mesh -> its surface materials, while it's a ghost
 var bones := {}
 var _sk_xf := Transform3D()       # skeleton space -> this node's space
 var _stand_h := 0.0
@@ -232,6 +234,34 @@ func _add_cap(at: String, toward: String, radius: float, flip: bool) -> void:
 	c.transform = Transform3D(Basis(Quaternion(Vector3.UP, local_n)).scaled(Vector3.ONE / maxf(sc, 1e-4)), Vector3.ZERO)
 
 
+## A ghost: the suit faint, pale and see-through (or back to normal).
+static var _ghost_mat: StandardMaterial3D
+
+func set_ghost(on: bool) -> void:
+	if not _ghost_mat:
+		_ghost_mat = StandardMaterial3D.new()
+		_ghost_mat.albedo_color = Color(0.7, 0.85, 1.0, 0.18)
+		_ghost_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_ghost_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_ghost_mat.cull_mode = BaseMaterial3D.CULL_BACK
+	for part in parts:
+		for mi: MeshInstance3D in parts[part]:
+			if on and not _ghost_saved.has(mi):
+				var saved := []
+				for i in mi.mesh.get_surface_count():
+					saved.append(mi.get_surface_override_material(i))
+					mi.set_surface_override_material(i, _ghost_mat)
+				_ghost_saved[mi] = saved
+			elif not on and _ghost_saved.has(mi):
+				var saved: Array = _ghost_saved[mi]
+				for i in saved.size():
+					mi.set_surface_override_material(i, saved[i])
+	if not on:
+		_ghost_saved.clear()
+	if backpack_mesh:
+		backpack_mesh.visible = not on
+
+
 ## The backpack everyone carries (see level.gd): a canvas pack on the upper back, further out on the
 ## suits with an air tank so it sits over the tank.
 func add_backpack() -> void:
@@ -242,6 +272,7 @@ func add_backpack() -> void:
 	att.bone_name = skeleton.get_bone_name(bones["Spine2"])
 	skeleton.add_child(att)
 	var pack := MeshInstance3D.new()
+	backpack_mesh = pack
 	var bm := BoxMesh.new()
 	bm.size = Vector3(0.3, 0.38, 0.14)
 	pack.mesh = bm

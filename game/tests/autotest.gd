@@ -100,7 +100,7 @@ func _rig() -> Node3D:
 func _smoke() -> void:
 	var L = Game.level
 	check(WaterVolume.all.size() >= 5, "water volumes built (%d)" % WaterVolume.all.size())
-	check(L.items.size() == 9, "items spawned (%d)" % L.items.size())
+	check(L.items.keys().filter(func(n): return not n.begins_with("Bag_")).size() == 9, "items spawned (%d)" % L.items.size())
 	await wait(0.5)   # let the navigation map pick up the level's region
 	var nav := NavigationServer3D.map_get_closest_point(L.get_world_3d().navigation_map, Vector3(4, -1.3, -10))
 	check(nav.distance_to(Vector3(4, -1.3, -10)) < 3.0, "creature navigation covers Hall A's pool")
@@ -185,6 +185,28 @@ func _smoke() -> void:
 		await wait(1.2)
 		check(absf(can.global_position.x - 3.0) < 0.01 and can.global_position.y < 0.3 and can.global_transform.basis.y.dot(Vector3.UP) > 0.99,
 			"a dropped canteen falls straight down and stands upright (at %s, up %.3f)" % [can.global_position, can.global_transform.basis.y.dot(Vector3.UP)])
+		# Dying alone: back at the checkpoint, and my bag floats where I died with what I carried.
+		rig._release(Vector3.ZERO)
+		var fl2 = L.items["Flashlight"]
+		rig.teleport(Vector3(2.0, 0.5, -6.0))          # in Hall A's pool
+		await wait(1.0)
+		rig.held = fl2
+		fl2.grab_desktop(rig)
+		await wait(0.2)
+		L.player_caught(Net.my_id(), 0, L.creature.K.HALVES)
+		var respawned := await wait_for(func(): return L.local_player.alive, 10.0)
+		check(respawned and not L.local_player.ghost, "dying alone: straight back at the checkpoint, not a ghost")
+		var my_bag = L.items["Bag_%d" % Net.my_id()]
+		await wait(1.0)
+		check(my_bag.visible and fl2.stowed == -Net.my_id() and my_bag.global_position.distance_to(Vector3(2.0, -0.35, -6.0)) < 0.6,
+			"my bag floats where I died, with the flashlight in it (bag at %s)" % my_bag.global_position)
+		rig.teleport(my_bag.global_position + Vector3(0, 0.3, 0.6))
+		await wait(0.3)
+		rig.held = my_bag
+		my_bag.grab_desktop(rig)
+		var got_back := await wait_for(func(): return fl2.stowed == Net.my_id() and not my_bag.visible, 5.0)
+		check(got_back, "grabbing my bag puts the flashlight back in my backpack")
+		rig.held = null
 
 
 ## Single-player run through every mechanic, moving the player and items directly.
@@ -299,6 +321,25 @@ func _net_host() -> void:
 	# Shoving: push the client sideways.
 	L.push_player(other_id, Vector3(4, 0.5, 0))
 	await wait(4.0)
+	# Death in co-op: the client dies with me alive, so it's a ghost and its things float in its bag.
+	rig.teleport(Vector3(4, 0.05, 5))
+	var flash = L.items["Flashlight"]
+	var has_fl := await wait_for(func(): return flash.holder == other_id, 15.0)
+	check(has_fl, "host sees the client pick up the flashlight")
+	L.player_caught(other_id, 0, L.creature.K.HALVES)
+	var ghosted := await wait_for(func(): return L.players[other_id].net_ghost, 10.0)
+	check(ghosted, "the dead client comes back as a ghost (a teammate is still alive)")
+	var bag = L.items["Bag_%d" % other_id]
+	check(bag.visible and flash.stowed == -other_id, "its flashlight is in its bag, floating where it died (flash stowed %d holder %d, bag visible %s stowed %d)" % [flash.stowed, flash.holder, bag.visible, bag.stowed])
+	# I walk out of the start room and back in: the ghost comes back to life here.
+	rig.teleport(Vector3(4, 0.05, -1.0))
+	await wait(1.0)
+	rig.teleport(Vector3(4, 0.05, 5))
+	var back := await wait_for(func(): return not L.players[other_id].net_ghost and L.players[other_id].net_alive, 8.0)
+	check(back, "a living teammate reaching a dry room brings the ghost back")
+	var returned := await wait_for(func(): return flash.stowed == other_id and not bag.visible, 5.0)
+	check(returned, "the ghost's things go back into its backpack")
+	await wait(2.0)
 
 
 func _net_client() -> void:
@@ -326,6 +367,23 @@ func _net_client() -> void:
 	var before: Vector3 = rig.feet_position()
 	var shoved := await wait_for(func(): return rig.feet_position().distance_to(before) > 0.3, 8.0)
 	check(shoved, "the host's shove moves the client")
+	await wait(1.0)
+	# Pick up the flashlight; the host has me killed while it's alive.
+	var fl = L.items["Flashlight"]
+	rig.teleport(Vector3(3.2, 0.05, 2.4))
+	await wait(0.3)
+	if rig.has_method("hold_transform_for"):
+		rig.held = fl
+		fl.grab_desktop(rig)
+	else:
+		fl._on_xr_picked_up(null)
+	var dead := await wait_for(func(): return L.local_player.ghost, 25.0)
+	check(dead, "killed with the host alive, I'm a ghost")
+	check(fl.stowed == -Net.my_id(), "what I carried is in my bag")
+	var alive_again := await wait_for(func(): return L.local_player.alive and not L.local_player.ghost, 20.0)
+	check(alive_again, "the host reaching a dry room brings me back")
+	var mine := await wait_for(func(): return fl.stowed == Net.my_id(), 5.0)
+	check(mine, "my things came back to my backpack")
 	await wait(1.0)
 
 

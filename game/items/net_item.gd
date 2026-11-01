@@ -11,6 +11,9 @@ var auth := 1            # peer simulating it
 var retired := false     # used up (the key, once it's in the lock)
 var stowed := 0          # peer whose backpack it's in (0 = none)
 var stow_t := 0          # when it went in (the last one in comes out first)
+var home := Vector3.ZERO  # where it started
+var returns_home := false  # needed to finish the level: goes home if it's lost (see level.gd)
+var idle_time := 0.0
 ## No physics: let go and it drops straight down and stands upright where it lands (the canteen).
 var steady := false
 var _desk_trigger := false
@@ -293,8 +296,8 @@ func _fall(delta: float) -> void:
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	if hit:
 		rest_y = (hit.position as Vector3).y + 0.13
-	if pool and pool.surface_y - 0.05 > rest_y and from.y >= pool.surface_y - 0.05:
-		rest_y = pool.surface_y - 0.05          # floats upright at the surface
+	if pool and pool.surface_y - 0.05 > rest_y:
+		rest_y = pool.surface_y - 0.05          # floats upright at the surface (even dropped under it)
 	var yaw := global_transform.basis.get_euler().y
 	global_transform.basis = global_transform.basis.slerp(Basis(Vector3.UP, yaw), clampf(delta * 10.0, 0.0, 1.0))
 	if to.y <= rest_y:

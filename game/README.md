@@ -129,7 +129,9 @@ exports a build for the other (see below).
 - **Canteen:** hold it in the water and pull either trigger to fill it. A prompt floats over the
   water, a bar shows it filling, and it pops and buzzes when it's full (and says what's in it).
   It has no physics: let go and it drops straight down and stands upright, or floats upright.
-  Let go of it near the distiller and it goes onto the stand.
+  Let go of it near the distiller and it goes onto the stand. It never spills: at the generator,
+  hold it over the funnel and tip it or pull a trigger, and all of it goes in. Two full canteens
+  start the generator.
 - **Squeeze flashlight** (start room): a dynamo torch. Every pull of the trigger gives it a burst of
   charge that drains in a moment, so it only stays lit while you keep pumping, pulsing with each
   squeeze. The creature can't hear it.

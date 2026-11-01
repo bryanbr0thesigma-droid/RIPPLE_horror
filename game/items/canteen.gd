@@ -1,9 +1,10 @@
 extends NetItem
 ## The water canteen (the approved green plastic flask). Hold it in the glowing mineral water and
 ## pull either trigger (desktop: left mouse) to fill it: a prompt floats over the water, a bar shows
-## it filling, and it pops and buzzes when it's full. Carry it without spilling and pour it into the
-## generator's funnel. Tip it and it spills; spilling into the pool splashes. Filling it from
-## ordinary pool water swaps the contents for ordinary water, which is useless.
+## it filling, and it pops and buzzes when it's full. At the generator, hold it over the funnel and
+## tip it or pull a trigger: all of it goes in (two full canteens start the generator). It never
+## spills anywhere else. Filling it from ordinary pool water swaps the contents for ordinary water,
+## which is useless.
 ## No physics: let go and it drops straight down and stands upright (or floats upright).
 
 const SPOUT := Vector3(0, 0.125, 0)
@@ -25,7 +26,6 @@ var _spill_timer := 0.0
 var _fuel_acc := 0.0
 var _fuel_timer := 0.0
 var _warned_plain := false
-var _last_speed := 0.0
 var _filling := false
 var _hint: Label3D
 var _done_t := 0.0
@@ -174,13 +174,16 @@ func item_tick(delta: float) -> void:
 				_buzz(0.8, 0.15)
 				Game.level.play_sfx("plop", global_position)
 	else:
-		var tilt := tilt_deg()
-		pouring = fill > 0.0 and tilt > 80.0
+		# Pouring happens only over the generator's funnel, and all of it goes in.
+		pouring = fill > 0.0 and held and _at_funnel() and (tilt_deg() > 60.0 or trig or desktop_pour)
 		if pouring:
-			var rate := lerpf(0.12, 0.6, clampf((tilt - 80.0) / 70.0, 0.0, 1.0))
-			var amount := minf(fill, rate * delta)
+			var amount := minf(fill, 0.7 * delta)
 			fill -= amount
-			_pour_land(sp, amount, delta)
+			if mineral:
+				_fuel_acc += amount
+			elif not _warned_plain:
+				_warned_plain = true
+				Game.notify("That's ordinary pool water. The generator only runs on the glowing mineral water.")
 	if fill <= 0.0:
 		fill = 0.0
 		mineral = false
@@ -201,38 +204,24 @@ func item_tick(delta: float) -> void:
 			Game.notify("The canteen's water is distilled. The generator will start faster with it.")
 	else:
 		_distill = 0.0
-	# A hard knock spills some.
-	var speed := linear_velocity.length()
-	if holder == 0 and _last_speed > 3.5 and speed < 1.0 and fill > 0.0:
-		fill *= 0.5
-	_last_speed = speed
 
 
-func _pour_land(sp: Vector3, amount: float, delta: float) -> void:
-	var space := get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(sp, sp + Vector3.DOWN * 4.0, LevelGeometry.L_WORLD | LevelGeometry.L_DYNAMIC | LevelGeometry.L_TRIGGERS)
-	q.collide_with_areas = true
-	q.exclude = [get_rid()]
-	var hit := space.intersect_ray(q)
-	if hit and hit.collider and hit.collider.is_in_group("generator_funnel"):
-		if mineral:
-			_fuel_acc += amount
-		elif not _warned_plain:
-			_warned_plain = true
-			Game.notify("That's ordinary pool water. The generator only runs on the darker mineral water.")
-		return
-	var pool := WaterVolume.below(sp)
-	if pool:
-		_spill_timer -= delta
-		if _spill_timer <= 0.0:
-			_spill_timer = 0.4
-			NoiseBus.make(Vector3(sp.x, pool.surface_y, sp.z), 0.12, "spill")
+func _at_funnel() -> bool:
+	if not Game.level:
+		return false
+	var f: Vector3 = Game.level.funnel_point
+	var sp := spout_global()
+	return Vector2(sp.x - f.x, sp.z - f.z).length() < 0.45 and sp.y > f.y - 0.1 and sp.y < f.y + 0.9
 
 
-## The prompt over the water: what to do, how full, and what's in it once it's full.
+## The prompt over the water (or the funnel): what to do, how full, what's in it.
 func _update_hint(pool: WaterVolume, in_water: bool) -> void:
 	var text := ""
-	if _done_t > 0.0:
+	if holder == Net.my_id() and not in_water and fill > 0.0 and _at_funnel():
+		var n := int(round(fill * 10.0))
+		text = ("Pouring  " + "|".repeat(n) + ".".repeat(10 - n)) if pouring else \
+			("Pull a trigger to pour" if Game.vr_mode else "Hold left mouse to pour")
+	elif _done_t > 0.0:
 		text = "Full: mineral water" if mineral else "Full: plain pool water (no use to the generator)"
 	elif in_water and _filling:
 		var n := int(round(fill * 10.0))
@@ -245,7 +234,7 @@ func _update_hint(pool: WaterVolume, in_water: bool) -> void:
 	if _hint.visible:
 		_hint.text = text
 		var y := global_position.y + 0.22
-		if pool:
+		if pool and in_water:
 			y = maxf(y, pool.surface_y + 0.22)
 		_hint.global_position = Vector3(global_position.x, y, global_position.z)
 

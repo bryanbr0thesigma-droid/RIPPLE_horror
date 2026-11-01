@@ -63,6 +63,18 @@ func set_target(h: Transform3D, lh: Transform3D, rh: Transform3D, feet: Vector3,
 		_feet = feet
 
 
+## A teammate who died is a ghost: faint and see-through, can't be bumped, "(ghost)" by the name.
+var _name := ""
+
+func set_ghost(on: bool) -> void:
+	suit.set_ghost(on)
+	body.collision_layer = 0 if on else LevelGeometry.L_AVATARS
+	if _name == "":
+		_name = label.text
+	label.text = _name + (" (ghost)" if on else "")
+	label.modulate.a = 0.5 if on else 1.0
+
+
 func flash_caught() -> void:
 	_flash = 1.0
 

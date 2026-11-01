@@ -115,8 +115,25 @@ func set_controls_enabled(on: bool) -> void:
 	controls = on
 
 
+## A ghost sees the world through a cold, pale tint, and can't take hold of anything.
+var _ghost_view := false
+var _can_grab := true
+
+func set_ghost_view(on: bool) -> void:
+	_ghost_view = on
+	set_fade(0.0)
+
+
+func set_pickups_enabled(on: bool) -> void:
+	_can_grab = on
+
+
 func set_fade(a: float) -> void:
-	_fade_rect.color.a = a
+	# Black for fades; the ghost tint underneath when it's clear.
+	if _ghost_view and a < 0.2:
+		_fade_rect.color = Color(0.35, 0.5, 0.65, 0.25)
+	else:
+		_fade_rect.color = Color(0, 0, 0, a)
 
 
 func drop_all() -> void:
@@ -164,7 +181,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_release(-cam.global_transform.basis.z * 1.5)
 	elif event.is_action_pressed("push"):
 		_shove()
-	elif event.is_action_pressed("backpack"):
+	elif event.is_action_pressed("backpack") and _can_grab:
 		_backpack()
 	elif event.is_action_pressed("use_item") and held:
 		held.set_desktop_trigger(true)
@@ -286,7 +303,7 @@ func _interact() -> void:
 			item.rotation = Vector3.ZERO
 			return
 		return
-	if c is NetItem and not c.retired:
+	if c is NetItem and not c.retired and _can_grab:
 		held = c
 		c.grab_desktop(self)
 

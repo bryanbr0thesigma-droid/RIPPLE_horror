@@ -231,8 +231,28 @@ func set_controls_enabled(on: bool) -> void:
 			n.enabled = on
 
 
+## A ghost sees the world through a cold, pale tint, and can't take hold of anything.
+var _ghost_view := false
+
+func set_ghost_view(on: bool) -> void:
+	_ghost_view = on
+	set_fade(0.0)
+
+
+func set_pickups_enabled(on: bool) -> void:
+	for path in ["LeftHand/CollisionHandLeft/FunctionPickup", "RightHand/CollisionHandRight/FunctionPickup"]:
+		var n := get_node_or_null(path)
+		if n:
+			n.enabled = on
+
+
 func set_fade(a: float) -> void:
-	_fade_mat.albedo_color.a = a
+	# Black for fades; the ghost tint underneath when it's clear.
+	if _ghost_view and a < 0.2:
+		_fade_mat.albedo_color = Color(0.35, 0.5, 0.65, 0.25)
+		_fade.visible = true
+		return
+	_fade_mat.albedo_color = Color(0, 0, 0, a)
 	_fade.visible = a > 0.01
 
 

@@ -18,6 +18,7 @@ const ItemScripts := {
 	"lidar": preload("res://items/lidar.gd"),
 	"throwable": preload("res://items/throwable.gd"),
 	"flashlight": preload("res://items/flashlight.gd"),
+	"bag": preload("res://items/bag.gd"),
 }
 const SFX := {
 	"splash_big": preload("res://assets/audio/splash_big.ogg"),
@@ -482,6 +483,8 @@ func _spawn_item(kind: String, item_name: String, pos: Vector3) -> void:
 	it.name = item_name
 	$Items.add_child(it)
 	it.global_position = pos
+	it.home = pos
+	it.returns_home = kind in ["key", "canteen", "lidar"]     # needed to finish: never lost for good
 	items[item_name] = it
 
 
@@ -613,6 +616,7 @@ func _physics_process(delta: float) -> void:
 	if Net.is_host() or not Net.is_online():
 		_host_tick(delta)
 		_dummy_tick(delta)
+		_check_lost_items(delta)
 	_sync_timer -= delta
 	if _sync_timer <= 0.0:
 		_sync_timer = 0.05
@@ -742,6 +746,49 @@ func _srv_request(action: String, args: Array) -> void:
 	if sender == 0:
 		sender = Net.my_id()
 	match action:
+		"bag_drop":
+			# I died: everything I carried into my bag, floating where I fell.
+			for n in args[1]:
+				if items.has(n):
+					_set_item_stowed(n, -sender)
+					Net.send(self, &"_set_item_stowed", [n, -sender])
+			var bag_name := "Bag_%d" % sender
+			if items.has(bag_name):
+				var at: Vector3 = args[0] + Vector3.UP * 0.5
+				_set_item_stowed_at(bag_name, 0, at)
+				Net.send(self, &"_set_item_stowed_at", [bag_name, 0, at])
+				_set_item_owner(bag_name, 0, Net.my_id())
+				Net.send(self, &"_set_item_owner", [bag_name, 0, Net.my_id()])
+				items[bag_name]._start_fall()
+		"bag_return":
+			# Back to its owner: into their backpack (what doesn't fit drops at their feet).
+			var n_in := backpack_of(sender).size()
+			var feet: Vector3 = players[sender].body_position() if players.has(sender) else Vector3.ZERO
+			for it in items.values():
+				if it.stowed == -sender:
+					if n_in < BACKPACK_SIZE:
+						n_in += 1
+						_set_item_stowed(it.name, sender)
+						Net.send(self, &"_set_item_stowed", [it.name, sender])
+					else:
+						_set_item_stowed_at(it.name, 0, feet + Vector3.UP * 0.6)
+						Net.send(self, &"_set_item_stowed_at", [it.name, 0, feet + Vector3.UP * 0.6])
+			var bag_name := "Bag_%d" % sender
+			if items.has(bag_name):
+				_set_item_stowed(bag_name, sender)
+				Net.send(self, &"_set_item_stowed", [bag_name, sender])
+		"checkpoint":
+			# Someone alive reached a dry room: ghosts come back there.
+			team_checkpoint = args[0]
+			_revive_ghosts(args[0])
+			Net.send(self, &"_revive_ghosts", [args[0]])
+		"bag_home":
+			# A teammate carried a ghost's bag into a dry room: that ghost comes back there.
+			_revive_peer(args[0], args[1])
+			Net.send(self, &"_revive_peer", [args[0], args[1]])
+		"all_down":
+			_revive_all(team_checkpoint)
+			Net.send(self, &"_revive_all", [team_checkpoint])
 		"dummy":
 			var id := 900 + _dummy_n
 			_dummy_n += 1
@@ -779,6 +826,9 @@ func _srv_request(action: String, args: Array) -> void:
 			escaped[sender] = args[0]
 			var all := true
 			for id in players:
+				var p = players[id]
+				if p.info.get("dummy", false) or p.ghost or p.net_ghost:
+					continue          # test dummies and ghosts don't hold it up
 				if not escaped.get(id, false):
 					all = false
 			if all and players.size() > 0 and not state.all_escaped:
@@ -860,6 +910,13 @@ func _spawn_player(id: int, info: Dictionary, pos: Vector3) -> void:
 	if id == Net.my_id():
 		local_player = p
 	p.setup()
+	if not info.get("dummy", false) and not items.has("Bag_%d" % id):
+		var bag: RigidBody3D = ItemScripts["bag"].new()
+		bag.name = "Bag_%d" % id
+		bag.owner_peer = id
+		$Items.add_child(bag)
+		bag.global_position = pos
+		items[bag.name] = bag
 	if id == Net.my_id():
 		_warm_up_kills.call_deferred(p)
 
@@ -881,8 +938,15 @@ func _warm_up_kills(p: Node) -> void:
 
 
 func on_peer_left(id: int) -> void:
+	var bag = items.get("Bag_%d" % id)
+	for it in items.values():          # whatever was in their (dropped) bag falls out where it is
+		if bag and it.stowed == -id:
+			it.global_position = bag.global_position + Vector3.UP * 0.3
+			it.set_stowed(0)
+	if bag:
+		bag.set_stowed(id)
 	for it in items.values():          # whatever was in their backpack falls out where they were
-		if it.stowed == id:
+		if it.stowed == id and not it.name.begins_with("Bag_"):
 			if players.has(id):
 				it.global_position = players[id].body_position() + Vector3.UP * 0.5
 			it.set_stowed(0)
@@ -1025,6 +1089,90 @@ func _srv_item(item_name: String, action: String) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
+func _set_item_stowed_at(item_name: String, peer: int, at: Vector3) -> void:
+	var it = items.get(item_name)
+	if it:
+		it.global_position = at
+		it.set_stowed(peer)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _revive_ghosts(point: Vector3) -> void:
+	if local_player and local_player.ghost:
+		local_player.revive(point)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _revive_peer(id: int, point: Vector3) -> void:
+	if id == Net.my_id() and local_player and local_player.ghost:
+		local_player.revive(point)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _revive_all(point: Vector3) -> void:
+	if local_player and (local_player.ghost or not local_player.alive):
+		local_player.revive(point)
+
+
+## Real players other than me (not test dummies), and how many of them are alive (not ghosts).
+func teammates() -> Array:
+	var out := []
+	for id in players:
+		var p = players[id]
+		if id != Net.my_id() and not p.info.get("dummy", false):
+			out.append(p)
+	return out
+
+
+func living_teammates() -> int:
+	var n := 0
+	for p in teammates():
+		if p.is_alive():
+			n += 1
+	return n
+
+
+## What a player carries: in their hands and in their backpack.
+func items_carried_by(peer: int) -> Array:
+	var out := []
+	for it in items.values():
+		if not it.retired and not it.name.begins_with("Bag_") and (it.holder == peer or it.stowed == peer):
+			out.append(it.name)
+	return out
+
+
+## Host, every few seconds: the key, the canteens and the scanner go home if they're lost (fallen
+## somewhere unreachable, or left untouched for five minutes); so does a bag nobody's touched.
+var _home_check := 0.0
+
+func _check_lost_items(delta: float) -> void:
+	_home_check -= delta
+	if _home_check > 0.0:
+		return
+	_home_check = 2.0
+	for it in items.values():
+		if it.retired or it.holder != 0 or it.stowed != 0:
+			it.idle_time = 0.0
+			continue
+		it.idle_time += 2.0
+		var is_bag: bool = it.name.begins_with("Bag_")
+		var lost: bool = it.global_position.y < -3.0 or it.idle_time > 300.0
+		if is_bag and lost:
+			for c in items.values():
+				if c.stowed == -it.owner_peer:
+					_set_item_stowed_at(c.name, 0, c.home)
+					Net.send(self, &"_set_item_stowed_at", [c.name, 0, c.home])
+			_set_item_stowed(it.name, it.owner_peer)
+			Net.send(self, &"_set_item_stowed", [it.name, it.owner_peer])
+		elif it.returns_home and lost:
+			it.idle_time = 0.0
+			_set_item_stowed_at(it.name, 0, it.home)
+			Net.send(self, &"_set_item_stowed_at", [it.name, 0, it.home])
+			_set_item_owner(it.name, 0, Net.my_id())
+			Net.send(self, &"_set_item_owner", [it.name, 0, Net.my_id()])
+
+
+@rpc("authority", "call_remote", "reliable")
 func _set_item_stowed(item_name: String, peer: int) -> void:
 	var it = items.get(item_name)
 	if it and it.stowed != peer:
@@ -1035,11 +1183,12 @@ func _set_item_stowed(item_name: String, peer: int) -> void:
 # Everyone carries a backpack for up to four items. In VR, let go of an item over your shoulder to
 # put it in, and grip there with an empty hand to take the last one out (desktop: B).
 const BACKPACK_SIZE := 4
+var team_checkpoint := Vector3(4, 0.05, 5)      # the last dry room anyone alive reached
 
 func backpack_of(peer: int) -> Array:
 	var out := []
 	for it in items.values():
-		if it.stowed == peer and not it.retired:
+		if it.stowed == peer and not it.retired and not it.name.begins_with("Bag_"):
 			out.append(it)
 	out.sort_custom(func(a, b): return a.stow_t < b.stow_t)
 	return out
