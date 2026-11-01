@@ -120,12 +120,26 @@ exports a build for the other (see below).
 - **Lidar:** only the holder sees the dots. It sees through the water, and shows the creature in red
   and teammates in yellow. The battery drains while scanning and recharges at the charger once the
   power is on.
-- **Getting caught:** it grabs you and kills you in one of two ways: it rips your head off with
-  the spine still attached, or it tears you in half and your organs spill into the water. If it's
-  you, your view blurs as it pulls (head and spine) or cuts straight to black (torn in half), and
-  you respawn at the last dry room you passed through (a checkpoint). Your teammates see all of it.
-- **Feeding:** after a kill it feeds on the remains for 3 to 5 seconds and ignores every noise.
-  That's your teammates' chance to run.
+- **Getting caught:** it grabs you and kills you one of three ways: it pulls your head off, the
+  spine stuck for a moment before it rips out; it tears you in half at the waist; or it tears you
+  in half down the middle. If it's you, your view blurs as it pulls (head and spine) or cuts
+  straight to black (torn apart). Your teammates see all of it. Holding on to the pool's edge or a
+  ladder doesn't save you: with your feet over the pool you still count as in the water.
+- **Dying:** everything you carried (in your hands and your backpack) goes into your bag, which
+  floats where you died with a faint glow.
+  - **Alone:** you're straight back at the last dry room you passed through. Go back for your bag
+    and grab it to get your things back.
+  - **With teammates still alive:** you're a ghost, where you died. You can move about, but you
+    can't hold anything, you make no noise, and the creature ignores you; your view is tinted and
+    teammates see you faint and see-through. You come back to life when a living teammate steps
+    into a dry room (or the exit), or straight away if one carries your bag into a dry room. Your
+    things come back to your backpack when you do.
+  - **If everyone's down:** everyone comes back together at the last dry room the team reached.
+    Progress (the door, the generator, the cover) stays.
+  - The key, the canteens and the scanner go back where they started if they're ever lost
+    (fallen out of reach, or left untouched for five minutes).
+- **Feeding:** after a kill it feeds on the remains for 6 to 10 seconds and ignores every noise.
+  That's your teammates' chance to run, or to grab your bag.
 - **Canteen:** hold it in the water and pull either trigger to fill it. A prompt floats over the
   water, a bar shows it filling, and it pops and buzzes when it's full (and says what's in it).
   It has no physics: let go and it drops straight down and stands upright, or floats upright.
