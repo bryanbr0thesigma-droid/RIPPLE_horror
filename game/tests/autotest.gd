@@ -83,6 +83,8 @@ func _run() -> void:
 			await _props_shot()
 		"dummy":
 			await _dummy_test()
+		"kill_movie":
+			await _kill_movie()
 	_finish()
 
 
@@ -136,6 +138,12 @@ func _smoke() -> void:
 		var cam_y: float = rig.camera.global_position.y
 		var feet_y: float = rig.feet_position().y
 		check(absf(feet_y - (-0.95)) < 0.15 and cam_y > 0.4, "the pools are shallow: VR player stands on the bottom, head well above the water (feet y=%.2f, camera y=%.2f)" % [feet_y, cam_y])
+		var before: Vector3 = rig.feet_position()
+		rig.camera.position = Vector3(0.6, 1.7, 0.4)   # standing off-centre in the play area
+		Game.recenter()
+		await wait(0.5)
+		var moved: float = Vector2(rig.feet_position().x - before.x, rig.feet_position().z - before.z).length()
+		check(Game.recentered.is_connected(rig._on_recentered) and moved < 0.15, "holding the Meta button recenters without moving you (moved %.2f m)" % moved)
 	else:
 		check(rig.is_on_floor(), "desktop player stands on the start room floor")
 
@@ -477,6 +485,7 @@ func _props_shot() -> void:
 		["p_exit", Vector3(40.0, 0.05, -36.0), -90.0, 0.0],
 		["p_bunker", Vector3(4.0, 0.05, 3.0), -90.0, -5.0],
 		["p_generator", Vector3(7.0, 0.05, -43.0), -60.0, -15.0],
+		["p_distiller", Vector3(20.2, 0.05, -5.0), 8.0, -14.0],
 	]
 	for v in views:
 		rig.teleport(v[1])
@@ -534,5 +543,103 @@ func _dummy_test() -> void:
 	check(L.creature.state == L.creature.S.FEAST, "while feasting it ignores even a loud splash")
 	var gone := await wait_for(func(): return not L.players.has(dummy_id), 6.0)
 	check(gone, "the dummy is removed after")
-	var done := await wait_for(func(): return L.creature.state != L.creature.S.FEAST, 7.0)
-	check(done, "the feast lasts at most 5 seconds")
+	var done := await wait_for(func(): return L.creature.state != L.creature.S.FEAST, 12.0)
+	check(done, "the feeding lasts at most 10 seconds")
+
+
+## For review clips, run with Godot's movie writer (fixed 30 fps, sound included):
+##   godot --path game --write-movie out.avi --fixed-fps 30 -- --desktop --host --autotest=kill_movie
+## Prints "CLIP name start end" (seconds into the movie) for cutting it up.
+func _kill_movie() -> void:
+	var L = Game.level
+	var rig := _rig()
+	var C = L.creature
+	C.set_physics_process(false)
+	await wait(1.2)                                   # past the start-of-level warm-up
+	var clock := [0.0]
+	var step := func(n: int, extra: Callable) -> void:
+		for i in n:
+			C._update_presentation(1.0 / 30.0)
+			extra.call(i / 30.0)
+			await get_tree().process_frame
+			clock[0] += 1.0 / 30.0
+	var clip := func(name: String, n: int, extra: Callable) -> void:
+		var t0: float = clock[0] + 1.2
+		await step.call(n, extra)
+		print("CLIP %s %.2f %.2f" % [name, t0, clock[0] + 1.2])
+	var mate_at := func(id: int, suit: int, col: Color, at: Vector3, face: float) -> Node:
+		L._spawn_player(id, {"name": "Teammate", "suit": suit, "color": col}, at)
+		var m = L.players[id]
+		var b := Basis(Vector3.UP, face)
+		var down := Basis(Vector3.RIGHT, -PI * 0.5)
+		for k in 3:
+			m.avatar.set_target(Transform3D(b, at + Vector3.UP * 1.62), Transform3D(b * down, at + Vector3.UP * 0.85 - b.x * 0.25),
+				Transform3D(b * down, at + Vector3.UP * 0.85 + b.x * 0.25), at, true)
+			await get_tree().process_frame
+		return m
+	var noop := func(_t): pass
+	# Stand on the walkway at `feet` and look at `at`.
+	var cam: Camera3D = rig.get("cam") if rig.get("cam") else rig.get("camera")
+	var aim := func(feet: Vector3, at: Vector3) -> void:
+		cam.fov = 42.0                                 # zoomed in a little, for the clips
+		rig.teleport(feet)
+		var d: Vector3 = at - (feet + Vector3.UP * 1.62)
+		rig._yaw = atan2(-d.x, -d.z)
+		rig._pitch = atan2(d.y, Vector2(d.x, d.z).length())
+	# 1. Wading past, from the walkway.
+	aim.call(Vector3(5.0, 0.05, -0.6), Vector3(7.2, 0.6, -4.6))
+	C.global_position = Vector3(10.5, -0.95, -4.6)
+	C.rotation.y = -PI * 0.5
+	C._yaw = C.rotation.y
+	C._last_pos = C.global_position
+	C.state = C.S.PATROL
+	C._speed_now = 0.7
+	await clip.call("wade", 210, func(_t): C.global_position += Vector3(-0.7 / 30.0, 0, 0))
+	C._speed_now = 0.0
+	# 2. Head and spine.
+	var m1 = await mate_at.call(99, 1, Color(0.2, 0.6, 0.95), Vector3(5.0, -0.95, -4.4), PI * 0.5)
+	C.global_position = Vector3(6.15, -0.95, -4.4)
+	C.rotation.y = -PI * 0.5
+	C._last_pos = C.global_position
+	aim.call(Vector3(5.2, 0.05, -1.9), Vector3(5.6, 0.75, -4.4))
+	C.play_kill(m1, 1, C.K.HEAD_RIP)
+	await clip.call("kill_spine", 160, noop)
+	# 3. Split down the middle.
+	var m2 = await mate_at.call(98, 0, Color(0.9, 0.45, 0.15), Vector3(10.0, -0.95, -4.5), 0.0)
+	C.global_position = Vector3(10.0, -0.95, -3.35)     # between us and them, so we see their front
+	C.rotation.y = PI
+	C._last_pos = C.global_position
+	aim.call(Vector3(12.7, 0.05, -1.9), Vector3(10.0, 0.75, -4.4))
+	C.play_kill(m2, 0, C.K.SPLIT)
+	await clip.call("kill_split", 150, noop)
+	# 4. Torn in half at the waist, then it feeds.
+	var m3 = await mate_at.call(97, 2, Color(0.6, 0.6, 0.6), Vector3(1.5, -0.95, -4.4), PI * 0.5)
+	C.global_position = Vector3(2.65, -0.95, -4.4)
+	C.rotation.y = -PI * 0.5
+	C._last_pos = C.global_position
+	aim.call(Vector3(2.0, 0.05, -1.9), Vector3(2.1, 0.75, -4.4))
+	C.play_kill(m3, 2, C.K.HALVES)
+	await clip.call("kill_halves", 150, noop)
+	await step.call(10, noop)                         # the kill ends
+	C.state = C.S.FEAST
+	aim.call(Vector3(3.6, 0.05, -1.9), Vector3(2.4, -0.2, -4.4))
+	await clip.call("feed", 240, noop)
+	C.state = C.S.LINGER
+	await step.call(20, noop)
+	# 5. A charge across the pool and the screech lasting all the way.
+	C.global_position = Vector3(12.0, -0.95, -14.0)
+	C.rotation.y = -PI * 0.75
+	C._yaw = C.rotation.y
+	C._last_pos = C.global_position
+	aim.call(Vector3(2.0, 0.05, -0.8), Vector3(5.0, 0.4, -9.0))
+	cam.fov = 60.0
+	C.state = C.S.CHARGE
+	C._speed_now = 6.5
+	var dir := (Vector3(-2.0, 0, -4.0) - Vector3(12.0, 0, -14.0)).normalized()
+	C.rotation.y = atan2(dir.x, dir.z)
+	await clip.call("charge", 150, func(t):
+		if t < 3.0:
+			C.global_position += dir * 4.5 / 30.0
+		elif C.state == C.S.CHARGE:
+			C._speed_now = 0.0
+			C.state = C.S.LINGER)

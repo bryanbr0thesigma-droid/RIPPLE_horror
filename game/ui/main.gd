@@ -116,9 +116,11 @@ func _title_text() -> void:
 
 
 func _creature() -> void:
-	creature = CreatureModel.instantiate()
-	creature.scale = Vector3.ONE * 4.1
+	creature = Node3D.new()            # unscaled body, the model inside it (as in the game)
 	add_child(creature)
+	var model: Node3D = CreatureModel.instantiate()
+	model.scale = Vector3.ONE * preload("res://creature/creature.gd").MODEL_SCALE
+	creature.add_child(model)
 	var ap := creature.find_children("*", "AnimationPlayer", true, false)
 	if ap.size() > 0:
 		var anim: AnimationPlayer = ap[0]

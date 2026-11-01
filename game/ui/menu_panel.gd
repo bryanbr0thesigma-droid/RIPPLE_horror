@@ -236,6 +236,7 @@ Cover lever: "Old lever" by gunnarcorrea
 Scanner: "Geiger counter" by DenisKorablyov
 Bottles: "Dusty Beer Bottle" by GameDevNick, "Whiskey and Wine Low-Poly Bottles" by Helyeouka
 Pool ladder: "CC0 - Pool Ladder 3" by plaggy
+Distiller: "Rusted liquid storages" by maxpsr
 Spine: "Human Spine" by b_bear
 Heart and lungs: "Realistic Human Heart", "Realistic Human Lungs" by neshallads
 Liver: "Human liver and gallbladder" by ElliotSS

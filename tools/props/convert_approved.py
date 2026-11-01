@@ -3,6 +3,8 @@
 import bpy, bmesh, sys, os, math
 from mathutils import Vector, Matrix
 DL, PH, GAME = sys.argv[sys.argv.index('--') + 1:][:3]
+# Optional 4th argument: convert only these (comma separated names), e.g. Distiller.
+ONLY = set(sys.argv[sys.argv.index('--') + 1:][3].split(',')) if len(sys.argv[sys.argv.index('--') + 1:]) > 3 else None
 
 
 def fresh(path):
@@ -142,6 +144,16 @@ P = os.path.join(GAME, 'assets', 'props')
 G = os.path.join(GAME, 'assets', 'gore')
 
 # --- Round 20 ---------------------------------------------------------------------------------
+# --- Round 22 ------------------------------------------------------------------------------------
+LATER = [
+    ('Distiller', f'{DL}/distiller/model.glb', f'{P}/distiller.glb', 1.25, 'z', 'bottom', 8000),   # rusted tanks
+]
+if ONLY:                       # just these, then stop
+    for args in LATER:
+        if args[0] in ONLY:
+            simple(*args)
+    raise SystemExit(0)
+
 simple('Key', f'{DL}/key/model.glb', f'{P}/key.glb', 0.13, 'max', 'center', after=gold)
 simple('Scanner', f'{DL}/scanner/model.glb', f'{P}/scanner.glb', 0.19, 'max', 'center')
 simple('Bottle', f'{DL}/bottle_beer/model.glb', f'{P}/bottle_beer.glb', 0.24, 'z', 'center')
@@ -221,3 +233,5 @@ o.data.materials.clear()
 o.data.materials.append(mat)
 export(f'{G}/spine.glb', [o])
 print('SPINE widths top/bottom', round(top_w, 2), round(bot_w, 2))
+for args in LATER:
+    simple(*args)

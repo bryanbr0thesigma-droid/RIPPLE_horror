@@ -68,6 +68,7 @@ func _ready() -> void:
 	_msg.visible = false
 	camera.add_child(_msg)
 	Game.message.connect(_show_message)
+	Game.recentered.connect(_on_recentered)
 	# Hands match the suit's gloves; turning follows the player's setting.
 	VRHands.tint($LeftHand/CollisionHandLeft/LeftGlove, SuitRig.glove_color(Profile.suit))
 	VRHands.tint($RightHand/CollisionHandRight/RightGlove, SuitRig.glove_color(Profile.suit))
@@ -172,6 +173,16 @@ func hand_transforms() -> Array:
 ## don't count as hand movement. Only actually moving your hands does.
 func hands_relative() -> Array:
 	return [left.position, right.position]
+
+
+## After the Meta-button recenter, the view faces forward again; keep the player standing where
+## they were instead of jumping to the middle of their play area (maybe into a wall).
+func _on_recentered() -> void:
+	var feet := body.global_position
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if is_instance_valid(body):
+		teleport(feet)
 
 
 func teleport(p: Vector3) -> void:

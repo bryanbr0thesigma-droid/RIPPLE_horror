@@ -79,8 +79,12 @@ func drag_under() -> void:
 
 
 ## The creature tore them apart: torn-off pieces take over, this body hides until they respawn.
+## (Dead until their own game says they're alive again; without this the whole body popped back up
+## where it stood on the next frame, next to the pieces.)
 func release() -> void:
 	_seized = null
+	_alive = false
+	_flash = 0.0
 	visible = false
 
 

@@ -28,6 +28,7 @@ Everything here allows commercial use. None of it is AI-generated.
   - Lidar scanner: [Geiger counter](https://sketchfab.com/3d-models/25b8e5c2de1148c0b991bb239efa1808) by **DenisKorablyov**.
   - Bottles: [Dusty Beer Bottle](https://sketchfab.com/3d-models/03d9062085214988b2e984470c7c0d28) by **GameDevNick** and
     [Whiskey and Wine Low-Poly Bottles](https://sketchfab.com/3d-models/99999f032f624e8cb05651f041dbf8eb) by **Helyeouka**.
+  - Distiller: [Rusted liquid storages](https://sketchfab.com/3d-models/1d79acb10553424eb1dfda079af880cd) by **maxpsr**.
   - Pool ladders: [CC0 - Pool Ladder 3](https://sketchfab.com/3d-models/43cbe4e6e68140e1ad202cf8a3e53650) by **plaggy**
     (titled CC0, listed as CC BY on Sketchfab, so credited as CC BY).
 - **Gore** (all CC BY 4.0 on Sketchfab, simplified for Quest):

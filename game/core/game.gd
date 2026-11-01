@@ -2,6 +2,7 @@ extends Node
 ## Game-wide state: VR or desktop mode, scene changes, messages, and the desktop controls.
 
 signal message(text: String)
+signal recentered   # after the Meta-button recenter
 
 const LEVEL_SCENE := "res://level/level.tscn"
 const MENU_SCENE := "res://ui/main.tscn"
@@ -22,6 +23,11 @@ func _ready() -> void:
 		args[kv[0]] = kv[1] if kv.size() > 1 else true
 	_setup_desktop_input()
 	Net.session_ended.connect(_on_session_ended)
+	# A kill stacks a screech, tearing, cracks and bites at once: a limiter on the master bus keeps
+	# that from clipping into noise.
+	var lim := AudioEffectHardLimiter.new()
+	lim.ceiling_db = -0.5
+	AudioServer.add_bus_effect(0, lim)
 	if args.has("autotest"):
 		var t: Node = load("res://tests/autotest.gd").new()
 		t.name = "AutoTest"
@@ -43,11 +49,22 @@ func start_xr() -> bool:
 	if vr_mode:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 		get_viewport().use_xr = true
+		# Holding the Meta button asks to recenter. In the stage space (real floor height) the
+		# headset leaves that to the game, so face forward where the player is looking.
+		if not xr_interface.pose_recentered.is_connected(recenter):
+			xr_interface.pose_recentered.connect(recenter)
 		var rate := 72.0
 		if xr_interface.has_method("get_display_refresh_rate"):
 			rate = maxf(xr_interface.get_display_refresh_rate(), 72.0)
 		Engine.physics_ticks_per_second = int(rate)
 	return vr_mode
+
+
+## Recenter the view: the headset's current spot and facing become the play area's centre and
+## forward, keeping your real height. Called when the Meta button is held.
+func recenter() -> void:
+	XRServer.center_on_hmd(XRServer.RESET_BUT_KEEP_TILT, true)
+	recentered.emit()
 
 
 func start_level() -> void:

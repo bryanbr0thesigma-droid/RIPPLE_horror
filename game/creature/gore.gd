@@ -14,6 +14,15 @@ static var _flesh_mat: ShaderMaterial
 static var _bone_mat: StandardMaterial3D
 static var _noise: NoiseTexture2D
 static var _mist_tex: GradientTexture2D
+static var _mist_mat: StandardMaterial3D
+## Kept loaded for the whole level, so a kill never waits on the disk (the organs took a third of
+## a second to load on a desktop, longer on a headset).
+static var _spine_scene: PackedScene
+static var _organ_scenes: Array[PackedScene] = []
+## One of each shader, shared: a new Shader per blood pool or gut meant a fresh compile each time.
+static var _pool_shader: Shader
+static var _gut_shader: Shader
+static var _blur_shader: Shader
 
 const POOL_SHADER := """shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
@@ -44,7 +53,7 @@ void fragment() {
 const FLESH_SHADER := """shader_type spatial;
 uniform sampler2D noise_tex : repeat_enable;
 varying vec3 lp;
-void vertex() { lp = VERTEX; }
+void vertex() { lp = VERTEX * length(MODEL_MATRIX[0].xyz); }   // in metres, whatever the mesh's units
 void fragment() {
 	float n = texture(noise_tex, lp.xy * 6.0 + lp.zx * 4.0).r;
 	float f = texture(noise_tex, lp.yz * 9.0 + 0.5).r;
@@ -89,6 +98,23 @@ static func _setup() -> void:
 	_mist_tex.fill_to = Vector2(1.0, 0.5)
 	_mist_tex.width = 64
 	_mist_tex.height = 64
+	_mist_mat = StandardMaterial3D.new()
+	_mist_mat.albedo_texture = _mist_tex
+	_mist_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_mist_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_mist_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_mist_mat.vertex_color_use_as_albedo = true
+	_pool_shader = Shader.new()
+	_pool_shader.code = POOL_SHADER
+	_gut_shader = Shader.new()
+	_gut_shader.code = GUT_SHADER
+	_blur_shader = Shader.new()
+	_blur_shader.code = BLUR_SHADER
+	if ResourceLoader.exists(SPINE_MODEL):
+		_spine_scene = load(SPINE_MODEL)
+	for path in ORGAN_MODELS:
+		if ResourceLoader.exists(path):
+			_organ_scenes.append(load(path))
 
 
 ## Build the materials and the splatter textures ahead of time (at level load), so the first kill
@@ -98,7 +124,7 @@ static func warm_up() -> void:
 
 
 ## Blood bursting out of a bite, in droplets that fall into the water.
-static func spray(parent: Node, pos: Vector3, dir: Vector3, amount := 90) -> void:
+static func spray(parent: Node, pos: Vector3, dir: Vector3, amount := 90, mist := true) -> void:
 	_setup()
 	var p := CPUParticles3D.new()
 	p.one_shot = true
@@ -123,7 +149,8 @@ static func spray(parent: Node, pos: Vector3, dir: Vector3, amount := 90) -> voi
 	parent.add_child(p)
 	p.global_position = pos
 	p.emitting = true
-	_mist(parent, pos)
+	if mist:
+		_mist(parent, pos)
 	parent.get_tree().create_timer(2.5).timeout.connect(p.queue_free)
 
 
@@ -143,13 +170,7 @@ static func _mist(parent: Node, pos: Vector3) -> void:
 	p.scale_amount_max = 2.2
 	var q := QuadMesh.new()
 	q.size = Vector2(0.35, 0.35)
-	var mm := StandardMaterial3D.new()
-	mm.albedo_texture = _mist_tex
-	mm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mm.vertex_color_use_as_albedo = true
-	q.material = mm
+	q.material = _mist_mat
 	p.mesh = q
 	var ramp := Gradient.new()
 	ramp.set_color(0, Color(1, 1, 1, 1))
@@ -197,9 +218,7 @@ static func blood_pool(parent: Node, pos: Vector3, surface_y: float, size := 6.0
 	pm.size = Vector2(size, size)
 	mi.mesh = pm
 	var mat := ShaderMaterial.new()
-	var sh := Shader.new()
-	sh.code = POOL_SHADER
-	mat.shader = sh
+	mat.shader = _pool_shader
 	mat.set_shader_parameter("noise_tex", _noise)
 	mat.set_shader_parameter("seed", randf())
 	mat.render_priority = 2
@@ -296,24 +315,39 @@ class _Floater extends Node3D:
 	var spin := Vector3.ZERO
 	var _t := 0.0
 	var _floating := false
+	var _resting := false
 	var _seed := randf() * 10.0
 
-	func _process(delta: float) -> void:
+	func _physics_process(delta: float) -> void:
 		_t += delta
+		if _t > 120.0:
+			queue_free()
+		if _resting:
+			return
+		var old := global_position
+		var p := old
 		if not _floating:
 			velocity.y -= 9.8 * delta
-			global_position += velocity * delta
+			p += velocity * delta
 			rotation += spin * delta
-			if global_position.y <= surface_y and velocity.y < 0.0:
+			if p.y <= surface_y and velocity.y < 0.0 and Gore.water_below(p):
 				_floating = true
 				velocity = Vector3(velocity.x, 0, velocity.z) * 0.15
 		else:
 			velocity *= 1.0 - delta * 0.2
-			global_position += velocity * delta
-			global_position.y = surface_y + sin(_t * 1.4 + _seed) * 0.008
+			p += velocity * delta
+			p.y = surface_y + sin(_t * 1.4 + _seed) * 0.008
 			rotation.y += delta * 0.05
-		if _t > 120.0:
-			queue_free()
+		# Walls and floors stop it (it lands on dry floor if it was thrown out of the water).
+		var hit := Gore.sweep(self, old, p, 0.05)
+		if not hit.is_empty():
+			var n: Vector3 = hit.normal
+			p = hit.position + n * 0.05
+			velocity = (velocity - n * velocity.dot(n) * 1.3) * 0.4
+			spin *= 0.5
+			if n.y > 0.6 and velocity.length() < 0.6 and not _floating:
+				_resting = true
+		global_position = p
 
 
 ## Ages a blood cloud's shader and removes it when it has faded.
@@ -394,9 +428,8 @@ static func cap(radius: float, with_bone := true) -> Node3D:
 ## otherwise a column of vertebrae with their spines and a trailing cord.
 static func spine() -> Node3D:
 	_setup()
-	if ResourceLoader.exists(SPINE_MODEL):
-		var m: Node3D = (load(SPINE_MODEL) as PackedScene).instantiate()
-		return m
+	if _spine_scene:
+		return _spine_scene.instantiate()
 	var root := Node3D.new()
 	var y := 0.0
 	for i in 24:
@@ -441,9 +474,8 @@ static func spine() -> Node3D:
 static func organs() -> Array[Node3D]:
 	_setup()
 	var out: Array[Node3D] = []
-	for path in ORGAN_MODELS:
-		if ResourceLoader.exists(path):
-			out.append((load(path) as PackedScene).instantiate())
+	for sc in _organ_scenes:
+		out.append(sc.instantiate())
 	if not out.is_empty():
 		return out
 	# Stand-ins: liver, stomach, heart, two kidneys, a lung.
@@ -465,8 +497,8 @@ static func organs() -> Array[Node3D]:
 
 
 ## Spill organs from a point: they tumble out, fall into the water and float there.
-static func spill(parent: Node, pos: Vector3, surface_y: float, push: Vector3) -> void:
-	for o in organs():
+static func spill(parent: Node, pos: Vector3, surface_y: float, push: Vector3, ready_made: Array = []) -> void:
+	for o in (ready_made if not ready_made.is_empty() else organs()):
 		var f := _Floater.new()
 		f.surface_y = surface_y
 		f.velocity = push + Vector3(randf_range(-0.6, 0.6), randf_range(0.0, 1.2), randf_range(-0.6, 0.6))
@@ -486,9 +518,7 @@ static func gut(parent: Node, a: Node3D, b: Node3D, length := 1.8, floor_y := -0
 	g.length = length
 	g.floor_y = floor_y
 	var mat := ShaderMaterial.new()
-	var sh := Shader.new()
-	sh.code = GUT_SHADER
-	mat.shader = sh
+	mat.shader = _gut_shader
 	mat.set_shader_parameter("noise_tex", _noise)
 	g.material_override = mat
 	g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -508,7 +538,7 @@ static func fountain(parent: Node, seconds := 3.0) -> CPUParticles3D:
 	var tw := p.create_tween().set_loops(int(seconds / 0.5))
 	tw.tween_property(p, "initial_velocity_max", 3.2, 0.12)
 	tw.tween_property(p, "initial_velocity_max", 1.4, 0.38)
-	parent.get_tree().create_timer(seconds).timeout.connect(func(): p.emitting = false)
+	parent.get_tree().create_timer(seconds).timeout.connect(func(): if is_instance_valid(p): p.emitting = false)
 	parent.get_tree().create_timer(seconds + 1.5).timeout.connect(p.queue_free)
 	return p
 
@@ -633,14 +663,13 @@ void fragment() {
 
 ## The victim's vision going blurry (set "amount" from 0 to 1).
 static func blur_overlay(cam: Camera3D) -> MeshInstance3D:
+	_setup()
 	var mi := MeshInstance3D.new()
 	var q := QuadMesh.new()
 	q.size = Vector2(1, 1)
 	mi.mesh = q
 	var mat := ShaderMaterial.new()
-	var sh := Shader.new()
-	sh.code = BLUR_SHADER
-	mat.shader = sh
+	mat.shader = _blur_shader
 	mat.render_priority = 99
 	mi.material_override = mat
 	mi.extra_cull_margin = 16384.0
@@ -668,27 +697,138 @@ class _Sinker extends Node:
 	var _start := Basis()
 	var _target := Basis()
 	var _floating := false
+	var _resting := false
+	var _probes: Array[Vector3] = []      # points at the piece's extremities, in its own space
 
 	func _ready() -> void:
 		_start = piece.global_basis.orthonormalized()
 		var yaw := randf() * TAU
 		_target = Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, -PI * 0.5) if lie else _start
+		var inv := piece.global_transform.affine_inverse()
+		if piece.has_method("extent_points"):
+			for w in piece.extent_points():
+				_probes.append(inv * w)
+		if _probes.is_empty():
+			_probes.append(Vector3.ZERO)
 
-	func _process(delta: float) -> void:
+	func _physics_process(delta: float) -> void:
 		_t += delta
+		if _t > 100.0:
+			piece.queue_free()
+			return
 		var k := clampf(_t / 0.9, 0.0, 1.0)
 		var b := _start.slerp(_target, k * k)
-		var p := piece.global_position
+		var old := piece.global_transform
+		var p := old.origin
+		if _resting:
+			piece.global_transform = Transform3D(b, p)
+			return
 		if not _floating:
 			velocity.y -= 9.8 * delta
 			p += velocity * delta
-			if p.y <= surface_y - 0.12 and velocity.y < 0.0:
+			if p.y <= surface_y - 0.12 and velocity.y < 0.0 and Gore.water_below(p):
 				_floating = true
 				velocity = Vector3(velocity.x, 0, velocity.z) * 0.1
 		else:
 			velocity *= 1.0 - delta * 0.5
 			p += velocity * delta
 			p.y = surface_y - 0.12 + sin(_t * 1.2) * 0.01
-		piece.global_transform = Transform3D(b, p)
-		if _t > 100.0:
-			piece.queue_free()
+		# Every extremity is swept against the walls and floors: a hit pushes the whole piece back,
+		# so a torn half never passes through a wall, and one thrown out of the water lies on the floor.
+		var want := Transform3D(b, p)
+		var push := Vector3.ZERO
+		var normal := Vector3.ZERO
+		for q in _probes:
+			var hit := Gore.sweep(piece, old * q, want * q, 0.06)
+			if not hit.is_empty():
+				var corr: Vector3 = (hit.position as Vector3) + (hit.normal as Vector3) * 0.06 - want * q
+				if corr.length() > push.length():
+					push = corr
+					normal = hit.normal
+		if push != Vector3.ZERO:
+			want.origin += push
+			velocity = (velocity - normal * velocity.dot(normal) * 1.3) * 0.35
+			if normal.y > 0.6 and velocity.length() < 0.5 and not _floating:
+				_resting = true
+		piece.global_transform = want
+
+
+## Is there pool water under this point? (Dry floor isn't.)
+static func water_below(p: Vector3) -> bool:
+	return WaterVolume.below(Vector3(p.x, p.y + 0.5, p.z)) != null
+
+
+## A ray from a to b (extended by margin) against the level's walls and floors.
+static func sweep(n: Node3D, a: Vector3, b: Vector3, margin: float) -> Dictionary:
+	if not n.is_inside_tree() or a.distance_squared_to(b) < 1e-10:
+		return {}
+	var d := b - a
+	var q := PhysicsRayQueryParameters3D.create(a, b + d.normalized() * margin, LevelGeometry.L_WORLD)
+	return n.get_world_3d().direct_space_state.intersect_ray(q)
+
+
+## Keep a held piece out of walls: if a wall stands between `from` (the creature's chest) and any of
+## the piece's extremities, slide the piece back to this side of it.
+static func keep_out(piece: Node3D, from: Vector3) -> void:
+	if not piece.has_method("extent_points") or not piece.is_inside_tree():
+		return
+	var push := Vector3.ZERO
+	for w: Vector3 in piece.extent_points():
+		var hit := sweep(piece, from, w, 0.08)
+		if not hit.is_empty():
+			var corr: Vector3 = (hit.position as Vector3) + (hit.normal as Vector3) * 0.08 - w
+			if corr.length() > push.length():
+				push = corr
+	if push != Vector3.ZERO:
+		piece.global_position += push
+
+
+## Draw one of everything the kills use, once, in front of the camera while the screen is black at
+## the start of the level: the headset compiles each shader the first time it draws it, and doing
+## that mid-kill was a big part of the stutter. Also loads the torn-suit files.
+static func warm_draw(parent: Node, cam: Camera3D) -> void:
+	_setup()
+	var rack := Node3D.new()
+	parent.add_child(rack)
+	rack.global_transform = cam.global_transform * Transform3D(Basis(), Vector3(0, -0.15, -1.4))
+	var things: Array[Node3D] = [spine(), cap(0.08)]
+	things.append_array(organs())
+	for i in SuitRig.SUITS.size():
+		var full := SuitRig.create(i, Color(0.8, 0.4, 0.1))
+		full.show_only(["head", "upper"])
+		things.append(full)
+		var half := SuitRig.create(i, Color(0.8, 0.4, 0.1), "lr")
+		half.show_only(["left"])
+		things.append(half)
+	var grey := SuitRig.create(2, Color.GRAY)
+	grey.make_featureless()
+	things.append(grey)
+	for i in things.size():
+		var t := things[i]
+		rack.add_child(t)
+		t.position = Vector3((i % 6 - 2.5) * 0.25, (i / 6) * 0.25 - 0.3, 0)
+		t.scale = Vector3.ONE * 0.2
+	var pool := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(0.4, 0.4)
+	pool.mesh = pm
+	var pmat := ShaderMaterial.new()
+	pmat.shader = _pool_shader
+	pmat.set_shader_parameter("noise_tex", _noise)
+	pmat.set_shader_parameter("age", 3.0)
+	pool.material_override = pmat
+	rack.add_child(pool)
+	pool.rotation.x = PI * 0.5
+	var a := Node3D.new()
+	var b := Node3D.new()
+	rack.add_child(a)
+	rack.add_child(b)
+	a.position = Vector3(-0.3, 0.2, 0)
+	b.position = Vector3(0.3, 0.2, 0)
+	gut(rack, a, b, 0.8)
+	spray(rack, rack.global_position, Vector3.UP, 6)
+	fountain(rack, 0.4)
+	for f in 4:
+		await parent.get_tree().process_frame
+	if is_instance_valid(rack):
+		rack.queue_free()

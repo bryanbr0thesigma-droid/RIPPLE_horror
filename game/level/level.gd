@@ -255,6 +255,20 @@ func _build_staff_room() -> void:
 	G.block(20.0, 22.0, 0.0, 0.85, -2.6, -1.4, G.mat_metal, LevelGeometry.L_WORLD, $Props)
 	G.block(22.8, 23.6, 0.0, 0.9, -7.4, -5.8, G.mat_metal, LevelGeometry.L_WORLD, $Props)
 	G.block(18.1, 19.1, 0.0, 0.9, -9.6, -8.6, G.mat_metal, LevelGeometry.L_WORLD, $Props)
+	# The distiller itself: rusted tanks along the back wall, piped to the stand where the canteen
+	# goes (approved in Round 22: "Rusted liquid storages" by maxpsr, CC BY).
+	var tanks: Node3D = preload("res://assets/props/distiller.glb").instantiate()
+	tanks.position = Vector3(20.95, 0.0, -9.38)
+	$Props.add_child(tanks)
+	var tank_body := StaticBody3D.new()
+	tank_body.collision_layer = LevelGeometry.L_WORLD
+	var tcs := CollisionShape3D.new()
+	var tbox := BoxShape3D.new()
+	tbox.size = Vector3(3.38, 1.25, 1.21)
+	tcs.shape = tbox
+	tcs.position = Vector3(0, 0.625, 0)
+	tank_body.add_child(tcs)
+	tanks.add_child(tank_body)
 	_add_prop_label("DISTILLER\nset a canteen here", Vector3(18.6, 1.35, -8.58))
 	_add_prop_label("LIDAR CHARGER\nneeds power", Vector3(23.15, 1.35, -5.78))
 	distiller_audio = _loop_audio(preload("res://assets/audio/distiller_loop.ogg"), Vector3(18.6, 1.0, -9.1), -10.0)
@@ -844,6 +858,24 @@ func _spawn_player(id: int, info: Dictionary, pos: Vector3) -> void:
 	if id == Net.my_id():
 		local_player = p
 	p.setup()
+	if id == Net.my_id():
+		_warm_up_kills.call_deferred(p)
+
+
+## Behind a black screen for a moment at the start: draw one of everything the kills use, so the
+## headset compiles those shaders now instead of stuttering through the first kill.
+func _warm_up_kills(p: Node) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(p) or not p.rig:
+		return
+	var rig = p.rig
+	var cam: Camera3D = rig.get("camera") if rig.get("camera") else rig.get("cam")
+	if not cam:
+		return
+	rig.set_fade(1.0)
+	await Gore.warm_draw(self, cam)
+	var tw := create_tween()
+	tw.tween_method(func(a: float): if is_instance_valid(rig): rig.set_fade(a), 1.0, 0.0, 0.5)
 
 
 func on_peer_left(id: int) -> void:

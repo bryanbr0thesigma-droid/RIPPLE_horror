@@ -7,6 +7,7 @@ const DesktopRig := preload("res://player/desktop_rig.gd")
 const Avatar := preload("res://player/avatar.gd")
 const WadeLoop := preload("res://assets/audio/wade_loop.ogg")
 
+const CreatureScript := preload("res://creature/creature.gd")
 var peer_id := 1
 var info := {}
 var is_local := false
@@ -236,7 +237,7 @@ func on_caught(kind := 0) -> void:
 	rig.set_controls_enabled(false)
 	var cam: Camera3D = rig.get("camera") if rig.get("camera") else rig.get("cam")
 	var grab: float = 0.55
-	var cut: float = 1.35 if kind == 0 else 1.4      # creature.gd RIP_AT / TEAR_AT
+	var cut: float = CreatureScript.cut_time(kind)    # head and spine: blurs until the neck tears
 	var tw := create_tween()
 	if kind == 0:
 		var blur := Gore.blur_overlay(cam)

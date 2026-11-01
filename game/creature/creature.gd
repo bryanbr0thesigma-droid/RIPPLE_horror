@@ -1,8 +1,8 @@
 extends Node3D
-## The creature. It lives in the water, hunts by sound, and is fast when it charges. Half again as
-## tall as a person, it wades slowly through the shallow pools, clicking now and then, and crawls
-## through the deep channels between halls. The host runs its brain; everyone else follows its
-## position and state, and everyone plays the kill.
+## The creature. It lives in the water, hunts by sound, and is fast when it charges. A quarter
+## taller than a person, gaunt and hunched, it wades slowly upright through the shallow pools,
+## clicking now and then, and crawls through the deep channels between halls. The host runs its
+## brain; everyone else follows its position and state, and everyone plays the kill and the feeding.
 ##
 ## Patrol -> (small noise) Investigate -> (loud noise, or more noise nearby) Charge.
 ## When it arrives: if you're still moving, it has you. If you went still, it only knows the area,
@@ -12,9 +12,9 @@ extends Node3D
 enum S { PATROL, INVESTIGATE, CHARGE, SEARCH, ATTACK, LINGER, FEAST }
 
 const SPEED := {S.PATROL: 0.7, S.INVESTIGATE: 1.5, S.CHARGE: 6.5, S.SEARCH: 0.5, S.ATTACK: 9.0, S.LINGER: 0.6, S.FEAST: 0.0}
-## After a kill it eats for a few seconds and hears nothing: the others' chance to get away.
-const FEAST_MIN := 3.0
-const FEAST_MAX := 5.0
+## After a kill it feeds for up to ten seconds and hears nothing: the others' chance to get away.
+const FEAST_MIN := 6.0
+const FEAST_MAX := 10.0
 const SEARCH_RADIUS := 4.5
 const SEARCH_TIME := 7.0
 const CATCH_CHANCE := 0.30
@@ -25,7 +25,9 @@ const KILL_GRAB := 0.55         # the kill: seconds after the catch when it grab
 const MODEL := preload("res://assets/creature/creature.glb")
 const VOICE_HUNT := preload("res://assets/audio/creature_hunt.ogg")
 const VOICE_CLOSE := preload("res://assets/audio/creature_close.ogg")
-const VOICE_CHARGE := preload("res://assets/audio/creature_charge.ogg")
+const CHARGE_ONSET := preload("res://assets/audio/charge_onset.ogg")
+const CHARGE_HOLDS := [preload("res://assets/audio/charge_hold_a.ogg"), preload("res://assets/audio/charge_hold_b.ogg")]
+const CHARGE_END := preload("res://assets/audio/charge_end.ogg")
 # Approved screeches only. The trimmed 2, 4 and 7 are in review (Round 22) and join when approved.
 const KILL_SCREECHES := [
 	preload("res://assets/audio/kill_screech_1.ogg"), preload("res://assets/audio/kill_screech_3.ogg"),
@@ -34,12 +36,24 @@ const KILL_TEAR := preload("res://assets/audio/kill_tear.ogg")
 const KILL_SPINE := preload("res://assets/audio/kill_spine.ogg")
 const KILL_FEAST := preload("res://assets/audio/kill_feast.ogg")
 const KILL_BITES := [preload("res://assets/audio/kill_bite_1.ogg"), preload("res://assets/audio/kill_bite_2.ogg")]
+const KILL_STRAIN := preload("res://assets/audio/kill_strain.ogg")
+const KILL_CRACKS := [preload("res://assets/audio/kill_crack_1.ogg"), preload("res://assets/audio/kill_crack_2.ogg"),
+	preload("res://assets/audio/kill_crack_3.ogg")]
+const KILL_NECK := preload("res://assets/audio/kill_neck.ogg")
+const KILL_SPLIT := preload("res://assets/audio/kill_split.ogg")
+const FEED_TEARS := [preload("res://assets/audio/feed_tear_1.ogg"), preload("res://assets/audio/feed_tear_2.ogg")]
+const FEED_CRUNCH := [preload("res://assets/audio/feed_crunch_1.ogg"), preload("res://assets/audio/feed_crunch_2.ogg")]
+const FEED_CHEW := [preload("res://assets/audio/feed_chew_1.ogg"), preload("res://assets/audio/feed_chew_2.ogg"),
+	preload("res://assets/audio/kill_feast.ogg")]
+const FEED_GULP := preload("res://assets/audio/feed_gulp.ogg")
+const FEED_GROWL := preload("res://assets/audio/feed_growl.ogg")
 const SPLASH := preload("res://assets/audio/splash_big.ogg")
+const SPLASH_SMALL := preload("res://assets/audio/splash_small.ogg")
 const WadeModifier := preload("res://creature/wade_modifier.gd")
 
-## Model fitting: at scale 1 the model stands about 0.53 m tall (hunched), facing +Z, feet at its
-## origin. At 4.1 it stands about 2.2 m: a quarter taller than a 1.75 m player.
-const MODEL_SCALE := 4.1
+## Model fitting: facing +Z, feet at its origin. Posed upright by the wade modifier, at 3.15 its head
+## is about 2.2 m up: a quarter taller than a 1.75 m player.
+const MODEL_SCALE := 3.15
 const MODEL_YAW := 0.0
 const MODEL_LIFT := 0.0
 
@@ -82,7 +96,16 @@ var _last_screech := -1
 var _bite_player: AudioStreamPlayer3D
 var _head_bone := -1
 var _feast_for := 4.0
-var _chew_t := 0.0
+var _last_kill := -1
+var _feast_spot := Vector3.ZERO
+var _feed := {}
+var _growl: AudioStreamPlayer3D
+var _screams: Array[AudioStreamPlayer3D] = []
+var _end_scream: AudioStreamPlayer3D
+var _charge_t := -1.0
+var _hold_on := false
+var _hold_i := 0
+var _clock_vis := 0.0
 
 
 func _ready() -> void:
@@ -166,7 +189,7 @@ func _setup_audio() -> void:
 	voice.position = Vector3(0, 1.9, 0)
 	add_child(voice)
 	oneshot = AudioStreamPlayer3D.new()
-	oneshot.stream = VOICE_CHARGE
+	oneshot.stream = CHARGE_ONSET
 	oneshot.unit_size = 8.0
 	oneshot.max_db = 6.0
 	oneshot.position = Vector3(0, 1.7, 0)
@@ -175,6 +198,21 @@ func _setup_audio() -> void:
 	_bite_player.unit_size = 6.0
 	_bite_player.position = Vector3(0, 1.5, 0.6)
 	add_child(_bite_player)
+	for i in 3:                       # the charge screech's held takes, and its ending
+		var a := AudioStreamPlayer3D.new()
+		a.unit_size = 8.0
+		a.max_db = 6.0
+		a.position = Vector3(0, 1.7, 0)
+		add_child(a)
+		if i < 2:
+			_screams.append(a)
+		else:
+			_end_scream = a
+	_growl = AudioStreamPlayer3D.new()
+	_growl.stream = FEED_GROWL
+	_growl.unit_size = 4.0
+	_growl.position = Vector3(0, 1.0, 0.5)
+	add_child(_growl)
 
 
 func _setup_hitbox() -> void:
@@ -379,7 +417,7 @@ func _catch(id: int) -> void:
 	_set_state(S.ATTACK)
 	var away := Vector3(global_position.x - at.x, 0, global_position.z - at.z)
 	away = away.normalized() if away.length() > 0.05 else Vector3.BACK
-	target = _nav_point(at + away * 1.35)   # an arm's length away (its arms are long), face to face
+	target = _nav_point(at + away * 1.15)   # an arm's length away, face to face
 	_path = PackedVector3Array([target])
 	_path_i = 0
 	_search_rolls.clear()
@@ -394,13 +432,10 @@ func _go_linger(center: Vector3) -> void:
 
 
 func _go(new_state: int, p: Vector3) -> void:
-	var was := state
 	_set_state(new_state)
 	target = p
 	_path = _nav_path(p)
 	_path_i = 0
-	if new_state == S.CHARGE and was != S.CHARGE:
-		_play_charge()
 
 
 func _set_state(s: int) -> void:
@@ -491,20 +526,15 @@ func _update_presentation(delta: float) -> void:
 				_click_t = _rng.randf_range(0.5, 2.0)
 			S.CHARGE:
 				_set_voice(VOICE_HUNT, -2.0)
-				if old != S.CHARGE and not (Net.is_host() or not Net.is_online()):
-					_play_charge()
+				if old != S.CHARGE:
+					_charge_start()
 			S.SEARCH:
 				_set_voice(VOICE_CLOSE, -3.0)
 			S.ATTACK, S.FEAST:
 				_quiet()
-	# Feeding: wet chewing now and then.
-	if state == S.FEAST and _kill.is_empty():
-		_chew_t -= delta
-		if _chew_t <= 0.0:
-			_chew_t = _rng.randf_range(1.2, 2.2)
-			_bite_player.stream = KILL_FEAST
-			_bite_player.pitch_scale = _rng.randf_range(0.85, 1.1)
-			_bite_player.play(_rng.randf() * 2.0)
+		if old == S.CHARGE and state != S.CHARGE:
+			_charge_stop(state == S.ATTACK)
+	_charge_tick(delta)
 	# Wading: only a short burst of clicks now and then.
 	if state in [S.PATROL, S.LINGER, S.INVESTIGATE]:
 		_click_t -= delta
@@ -523,23 +553,36 @@ func _update_presentation(delta: float) -> void:
 	_last_pos = global_position
 	if moved > 2.0:
 		moved = 0.0   # teleported
+	# Upright (the wade modifier poses the whole body) unless it's running, searching with its own
+	# animation, or crawling in the deep.
 	var a := "idle standing"
+	var upright := 1.0
 	if not _kill.is_empty():
 		_kill_tick(delta)
 		a = _kill.get("anim", "standing run")
+		upright = float(_kill.get("stance", 1.0))
 	elif _depth() > DEEP:
 		a = "run" if _speed_now > 2.5 else ("walk" if _speed_now > 0.2 else "idle")
-	elif state == S.SEARCH or state == S.FEAST:
+		upright = 0.0
+	elif state == S.SEARCH:
 		a = "search"
+		upright = 0.0
 	elif _speed_now > 2.5:
 		a = "standing run"
+		upright = 0.0
 	_play_anim(a)
 	if anim:
 		anim.speed_scale = clampf(_speed_now / 6.0, 0.7, 1.4) if a == "standing run" else 1.0
 	if wade:
-		var want: float = clampf(_speed_now / 0.6, 0.0, 1.0) if a == "idle standing" else 0.0
+		wade.stance = move_toward(wade.stance, upright, delta * 3.0)
+		var want: float = clampf(_speed_now / 0.6, 0.0, 1.0) if upright > 0.5 and _kill.is_empty() else 0.0
 		wade.amount = lerpf(wade.amount, want, clampf(delta * 4.0, 0.0, 1.0))
 		wade.phase += moved / wade.stride * PI
+		# Scanning slowly as it wades; looking where it's going when it hunts.
+		var scan := sin(_clock_vis * 0.37) * 0.45 + sin(_clock_vis * 0.13 + 1.0) * 0.25
+		wade.look = lerpf(wade.look, scan if state in [S.PATROL, S.LINGER] else 0.0, clampf(delta * 2.0, 0.0, 1.0))
+	_clock_vis += delta
+	_feed_tick(delta)
 	var wading := _depth() <= DEEP and _speed_now > 0.25
 	wake.emitting = wading
 	wake.amount = 40
@@ -565,11 +608,6 @@ func _set_voice(stream: AudioStream, db: float) -> void:
 		voice.stream = stream
 		voice.play()
 	voice.volume_db = db
-
-
-func _play_charge() -> void:
-	oneshot.stream = VOICE_CHARGE
-	oneshot.play()
 
 
 func _play_anim(want: String) -> void:
@@ -604,39 +642,131 @@ func next_screech() -> int:
 	return v
 
 
-## The two kills (the host picks one; everyone plays it):
-##   HEAD_RIP: one hand on the shoulder, the other on the head; it pulls the head off with the spine
-##             attached, lifts it to its face, bites it and throws it. The body drops, pumping blood.
+## The three kills (the host picks one; everyone plays it):
+##   HEAD_RIP: one hand on the shoulder, the other on the head. The neck tears and the head comes
+##             away, but the spine is stuck in the body: it tugs, three times, bones cracking, until
+##             the spine rips out with the head. It lifts the head to its face, bites it, throws it.
 ##   HALVES:   it lifts them with both hands and tears them apart at the waist; the gut stretches
 ##             between the halves and the organs spill; it drops the legs and throws the rest.
-## The victim watches from inside: from the torn-off head or the upper half (see player.gd).
-enum K { HEAD_RIP, HALVES }
-const RIP_AT := 1.35
-const TEAR_AT := 1.4
+##   SPLIT:    it lifts them by the shoulders and pulls them apart down the middle: the head splits
+##             first and the tear runs down to the crotch in jerks, then the halves come apart with
+##             the organs spilling between them.
+## The torn pieces are built while it closes in (hidden, one per frame) and take the victim's exact
+## pose when they swap in, so the tear itself costs nothing and nothing jumps.
+enum K { HEAD_RIP, HALVES, SPLIT }
+const NECK_AT := 1.25        # head and spine: the neck tears (the victim's view goes black here)
+const SPINE_OUT := 2.35      # ...and the stuck spine finally rips out
+const TUGS := [0.3, 0.62, 0.92]          # after the neck tears: tugs on the stuck spine
+const TEAR_AT := 1.4         # torn in half at the waist (the victim's view cuts to black)
+const SPLIT_AT := 1.15       # split down the middle: the head splits (the victim's view cuts to black)
+const SPLIT_OPEN := 2.2      # ...and the halves come apart
+const SPLIT_TUGS := [0.12, 0.45, 0.78]   # after the head splits: the tear running down, in jerks
+const HOLD_AHEAD := 1.0      # how far in front of it the victim is held (its arms reach about this far)
+## Which suit parts make each piece: [variant, parts shown].
+const PIECES := {"head": ["", ["head"]], "body": ["", ["upper", "lower"]], "upper": ["", ["head", "upper"]],
+	"lower": ["", ["lower"]], "left": ["lr", ["left"]], "right": ["lr", ["right"]]}
+const PLAN := {K.HEAD_RIP: ["head", "body"], K.HALVES: ["upper", "lower"], K.SPLIT: ["left", "right"]}
+
+
+## When the victim's own view goes black, for player.gd.
+static func cut_time(kind: int) -> float:
+	match kind:
+		K.HEAD_RIP:
+			return NECK_AT
+		K.SPLIT:
+			return SPLIT_AT
+	return TEAR_AT
 
 
 func next_kill() -> int:
-	return K.HALVES if _rng.randf() < 0.5 else K.HEAD_RIP
+	var k := _rng.randi() % 3
+	if k == _last_kill:
+		k = (k + 1 + _rng.randi() % 2) % 3
+	_last_kill = k
+	return k
 
 
 func play_kill(victim: Node, screech: int, kind := 0) -> void:
 	_last_screech = screech
 	_quiet()
+	_end_feed()
+	if not _kill.is_empty():
+		_end_kill()
 	_kill = {"p": victim, "t": 0.0, "v": screech, "kind": kind, "stage": 0, "pos": victim.body_position(),
-		"anim": "standing run", "held": [], "pull": 0.0}
+		"anim": "standing run", "stance": 0.0, "held": [], "pull": 0.0, "pieces": {}, "token": _rng.randi()}
+	_prepare_pieces(_kill)
+
+
+## Build the torn pieces ahead of time, hidden and asleep, one per frame.
+func _prepare_pieces(k: Dictionary) -> void:
+	for nm in PLAN[int(k.kind)]:
+		await get_tree().process_frame
+		if _kill.get("token") != k.token:
+			return          # that kill is over
+		k.pieces[nm] = _new_piece(nm)
+	if int(k.kind) != K.HEAD_RIP:
+		await get_tree().process_frame
+		if _kill.get("token") == k.token:
+			k.organs = Gore.organs()
+
+
+func _new_piece(nm: String) -> SuitRig:
+	var p = _kill.get("p")
+	var info: Dictionary = p.info if is_instance_valid(p) else {}
+	var spec: Array = PIECES[nm]
+	var piece := SuitRig.create(int(info.get("suit", 0)), info.get("color", Color(0.9, 0.5, 0.2)), spec[0])
+	piece.visible = false
+	piece.process_mode = Node.PROCESS_MODE_DISABLED
+	Game.level.add_child(piece)
+	piece.show_only(spec[1])
+	if info.get("dummy", false):
+		piece.make_featureless()
+	if nm == "head" or nm == "right":         # the spine: torn out with the head, or showing in the cut
+		var spine := Gore.spine()
+		piece.add_child(spine)
+		spine.position = piece.bone_rest("Neck") + Vector3(0, -0.02, 0.02 if nm == "head" else 0.0)
+	return piece
+
+
+## Swap the victim's body for the torn pieces, in exactly the pose it's in now.
+func _reveal(names: Array) -> Array[SuitRig]:
+	var p = _kill.p
+	var src: SuitRig = p.avatar.suit if is_instance_valid(p) and p.avatar else null
+	var out: Array[SuitRig] = []
+	for nm in names:
+		var piece: SuitRig = _kill.pieces.get(nm)
+		if not is_instance_valid(piece):
+			piece = _new_piece(nm)
+			_kill.pieces[nm] = piece
+		if src:
+			piece.global_transform = src.global_transform
+			piece.head_target = src.head_target
+			piece.hand_targets = src.hand_targets.duplicate()
+		piece.process_mode = Node.PROCESS_MODE_INHERIT
+		piece.visible = true
+		out.append(piece)
+	if is_instance_valid(p) and p.avatar:
+		p.avatar.release()
+	return out
+
+
+## Hold a piece in a hand from where it is now (so it doesn't jump into the hand).
+func _grip(piece: Node3D, hand: int) -> void:
+	_kill.held.append({"node": piece, "hand": hand, "basis": piece.global_basis,
+		"attach": piece.global_transform.affine_inverse() * _hand(hand)})
 
 
 func mouth_position() -> Vector3:
 	if skeleton and _head_bone >= 0:
 		var h := skeleton.global_transform * skeleton.get_bone_global_pose(_head_bone).origin
-		return h + global_transform.basis.z * 0.35
+		return h + global_transform.basis.z * 0.25
 	return global_position + Vector3.UP * 1.9 + global_transform.basis.z * 0.5
 
 
 ## Where the victim's chest is held during the kill: up in front of its face (lifted), or standing
 ## and stretched upward as it pulls their head.
 func hold_point() -> Vector3:
-	return global_position + global_transform.basis.z * 1.15 + Vector3.UP * float(_kill.get("hold_h", 1.3))
+	return global_position + global_transform.basis.z * HOLD_AHEAD + Vector3.UP * float(_kill.get("hold_h", 1.3))
 
 
 func victim_chest() -> Vector3:
@@ -668,10 +798,13 @@ func _kill_tick(delta: float) -> void:
 	if int(_kill.stage) == 0 and t >= KILL_GRAB and (to.length() < 2.2 or t > 1.0):
 		_grab()
 	if int(_kill.stage) >= 1:
-		if int(_kill.kind) == K.HEAD_RIP:
-			_head_rip_tick(t, delta)
-		else:
-			_halves_tick(t, delta)
+		match int(_kill.kind):
+			K.HEAD_RIP:
+				_head_rip_tick(t, delta)
+			K.SPLIT:
+				_split_tick(t, delta)
+			_:
+				_halves_tick(t, delta)
 	var bleed = _kill.get("bleed")
 	if bleed and is_instance_valid(bleed) and _kill.get("bleed_at") is Callable:
 		bleed.global_position = (_kill.bleed_at as Callable).call()
@@ -690,11 +823,20 @@ func _grab() -> void:
 	_kill.stage = 1
 	_kill.grab_t = _kill.t
 	_kill.anim = "idle standing"
+	_kill.stance = 1.0
 	_kill.holding = true
 	oneshot.stream = KILL_SCREECHES[int(_kill.v) % KILL_SCREECHES.size()]
 	oneshot.play()
 	if is_instance_valid(p) and p.avatar:
 		p.avatar.seize(self)
+
+
+## Plays once when the kill clock passes `at` (each name only once).
+func _once(name: String, at: float) -> bool:
+	if float(_kill.t) >= at and not _kill.has("did_" + name):
+		_kill["did_" + name] = true
+		return true
+	return false
 
 
 func _head_rip_tick(t: float, delta: float) -> void:
@@ -703,80 +845,106 @@ func _head_rip_tick(t: float, delta: float) -> void:
 	var since: float = t - float(_kill.grab_t)
 	var side := global_transform.basis.x.normalized()
 	if stage == 1:
-		# Pulling: the head goes up, the body stretches onto its toes.
-		_kill.pull = clampf(since / (RIP_AT - KILL_GRAB), 0.0, 1.0) * 0.45
+		# Pulling: the head goes up, the body stretches onto its toes, the neck strains.
+		_kill.pull = clampf(since / (NECK_AT - KILL_GRAB), 0.0, 1.0) * 0.3
 		wade.hand_goals = [victim_chest() + side * 0.18 + Vector3.UP * 0.1, _victim_head() + Vector3.UP * 0.08]
 		wade.bite = lerpf(wade.bite, 0.1, clampf(delta * 4.0, 0.0, 1.0))
-		if since > 0.45 and not _kill.has("bleed"):
+		if _once("strain", 0.75):
+			_tear_sound(KILL_STRAIN)
+		if since > 0.4 and not _kill.has("bleed"):
 			_kill.bleed = Gore.bleed(level)
 			_kill.bleed_at = func(): return victim_chest() + Vector3.UP * 0.32
-			_bite(0)
-		if t >= RIP_AT:
-			_rip_head()
+		if t >= NECK_AT:
+			_neck_tear()
 	elif stage == 2:
-		# Lift the head (spine dangling) up to its face, bite it, throw it.
+		# The head is off but the spine is stuck in the body: it tugs, the body jerks with it.
+		var body: SuitRig = _kill.body
+		var head: SuitRig = _kill.head
+		var since_neck := t - NECK_AT
+		# The gap opens to a hand's width at once, then each tug drags a little more spine out.
+		var gap := 0.16 * smoothstep(0.0, 0.15, since_neck)
+		var jolt := 0.0
+		for i in TUGS.size():
+			gap += 0.06 * smoothstep(TUGS[i], TUGS[i] + 0.1, since_neck)
+			var k: float = (since_neck - TUGS[i]) / 0.22
+			if k > 0.0 and k < 1.0:
+				gap += sin(PI * k) * 0.06
+				jolt = sin(PI * k)
+			if _once("tug%d" % i, NECK_AT + TUGS[i]):
+				_tear_sound(KILL_CRACKS[i % KILL_CRACKS.size()])
+				Gore.spray(level, body.bone_world("Neck") + body.global_basis.y * gap * 0.5, Vector3.UP, 40, false)
+		if _once("strain2", NECK_AT + 0.15):
+			_tear_sound(KILL_STRAIN)
+		var shake := Vector3(sin(t * 47.0), 0, cos(t * 41.0)) * 0.01
+		if is_instance_valid(body) and is_instance_valid(head):
+			var up := body.global_basis.y
+			body.global_position = (_kill.body_at as Vector3) + up * jolt * 0.05
+			head.global_transform = Transform3D(body.global_basis, body.global_position + up * gap + shake)
+			wade.hand_goals = [body.bone_world("RightArm") + Vector3.UP * jolt * 0.05, head.bone_world("Head")]
+		if t >= SPINE_OUT:
+			_spine_out()
+	elif stage == 3:
+		# The head, spine dangling, up to its face; bite it; throw it.
+		var head: SuitRig = _kill.head
+		var k := clampf((t - SPINE_OUT) / 0.25, 0.0, 1.0)
 		var face := mouth_position() + global_transform.basis.z * 0.25 + Vector3.DOWN * 0.1
-		var k := clampf((t - RIP_AT) / 0.7, 0.0, 1.0)
-		var start: Vector3 = _kill.rip_hand
-		wade.hand_goals = [global_position + global_transform.basis.z * 0.5 + side * 0.4 + Vector3.UP * 1.0, start.lerp(face, k * k)]
-		wade.bite = lerpf(wade.bite, 1.0 if t > RIP_AT + 0.9 else 0.3, clampf(delta * 5.0, 0.0, 1.0))
-		if t > RIP_AT + 1.05 and not _kill.get("bit", false):
-			_kill.bit = true
+		var start: Vector3 = _kill.rip_from
+		var flung := start + Vector3.UP * 0.7 + global_transform.basis.z * -0.1
+		var goal := start.lerp(flung, sin(k * PI * 0.5))
+		if t > SPINE_OUT + 0.25:
+			goal = flung.lerp(face, clampf((t - SPINE_OUT - 0.25) / 0.5, 0.0, 1.0))
+		wade.hand_goals = [global_position + global_transform.basis.z * 0.5 + side * 0.4 + Vector3.UP * 1.0, goal]
+		if is_instance_valid(head) and not _kill.get("head_held", false):
+			head.global_transform = Transform3D(head.global_basis, goal - head.global_basis * head.bone_rest("Head"))
+			if t > SPINE_OUT + 0.25:
+				_kill.head_held = true
+				_grip(head, 1)
+		wade.bite = lerpf(wade.bite, 1.0 if t > SPINE_OUT + 0.85 else 0.3, clampf(delta * 5.0, 0.0, 1.0))
+		if _once("bite", SPINE_OUT + 1.0):
 			_bite(1)
 			Gore.spray(level, _hand(1), Vector3.UP, 120)
-		if t > RIP_AT + 1.5:
-			_throw(_kill.head, global_transform.basis.z * 2.5 + side * 1.2 + Vector3.UP * 2.0)
-			_kill.stage = 3
+		if t > SPINE_OUT + 1.5:
+			_throw(head, global_transform.basis.z * 2.2 + side * 1.2 + Vector3.UP * 2.0)
+			_kill.stage = 4
 			_kill.holding = false
 			wade.hand_goals = [null, null]
-	elif stage == 3 and t > RIP_AT + 1.8:
-		_kill.stage = 4
-		_kill.anim = "search"
 
 
-func _rip_head() -> void:
-	var p = _kill.p
+func _neck_tear() -> void:
 	var level: Node = Game.level
 	_kill.stage = 2
-	_kill.rip_hand = _hand(1)
-	_tear_sound(KILL_SPINE)
-	var info: Dictionary = p.info if is_instance_valid(p) else {}
-	var suit_i := int(info.get("suit", 0))
-	var col: Color = info.get("color", Color(0.9, 0.5, 0.2))
-	var face_creature := Basis.looking_at(-global_transform.basis.z, Vector3.UP)
-	# The head, with the spine hanging from it, in the right hand.
-	var head := SuitRig.create(suit_i, col)
-	level.add_child(head)
-	head.show_only(["head"])
-	if info.get("dummy", false):
-		head.make_featureless()
-	var spine := Gore.spine()
-	head.add_child(spine)
-	spine.position = head.bone_rest("Neck") + Vector3(0, -0.02, 0.02)
-	_kill.head = head
-	_kill.held.append({"node": head, "hand": 1, "attach": head.bone_rest("Head"), "basis": face_creature})
-	# The body drops where it stood, blood pumping from the neck.
-	var body := SuitRig.create(suit_i, col)
-	level.add_child(body)
-	body.show_only(["upper", "lower"])
-	if info.get("dummy", false):
-		body.make_featureless()
-	var v: Vector3 = _kill.pos
-	body.global_transform = Transform3D(face_creature, Vector3(v.x, floor_at(v), v.z) + Vector3.UP * 0.2)
-	var fountain := Gore.fountain(level, 3.5)
-	fountain.global_position = body.bone_world("Neck")
-	var follow := _Follow.new()
-	follow.target = body
-	follow.role = "Neck"
-	fountain.add_child(follow)
-	Gore.drop(body, -0.3, -global_transform.basis.z * 0.8)
-	Gore.spray(level, victim_chest() + Vector3.UP * 0.4, Vector3.UP, 160)
-	Gore.blood_pool(level, v, -0.3, 5.0)
+	var got := _reveal(["head", "body"])
+	_kill.head = got[0]
+	_kill.body = got[1]
+	_kill.body_at = got[1].global_position
+	_tear_sound(KILL_NECK)
+	Gore.spray(level, got[1].bone_world("Neck"), Vector3.UP, 140, false)
 	var bleed = _kill.get("bleed")
 	if bleed and is_instance_valid(bleed):
-		_kill.bleed_at = func(): return _hand(1) + Vector3.DOWN * 0.15
-	if is_instance_valid(p) and p.avatar:
-		p.avatar.release()
+		_kill.bleed_at = func(): return (_kill.body as SuitRig).bone_world("Neck") if is_instance_valid(_kill.get("body")) else hold_point()
+
+
+func _spine_out() -> void:
+	var level: Node = Game.level
+	_kill.stage = 3
+	var body: SuitRig = _kill.body
+	var head: SuitRig = _kill.head
+	_kill.rip_from = head.bone_world("Head") if is_instance_valid(head) else _hand(1)
+	_tear_sound(KILL_SPINE)
+	if is_instance_valid(body):
+		var neck := body.bone_world("Neck")
+		var fountain := Gore.fountain(level, 3.5)
+		fountain.global_position = neck
+		var follow := _Follow.new()
+		follow.target = body
+		follow.role = "Neck"
+		fountain.add_child(follow)
+		Gore.spray(level, neck + Vector3.UP * 0.2, Vector3.UP, 160)
+		Gore.drop(body, -0.3, -global_transform.basis.z * 0.8)
+		Gore.blood_pool(level, neck, -0.3, 5.0)
+	var bleed = _kill.get("bleed")
+	if bleed and is_instance_valid(bleed):
+		_kill.bleed_at = func(): return _hand(1) + Vector3.DOWN * 0.3
 
 
 func _halves_tick(t: float, delta: float) -> void:
@@ -784,10 +952,12 @@ func _halves_tick(t: float, delta: float) -> void:
 	var stage: int = _kill.stage
 	var since: float = t - float(_kill.grab_t)
 	var side := global_transform.basis.x.normalized()
-	_kill.hold_h = lerpf(1.3, 1.8, clampf(since / 0.3, 0.0, 1.0))
+	_kill.hold_h = lerpf(1.3, 1.75, clampf(since / 0.3, 0.0, 1.0))
 	if stage == 1:
 		wade.hand_goals = [null, null]
 		wade.bite = lerpf(wade.bite, 0.15, clampf(delta * 4.0, 0.0, 1.0))
+		if _once("strain", 0.85):
+			_tear_sound(KILL_STRAIN)
 		if not _kill.has("bleed"):
 			_kill.bleed = Gore.bleed(level)
 			_kill.bleed_at = func(): return hold_point() + Vector3.DOWN * 0.2
@@ -807,38 +977,22 @@ func _halves_tick(t: float, delta: float) -> void:
 			_release_held(_kill.lower, Vector3.DOWN * 0.5)
 		if stage == 3 and t > TEAR_AT + 1.9:
 			_kill.stage = 4
-			_throw(_kill.upper, global_transform.basis.z * 2.2 - side * 1.0 + Vector3.UP * 1.6)
+			_throw(_kill.upper, global_transform.basis.z * 2.0 - side * 1.0 + Vector3.UP * 1.6)
 			_kill.holding = false
 			wade.hand_goals = [null, null]
-		if stage == 4 and t > TEAR_AT + 2.2:
-			_kill.stage = 5
-			_kill.anim = "search"
 
 
 func _tear() -> void:
-	var p = _kill.p
 	var level: Node = Game.level
 	_kill.stage = 2
 	_tear_sound(KILL_TEAR)
-	var info: Dictionary = p.info if is_instance_valid(p) else {}
-	var suit_i := int(info.get("suit", 0))
-	var col: Color = info.get("color", Color(0.9, 0.5, 0.2))
-	var face_creature := Basis.looking_at(-global_transform.basis.z, Vector3.UP)
-	var upper := SuitRig.create(suit_i, col)
-	level.add_child(upper)
-	upper.show_only(["head", "upper"])
-	var lower := SuitRig.create(suit_i, col)
-	level.add_child(lower)
-	lower.show_only(["lower"])
-	if info.get("dummy", false):
-		upper.make_featureless()
-		lower.make_featureless()
+	var got := _reveal(["upper", "lower"])
+	var upper: SuitRig = got[0]
+	var lower: SuitRig = got[1]
 	_kill.upper = upper
 	_kill.lower = lower
-	_kill.held.append({"node": upper, "hand": 0, "attach": upper.bone_rest("Spine2"), "basis": face_creature})
-	_kill.held.append({"node": lower, "hand": 1, "attach": lower.bone_rest("Hips"), "basis": face_creature})
-	for h in _kill.held:
-		_carry(h)
+	_grip(upper, 0)
+	_grip(lower, 1)
 	# The gut between the two halves, and everything else falling out.
 	var top := Node3D.new()
 	upper.add_child(top)
@@ -849,7 +1003,7 @@ func _tear() -> void:
 	var surface := -0.3
 	Gore.gut(level, top, bottom, 1.9)
 	Gore.gut(level, top, bottom, 1.4)
-	Gore.spill(level, top.global_position, surface, Vector3.DOWN * 0.5 + global_transform.basis.z * 0.4)
+	Gore.spill(level, top.global_position, surface, Vector3.DOWN * 0.5 + global_transform.basis.z * 0.4, _kill.get("organs", []))
 	Gore.spray(level, top.global_position, Vector3.UP + global_transform.basis.z * 0.5, 180)
 	Gore.spray(level, bottom.global_position, Vector3.DOWN, 120)
 	Gore.blood_pool(level, hold_point(), -0.3, 6.0)
@@ -862,8 +1016,142 @@ func _tear() -> void:
 	var bleed = _kill.get("bleed")
 	if bleed and is_instance_valid(bleed):
 		_kill.bleed_at = func(): return top.global_position + Vector3.DOWN * 0.1
-	if is_instance_valid(p) and p.avatar:
-		p.avatar.release()
+
+
+func _split_tick(t: float, delta: float) -> void:
+	var level: Node = Game.level
+	var stage: int = _kill.stage
+	var since: float = t - float(_kill.grab_t)
+	var side := global_transform.basis.x.normalized()
+	_kill.hold_h = lerpf(1.3, 1.7, clampf(since / 0.35, 0.0, 1.0))
+	if stage == 1:
+		# Lifted by the shoulders (its left hand on their right shoulder, and the other way round).
+		var hp := hold_point()
+		wade.hand_goals = [hp + side * 0.2 + Vector3.UP * 0.15, hp - side * 0.2 + Vector3.UP * 0.15]
+		wade.bite = lerpf(wade.bite, 0.1, clampf(delta * 4.0, 0.0, 1.0))
+		if _once("strain", 0.7):
+			_tear_sound(KILL_STRAIN)
+		if t >= SPLIT_AT:
+			_split_start()
+	elif stage == 2:
+		# Tearing down the middle in jerks: each half hinges outward at the crotch.
+		var since_split := t - SPLIT_AT
+		var ang := 0.04
+		for i in SPLIT_TUGS.size():
+			ang += 0.075 * smoothstep(SPLIT_TUGS[i], SPLIT_TUGS[i] + 0.12, since_split)
+			if _once("stug%d" % i, SPLIT_AT + SPLIT_TUGS[i]):
+				_tear_sound(KILL_CRACKS[i % KILL_CRACKS.size()])
+				var mid := _split_mid(0.55 - 0.25 * i)
+				Gore.spray(level, mid, -global_transform.basis.z + Vector3.UP * 0.5, 70, false)
+		_pose_split(ang, 0.0)
+		if t >= SPLIT_OPEN:
+			_split_open()
+	elif stage >= 3:
+		# Apart: one half in each hand, held up; then it drops one and brings the other to its face.
+		var k := clampf((t - SPLIT_OPEN) / 0.3, 0.0, 1.0)
+		var hp := hold_point()
+		var lgoal := hp + side * (0.25 + 0.35 * k) + Vector3.UP * 0.2 * k
+		var rgoal := hp - side * (0.25 + 0.35 * k) + Vector3.UP * 0.2 * k
+		if stage >= 4:
+			rgoal = rgoal.lerp(mouth_position() + global_transform.basis.z * 0.45 + Vector3.DOWN * 0.25, clampf((t - SPLIT_OPEN - 0.7) / 0.6, 0.0, 1.0))
+			lgoal = global_position + global_transform.basis.z * 0.4 + side * 0.4 + Vector3.UP * 1.0
+		wade.hand_goals = [lgoal, rgoal]
+		if stage == 3 and t > SPLIT_OPEN + 0.7:
+			_kill.stage = 4
+			_release_held(_kill.right, Vector3.DOWN * 0.4 + side * 0.3)
+		if stage == 4 and _once("sbite", SPLIT_OPEN + 1.4):
+			_bite(0)
+			Gore.spray(level, _hand(1), Vector3.UP, 100)
+		if stage == 4 and t > SPLIT_OPEN + 2.0:
+			_kill.stage = 5
+			_throw(_kill.left, global_transform.basis.z * 2.0 + side * 0.8 + Vector3.UP * 1.6)
+			_kill.holding = false
+			wade.hand_goals = [null, null]
+
+
+## A point on the tear between the halves, `k` of the way from the crotch (0) to the head (1).
+func _split_mid(k: float) -> Vector3:
+	var l: SuitRig = _kill.left
+	var r: SuitRig = _kill.right
+	if not (is_instance_valid(l) and is_instance_valid(r)):
+		return hold_point()
+	var lo := (l.bone_world("Hips") + r.bone_world("Hips")) * 0.5
+	var hi := (l.bone_world("Head") + r.bone_world("Head")) * 0.5
+	return lo.lerp(hi, clampf(k, 0.0, 1.0))
+
+
+func _split_start() -> void:
+	var level: Node = Game.level
+	_kill.stage = 2
+	var got := _reveal(["left", "right"])
+	_kill.left = got[0]
+	_kill.right = got[1]
+	_kill.split_base = got[0].global_transform
+	_kill.split_pivot = got[0].bone_rest("Hips")
+	_kill.split_hp = hold_point()
+	_tear_sound(KILL_SPLIT)
+	Gore.spray(level, got[0].bone_world("Head") + Vector3.UP * 0.05, Vector3.UP, 120, false)
+	_kill.bleed = Gore.bleed(level)
+	_kill.bleed_at = func(): return _split_mid(0.4)
+
+
+## Both halves where they were taken over, following the hold, each turned outward by `ang` about
+## the crotch (the victim's forward axis) and pushed apart by `apart` metres.
+func _pose_split(ang: float, apart: float) -> void:
+	var base: Transform3D = _kill.split_base
+	base.origin += hold_point() - (_kill.split_hp as Vector3)
+	var pivot: Vector3 = _kill.split_pivot
+	for i in 2:
+		var half: SuitRig = _kill.left if i == 0 else _kill.right
+		if not is_instance_valid(half):
+			continue
+		var s := 1.0 if i == 0 else -1.0        # left half: its own -X is outward
+		var hinge := Transform3D(Basis(Vector3.BACK, s * ang), Vector3.ZERO)
+		var local := Transform3D(Basis(), pivot) * hinge * Transform3D(Basis(), -pivot)
+		local.origin += Vector3(-s * apart, 0, 0)
+		half.global_transform = base * local
+	var l: SuitRig = _kill.left
+	var r: SuitRig = _kill.right
+	if is_instance_valid(l) and is_instance_valid(r):
+		wade.hand_goals = [r.bone_world("RightArm"), l.bone_world("LeftArm")]
+
+
+func _split_open() -> void:
+	var level: Node = Game.level
+	_kill.stage = 3
+	_pose_split(0.3, 0.05)
+	var l: SuitRig = _kill.left
+	var r: SuitRig = _kill.right
+	_tear_sound(KILL_TEAR)
+	_grip(r, 0)
+	_grip(l, 1)
+	var mid := _split_mid(0.5)
+	var a := Node3D.new()
+	l.add_child(a)
+	a.position = l.bone_rest("Spine1")
+	var b := Node3D.new()
+	r.add_child(b)
+	b.position = r.bone_rest("Spine1")
+	Gore.gut(level, a, b, 1.2)
+	var a2 := Node3D.new()
+	l.add_child(a2)
+	a2.position = l.bone_rest("Spine2")
+	var b2 := Node3D.new()
+	r.add_child(b2)
+	b2.position = r.bone_rest("Spine")
+	Gore.gut(level, a2, b2, 1.6)
+	Gore.spill(level, mid, -0.3, Vector3.DOWN * 0.6 - global_transform.basis.z * 0.3, _kill.get("organs", []))
+	Gore.spray(level, mid, Vector3.UP, 180)
+	Gore.spray(level, mid, -global_transform.basis.z, 120)
+	Gore.blood_pool(level, mid, -0.3, 6.0)
+	for half in [l, r]:
+		var f := Gore.fountain(level, 3.0)
+		var fl := _Follow.new()
+		fl.target = half
+		fl.role = "Spine1"
+		f.add_child(fl)
+		f.direction = Vector3.DOWN
+	_kill.bleed_at = func(): return _hand(1) + Vector3.DOWN * 0.3
 
 
 func _tear_sound(stream: AudioStream) -> void:
@@ -877,7 +1165,7 @@ func _tear_sound(stream: AudioStream) -> void:
 	a.finished.connect(a.queue_free)
 
 
-## Keep a torn-off piece in a hand, held by one of its bones.
+## Keep a torn-off piece in a hand, held by one of its bones, and out of the walls.
 func _carry(h: Dictionary) -> void:
 	var n: Node3D = h.node
 	if not is_instance_valid(n):
@@ -886,6 +1174,7 @@ func _carry(h: Dictionary) -> void:
 	var wobble := Basis(global_transform.basis.x.normalized(), sin(_kill.t * 9.0) * 0.12)
 	b = wobble * b
 	n.global_transform = Transform3D(b, _hand(int(h.hand)) - b * (h.attach as Vector3))
+	Gore.keep_out(n, global_position + Vector3.UP * 1.5)
 
 
 func _release_held(n: Node3D, vel: Vector3) -> void:
@@ -916,9 +1205,14 @@ func _end_kill() -> void:
 	for h in _kill.get("held", []):
 		if is_instance_valid(h.node):
 			Gore.drop(h.node, -0.3)
+	for piece in _kill.get("pieces", {}).values():   # pieces built but never used
+		if is_instance_valid(piece) and not piece.visible:
+			piece.queue_free()
 	var bleed = _kill.get("bleed")
 	if bleed and is_instance_valid(bleed):
 		bleed.queue_free()
+	if _kill.has("pos"):
+		_feast_spot = _kill.pos
 	_kill = {}
 	if wade:
 		wade.hold = 0.0
@@ -934,6 +1228,194 @@ class _Follow extends Node:
 	func _process(_delta: float) -> void:
 		if is_instance_valid(target) and get_parent() is Node3D:
 			(get_parent() as Node3D).global_position = target.bone_world(role)
+
+
+# --- Feeding (everyone) --------------------------------------------------------------------------
+# Crouched over the remains: it reaches into the water, comes up with a piece, tears at it twice,
+# chews and swallows, and goes back for more, growling low the whole time.
+
+func _feed_tick(delta: float) -> void:
+	var feeding := state == S.FEAST and _kill.is_empty()
+	if not feeding:
+		if wade:
+			wade.feed = move_toward(wade.feed, 0.0, delta / 0.6)
+			wade.feed_reach = move_toward(wade.feed_reach, 0.0, delta * 2.0)
+			wade.feed_tear = 0.0
+		if not _feed.is_empty():
+			_end_feed()
+		return
+	if _feed.is_empty():
+		_feed = {"t": 0.0, "c": 0.0, "len": _rng.randf_range(3.3, 4.2), "step": 0}
+		_growl.volume_db = -40.0
+		_growl.play(_rng.randf() * 2.0)
+		create_tween().tween_property(_growl, "volume_db", -8.0, 1.0)
+		var drip := Gore.bleed(Game.level)
+		drip.amount = 20
+		_feed.drip = drip
+	_feed.t += delta
+	if _feast_spot != Vector3.ZERO:
+		var to := Vector3(_feast_spot.x - global_position.x, 0, _feast_spot.z - global_position.z)
+		if to.length() > 0.2:
+			rotation.y = lerp_angle(rotation.y, atan2(to.x, to.z), clampf(delta * 3.0, 0.0, 1.0))
+			_yaw = rotation.y
+	var fwd := global_transform.basis.z
+	wade.feed = move_toward(wade.feed, 1.0, delta / 0.8)
+	wade.feed_point = Vector3(global_position.x, -0.5, global_position.z) + fwd * 0.75 - global_transform.basis.x * 0.15
+	if is_instance_valid(_feed.get("drip")):
+		(_feed.drip as Node3D).global_position = mouth_position() + Vector3.DOWN * 0.1
+	var piece: Node3D = _feed.get("piece")
+	if is_instance_valid(piece):
+		piece.global_position = _hand(1) + global_transform.basis.z * 0.05
+	if _feed.t < 0.8:
+		wade.feed_reach = 0.0
+		return
+	_feed.c += delta
+	var c: float = _feed.c
+	var cycle: float = _feed.len
+	if c < 0.7:
+		wade.feed_reach = smoothstep(0.0, 0.7, c)
+	elif c < 0.95:
+		wade.feed_reach = 1.0
+	elif c < 1.6:
+		wade.feed_reach = 1.0 - smoothstep(0.95, 1.6, c)
+	else:
+		wade.feed_reach = 0.0
+	var tear := 0.0
+	for at in [1.7, 2.15]:
+		var k: float = (c - at) / 0.32
+		if k > 0.0 and k < 1.0:
+			tear = sin(PI * k)
+	if c > 2.5 and c < cycle - 0.4:
+		tear = 0.15 * sin((c - 2.5) * 14.0)            # chewing
+	wade.feed_tear = tear
+	var step: int = _feed.step
+	if step == 0 and c >= 0.5:
+		_feed_sound(SPLASH_SMALL, -6.0)
+		_feed.step = 1
+	elif step == 1 and c >= 0.75:
+		var bits := Gore.organs()                        # comes up with a piece of them
+		var keep: Node3D = bits[_rng.randi() % bits.size()]
+		for o in bits:
+			if o != keep:
+				o.queue_free()
+		Game.level.add_child(keep)
+		keep.scale = Vector3.ONE * 0.8
+		_feed.piece = keep
+		_feed.step = 2
+	elif step == 2 and c >= 1.7:
+		_feed_sound(FEED_TEARS[_rng.randi() % FEED_TEARS.size()], 0.0)
+		Gore.spray(Game.level, mouth_position(), Vector3.UP + fwd, 40)
+		_feed.step = 3
+	elif step == 3 and c >= 2.15:
+		_feed_sound(FEED_CRUNCH[_rng.randi() % FEED_CRUNCH.size()], 0.0)
+		if is_instance_valid(piece):
+			piece.scale *= 0.6
+		_feed.step = 4
+	elif step == 4 and c >= 2.5:
+		_feed_sound(FEED_CHEW[_rng.randi() % FEED_CHEW.size()], -2.0)
+		_feed.step = 5
+	elif step == 5 and c >= cycle - 0.4:
+		_feed_sound(FEED_GULP, -3.0)
+		if is_instance_valid(piece):
+			piece.queue_free()
+		_feed.piece = null
+		_feed.step = 6
+	if c >= cycle:
+		_feed.c = 0.0
+		_feed.len = _rng.randf_range(3.3, 4.2)
+		_feed.step = 0
+
+
+func _feed_sound(stream: AudioStream, db: float) -> void:
+	var a := AudioStreamPlayer3D.new()
+	a.stream = stream
+	a.unit_size = 6.0
+	a.volume_db = db
+	a.pitch_scale = _rng.randf_range(0.9, 1.08)
+	add_child(a)
+	a.global_position = mouth_position()
+	a.play()
+	a.finished.connect(a.queue_free)
+
+
+func _end_feed() -> void:
+	if _feed.is_empty():
+		return
+	if is_instance_valid(_feed.get("piece")):
+		(_feed.piece as Node).queue_free()
+	if is_instance_valid(_feed.get("drip")):
+		(_feed.drip as Node).queue_free()
+	if _growl and _growl.playing:
+		var tw := create_tween()
+		tw.tween_property(_growl, "volume_db", -40.0, 0.6)
+		tw.tween_callback(_growl.stop)
+	_feed = {}
+
+
+# --- The charge screech --------------------------------------------------------------------------
+# It screeches until it gets where it's going: the onset (clicks speeding into the scream), then the
+# scream carried on (a long take that keeps changing, never a loop; a second take crossfades in if
+# a charge ever runs that long), and the scream's own ending the moment it arrives.
+const ONSET_HOLD_AT := 1.3     # where the onset's scream hands over to the held scream
+const HOLD_LEN := 10.0
+
+func _charge_start() -> void:
+	_charge_t = 0.0
+	_hold_on = false
+	_hold_i = 0
+	oneshot.stream = CHARGE_ONSET
+	oneshot.volume_db = 0.0
+	oneshot.play()
+
+
+func _charge_tick(delta: float) -> void:
+	if _charge_t < 0.0:
+		return
+	_charge_t += delta
+	if not _hold_on and _charge_t >= ONSET_HOLD_AT:
+		_hold_on = true
+		_start_hold(_screams[0], CHARGE_HOLDS[0], 0.0, 0.04)
+	elif _hold_on:
+		var cur: AudioStreamPlayer3D = _screams[_hold_i]
+		if cur.playing and cur.get_playback_position() > HOLD_LEN - 0.5:
+			var nxt: AudioStreamPlayer3D = _screams[1 - _hold_i]
+			_start_hold(nxt, CHARGE_HOLDS[1 - _hold_i], 0.4, 0.3)
+			_fade_out(cur, 0.3)
+			_hold_i = 1 - _hold_i
+
+
+func _start_hold(p: AudioStreamPlayer3D, stream: AudioStream, from: float, fade: float) -> void:
+	p.stream = stream
+	p.volume_db = -40.0
+	p.play(from)
+	create_tween().tween_property(p, "volume_db", 0.0, fade)
+
+
+func _fade_out(p: AudioStreamPlayer3D, secs: float) -> void:
+	var tw := create_tween()
+	tw.tween_property(p, "volume_db", -40.0, secs)
+	tw.tween_callback(p.stop)
+
+
+## It got there. If it caught someone, the kill screech follows instead of the scream's ending.
+func _charge_stop(caught: bool) -> void:
+	if _charge_t < 0.0:
+		return
+	var early := not _hold_on
+	var wait := maxf(ONSET_HOLD_AT - _charge_t, 0.0)
+	_charge_t = -1.0
+	for p in _screams:
+		if p.playing:
+			_fade_out(p, 0.1)
+	if caught:
+		return
+	if early:       # still in the onset: let it reach the scream, then end it
+		get_tree().create_timer(wait).timeout.connect(func():
+			_end_scream.stream = CHARGE_END
+			_end_scream.play())
+	else:
+		_end_scream.stream = CHARGE_END
+		_end_scream.play()
 
 
 func _bite(i: int) -> void:

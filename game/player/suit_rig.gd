@@ -43,6 +43,7 @@ var eye_height := 1.6
 ## The suit split for the kills: "head" (head and neck), "upper" (chest and arms), "lower" (hips
 ## and legs). Each holds that part's meshes.
 var parts := {"head": [], "upper": [], "lower": []}
+var variant := ""
 var bones := {}
 var _sk_xf := Transform3D()       # skeleton space -> this node's space
 var _stand_h := 0.0
@@ -53,12 +54,33 @@ static func glove_color(index: int) -> Color:
 	return SUITS[clampi(index, 0, SUITS.size() - 1)].glove
 
 
-static func create(index: int, c: Color) -> SuitRig:
+## variant "lr": the suit cut down the middle into "left" and "right" halves (for the vertical
+## tear; built by tools/suits/split_lr.py), instead of "head", "upper" and "lower".
+static func create(index: int, c: Color, variant := "") -> SuitRig:
 	var r := SuitRig.new()
 	r.suit = clampi(index, 0, SUITS.size() - 1)
 	r.color = c
+	r.variant = variant
 	r._build()
 	return r
+
+
+## The full suit's materials by name. The halves files carry no textures of their own.
+static var _materials := {}
+
+static func _suit_materials(index: int) -> Dictionary:
+	if _materials.has(index):
+		return _materials[index]
+	var out := {}
+	var full: Node = (load(SUITS[index].file) as PackedScene).instantiate()
+	for mi: MeshInstance3D in full.find_children("*", "MeshInstance3D", true, false):
+		for i in mi.mesh.get_surface_count():
+			var m := mi.mesh.surface_get_material(i)
+			if m and not out.has(m.resource_name):
+				out[m.resource_name] = m
+	full.free()
+	_materials[index] = out
+	return out
 
 
 static func _base_name(n: String) -> String:
@@ -74,8 +96,22 @@ static func _base_name(n: String) -> String:
 
 func _build() -> void:
 	var info: Dictionary = SUITS[suit]
-	model = (load(info.file) as PackedScene).instantiate()
+	var file: String = info.file
+	if variant == "lr":
+		file = file.replace(".glb", "_lr.glb")
+		parts = {"left": [], "right": []}
+	model = (load(file) as PackedScene).instantiate()
 	add_child(model)
+	if variant == "lr":
+		var mats := _suit_materials(suit)
+		for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+			if mi.mesh.has_meta("borrowed"):
+				continue
+			for i in mi.mesh.get_surface_count():
+				var m := mi.mesh.surface_get_material(i)
+				if m and mats.has(m.resource_name):
+					mi.mesh.surface_set_material(i, mats[m.resource_name])
+			mi.mesh.set_meta("borrowed", true)
 	model.rotation.y = PI          # the models face +Z; players face -Z
 	var found := model.find_children("*", "Skeleton3D", true, false)
 	if found.is_empty():
@@ -126,6 +162,9 @@ func _recolor(info: Dictionary) -> void:
 			var src := mi.mesh.surface_get_material(s) as BaseMaterial3D
 			if not src:
 				continue
+			if src.resource_name == "Flesh_cut":            # where a half was cut off
+				mi.set_surface_override_material(s, Gore.flesh_material())
+				continue
 			if masks.has(src.resource_name):
 				mi.set_surface_override_material(s, _tinted(src, load(masks[src.resource_name]), info.gain))
 			elif src.resource_name in flat:
@@ -158,7 +197,9 @@ func make_featureless() -> void:
 	for part in parts:   # the suit itself only, not the raw flesh where it was torn
 		for mi: MeshInstance3D in parts[part]:
 			for s in mi.mesh.get_surface_count():
-				mi.set_surface_override_material(s, m)
+				var src := mi.mesh.surface_get_material(s)
+				if not (src and src.resource_name == "Flesh_cut"):
+					mi.set_surface_override_material(s, m)
 
 
 # --- Tearing apart -------------------------------------------------------------------------------
@@ -196,6 +237,29 @@ func bone_rest(role: String) -> Vector3:
 	if not bones.has(role):
 		return Vector3(0, eye_height, 0)
 	return _sk_xf * skeleton.get_bone_global_rest(bones[role]).origin
+
+
+## The far ends of whatever part of the suit is showing (world space), for keeping torn pieces out
+## of walls and floors.
+func extent_points() -> Array[Vector3]:
+	var roles: Array[String] = []
+	var shown := func(part: String) -> bool:
+		return parts.has(part) and parts[part].any(func(mi): return (mi as MeshInstance3D).visible)
+	if shown.call("head"):
+		roles.append("Head")
+	if shown.call("upper"):
+		roles.append_array(["Spine2", "LeftHand", "RightHand"])
+	if shown.call("lower"):
+		roles.append_array(["Hips", "LeftFoot", "RightFoot"])
+	if shown.call("left"):
+		roles.append_array(["Head", "Hips", "LeftHand", "LeftFoot"])
+	if shown.call("right"):
+		roles.append_array(["Head", "Hips", "RightHand", "RightFoot"])
+	var out: Array[Vector3] = []
+	for r in roles:
+		if bones.has(r):
+			out.append(bone_world(r))
+	return out
 
 
 ## Where a bone is right now, in world space (after the IK).
