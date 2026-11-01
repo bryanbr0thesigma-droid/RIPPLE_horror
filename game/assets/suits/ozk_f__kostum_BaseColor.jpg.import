@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://u6oq7g3na5hi"
-path="res://.godot/imported/jumpsuit_albedo.png-5c3706e6ae4c04e39fb22228cd7f58a1.ctex"
+uid="uid://dpgrruw7mta17"
+path="res://.godot/imported/ozk_f__kostum_BaseColor.jpg-eb105d54f29b737fddd558d4adb833ea.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "382697fb3549f93989ec2c6459bde530"
+"md5": "84a27df04c956678e60fc46829c05857"
 }
 
 [deps]
 
-source_file="res://assets/suits/jumpsuit_albedo.png"
-dest_files=["res://.godot/imported/jumpsuit_albedo.png-5c3706e6ae4c04e39fb22228cd7f58a1.ctex"]
+source_file="res://assets/suits/ozk_f__kostum_BaseColor.jpg"
+dest_files=["res://.godot/imported/ozk_f__kostum_BaseColor.jpg-eb105d54f29b737fddd558d4adb833ea.ctex"]
 
 [params]
 

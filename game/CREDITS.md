@@ -16,8 +16,7 @@ Everything here allows commercial use. None of it is AI-generated.
 - **Player suits** (all CC BY 4.0; re-rigged, resized and recolored for the game, see
   `tools/suits/` in the repo):
   - [Antiradiation suit - OZK](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) by **sanyaork**.
-  - [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) by **DanlyVostok**.
-  - [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) by **Marco Lopez** (fins removed). Its hands are also on the jumpsuit, and its torch is the squeeze flashlight.
+  - [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) by **Marco Lopez** (fins removed). Its torch is the squeeze flashlight.
 - **Props** (all CC BY 4.0 on Sketchfab, resized and simplified for Quest; see `tools/props/`):
   - Key: [Old Key](https://sketchfab.com/3d-models/d846b203f4754ee3825e8c4c76d21b21) by **TheFalkonett** (recolored gold).
   - Staff room door: [Metal Door 2](https://sketchfab.com/3d-models/4da6b538427244aaababe36d3e228a40) by **tboiston**.

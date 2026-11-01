@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bsb8x54oq25ih"
-path="res://.godot/imported/jumpsuit_Image_5.png-569eb4bcf9bf6851ca0355ee31ac0586.ctex"
+uid="uid://dppq7vskahc6h"
+path="res://.godot/imported/ozk_f__mag_holder_Normal.jpg-f8e77c56e9700ca3ecd6190a34f83487.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "4bb54095115eba9842d48aa80bb2fcf7"
+"md5": "c0aabba76d6db0e478caeda9fb98c410"
 }
 
 [deps]
 
-source_file="res://assets/suits/jumpsuit_Image_5.png"
-dest_files=["res://.godot/imported/jumpsuit_Image_5.png-569eb4bcf9bf6851ca0355ee31ac0586.ctex"]
+source_file="res://assets/suits/ozk_f__mag_holder_Normal.jpg"
+dest_files=["res://.godot/imported/ozk_f__mag_holder_Normal.jpg-f8e77c56e9700ca3ecd6190a34f83487.ctex"]
 
 [params]
 

@@ -57,7 +57,7 @@ func _ready() -> void:
 	add_child(pole)
 	var models := []
 	var x := -1.2
-	for n in ["ozk", "jumpsuit", "diver"]:
+	for n in ["ozk", "diver"]:
 		var m: Node3D = load("res://assets/suits/%s.glb" % n).instantiate()
 		add_child(m)
 		m.position = Vector3(x, 0, 0)

@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cesks7sw1i71w"
-path="res://.godot/imported/jumpsuit_Image_11.png-298cbc3b0818364701d5a2add2ec3f58.ctex"
+uid="uid://8jg7we45jtb2"
+path="res://.godot/imported/ozk_f__komptuter_BaseColor.jpg-0f728e3d68875b6e69189cc2a72d417c.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "c0dbb07cf4a4ef71ada65247349fb1ee"
+"md5": "6da39416a36e642fe00669345cb21da3"
 }
 
 [deps]
 
-source_file="res://assets/suits/jumpsuit_Image_11.png"
-dest_files=["res://.godot/imported/jumpsuit_Image_11.png-298cbc3b0818364701d5a2add2ec3f58.ctex"]
+source_file="res://assets/suits/ozk_f__komptuter_BaseColor.jpg"
+dest_files=["res://.godot/imported/ozk_f__komptuter_BaseColor.jpg-0f728e3d68875b6e69189cc2a72d417c.ctex"]
 
 [params]
 

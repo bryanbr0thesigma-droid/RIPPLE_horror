@@ -2,7 +2,7 @@ extends SceneTree
 # Prints each suit's skeleton, size and materials: godot --headless --path game -s tests/probe_suits.gd
 
 func _init() -> void:
-	for n in ["ozk", "jumpsuit", "diver"]:
+	for n in ["ozk", "diver"]:
 		var m: Node3D = load("res://assets/suits/%s.glb" % n).instantiate()
 		root.add_child(m)
 		await process_frame

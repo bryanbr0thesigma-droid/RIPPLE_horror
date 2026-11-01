@@ -1012,7 +1012,7 @@ func spawn_dummy(from: Transform3D) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _add_dummy(id: int, at: Vector3, yaw: float) -> void:
-	_spawn_player(id, {"name": "Dummy", "suit": 2, "color": Color(0.6, 0.6, 0.58), "dummy": true}, at)
+	_spawn_player(id, {"name": "Dummy", "suit": 1, "color": Color(0.6, 0.6, 0.58), "dummy": true}, at)
 	var p = players[id]
 	p.net_feet = at
 	p.net_alive = true

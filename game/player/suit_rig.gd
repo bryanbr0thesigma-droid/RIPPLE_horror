@@ -12,9 +12,6 @@ const SUITS := [
 	{"name": "Anti-radiation suit", "about": "Baggy rubberized suit, hood and gas mask. Your color tints the camo.",
 		"glove": Color(0.1, 0.11, 0.09), "file": "res://assets/suits/ozk.glb",
 		"masks": {"kostum": "res://assets/suits/ozk_mask.png"}, "gain": 1.9, "flat": []},
-	{"name": "Striker jumpsuit", "about": "Fitted work jumpsuit and helmet. Your color is the stripes.",
-		"glove": Color(0.07, 0.07, 0.08), "file": "res://assets/suits/jumpsuit.glb",
-		"masks": {"Jumpsuit": "res://assets/suits/jumpsuit_mask.png"}, "gain": 1.7, "flat": [], "hide": ["gloves"]},
 	{"name": "Diver", "about": "Neoprene wetsuit, mask and snorkel. Your color is the panels.",
 		"glove": Color(0.05, 0.05, 0.06), "file": "res://assets/suits/diver.glb",
 		"masks": {}, "gain": 1.0, "flat": ["Buso_Stroke", "Lentes_Respirador"]},
@@ -283,7 +280,7 @@ func add_backpack() -> void:
 	pack.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	att.add_child(pack)
 	# Upright and behind the back in this node's space (players face -Z), whatever the bone's axes.
-	var back := 0.3 if suit != 1 else 0.17
+	var back := 0.3                                     # all the suits carry a tank or a filter pack
 	var want := Transform3D(Basis(), bone_rest("Spine2") + Vector3(0, -0.05, back))
 	var bone_xf := _sk_xf * rest                        # the bone in this node's space, at rest
 	pack.transform = bone_xf.affine_inverse() * want

@@ -29,7 +29,6 @@ approved.
 | [Plastic Monobloc Chair 01](https://polyhaven.com/a/plastic_monobloc_chair_01) | Poolside and staff room chairs. In the game (0.3). | Poly Haven | Kuutti Siitonen | CC0 |
 | [Godot XR Tools hands](https://github.com/GodotVR/godot-xr-tools/tree/master/addons/godot-xr-tools/hands) | The player's own hands. Recolored to match the gloves of the suit the player wears. | Godot XR Tools | DigitalN8m4r3 | CC0 |
 | [Anti-radiation suit (OZK)](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) | Player suit. Player color changes the camo. | Sketchfab | sanyaork | CC BY 4.0 |
-| [Jumpsuit Low Poly Game Ready (Striker14)](https://sketchfab.com/3d-models/jumpsuit-low-poly-game-ready-striker14-da288adbddf949aa85962968732f0999) | Player suit. Player color changes the stripes. | Sketchfab | DanlyVostok | CC BY 4.0 |
 | [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
 | [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | Not used by the current creature, which is built from The Rake alone. Kept in case. | Sketchfab | Timsblends | CC BY 4.0 |
 | [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e) | The creature: body, head, limbs and animations (see "The creature" in `DESIGN.md`) | Sketchfab | Sealife Fan 3 | CC BY 4.0 |
@@ -120,6 +119,8 @@ and door were synthesized for the project.
   reach for their hands, the head turns with theirs. No animation library is needed.
 
 ## Dropped
+
+- Striker jumpsuit (DanlyVostok): removed from the game in 0.8; female suits are being picked to replace it (Round 23).
 
 - Quaternius Universal Base Characters and Universal Animation Library: the approved
   suits are complete characters, so the bare bodies aren't needed.

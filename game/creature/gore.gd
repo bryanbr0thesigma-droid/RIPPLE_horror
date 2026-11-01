@@ -829,7 +829,7 @@ static func warm_draw(parent: Node, cam: Camera3D) -> void:
 		var half := SuitRig.create(i, Color(0.8, 0.4, 0.1), "lr")
 		half.show_only(["left"])
 		things.append(half)
-	var grey := SuitRig.create(2, Color.GRAY)
+	var grey := SuitRig.create(1, Color.GRAY)
 	grey.make_featureless()
 	things.append(grey)
 	for i in things.size():
