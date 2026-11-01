@@ -9,6 +9,7 @@ var bones := {}          # role -> bone index
 var _rest := {}          # role -> rest global pose (skeleton space)
 var _ready_ok := false
 var last_hands := [Vector3.ZERO, Vector3.ZERO]   # where the hands ended up (world), for tests
+var last_head_shift := Vector3.ZERO               # how far the head bone moved from rest (metres)
 
 
 func setup(sk: Skeleton3D, found: Dictionary) -> void:
@@ -79,6 +80,7 @@ func _process_modification() -> void:
 	var hd: Transform3D = sk.get_bone_global_pose(bones.Head)
 	hd.basis = delta * _rest.Head.basis
 	sk.set_bone_global_pose(bones.Head, hd)
+	last_head_shift = (sk.global_transform.basis * (hd.origin - head_rest))
 
 	# 5. Arms: elbows down, back and out.
 	for i in 2:
@@ -95,49 +97,8 @@ func _process_modification() -> void:
 		last_hands[i] = sk.global_transform * sk.get_bone_global_pose(bones[s + "Hand"]).origin
 
 
-## Turn bone A (and so its children) and then bone B so that C reaches the target, with the middle
-## joint on the pole's side. bend_rest: the way B would fold toward when A..C is straight.
 func _two_bone(sk: Skeleton3D, ia: int, ib: int, ic: int, target: Vector3, pole: Vector3, bend_rest: Vector3) -> void:
-	var A: Transform3D = sk.get_bone_global_pose(ia)
-	var B: Transform3D = sk.get_bone_global_pose(ib)
-	var C: Transform3D = sk.get_bone_global_pose(ic)
-	var la := A.origin.distance_to(B.origin)
-	var lb := B.origin.distance_to(C.origin)
-	if la < 1e-5 or lb < 1e-5:
-		return
-	var to_t := target - A.origin
-	var d := clampf(to_t.length(), absf(la - lb) + (la + lb) * 0.01, (la + lb) * 0.999)
-	var dir := to_t.normalized() if to_t.length() > 1e-6 else (B.origin - A.origin).normalized()
-	var pd := pole - A.origin
-	var bend := pd - dir * pd.dot(dir)
-	if bend.length() < 1e-6:
-		bend = bend_rest - dir * bend_rest.dot(dir)
-	bend = bend.normalized()
-	var cos_a := clampf((la * la + d * d - lb * lb) / (2.0 * la * d), -1.0, 1.0)
-	var elbow := A.origin + dir * (la * cos_a) + bend * (la * sqrt(1.0 - cos_a * cos_a))
-	# Turn A by matching frames: (upper dir, fold dir) before -> after, so the hinge stays a hinge.
-	var u0 := (B.origin - A.origin).normalized()
-	var f0 := (C.origin - B.origin)
-	f0 = f0 - u0 * f0.dot(u0)
-	if f0.length() < 1e-4 * lb:
-		f0 = bend_rest - u0 * bend_rest.dot(u0)
-	f0 = f0.normalized()
-	var u1 := (elbow - A.origin).normalized()
-	var f1 := (A.origin + dir * d) - elbow
-	f1 = f1 - u1 * f1.dot(u1)
-	if f1.length() < 1e-6:
-		f1 = -bend - u1 * (-bend).dot(u1)
-	f1 = f1.normalized()
-	var r := Basis(u1, f1, u1.cross(f1)) * Basis(u0, f0, u0.cross(f0)).inverse()
-	A.basis = r.orthonormalized() * A.basis
-	sk.set_bone_global_pose(ia, A)
-	B = sk.get_bone_global_pose(ib)
-	C = sk.get_bone_global_pose(ic)
-	var c_dir := (C.origin - B.origin).normalized()
-	var t_dir := (A.origin + dir * d - B.origin).normalized()
-	if c_dir.dot(t_dir) < 0.99999:
-		B.basis = Basis(Quaternion(c_dir, t_dir)) * B.basis
-		sk.set_bone_global_pose(ib, B)
+	TwoBoneIK.solve(sk, ia, ib, ic, target, pole, bend_rest)
 
 
 ## Point the hand's fingers along the controller and its palm toward the controller's middle.

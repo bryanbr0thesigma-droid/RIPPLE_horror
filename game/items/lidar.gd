@@ -17,9 +17,10 @@ var _rng := RandomNumberGenerator.new()
 
 func build() -> void:
 	mass = 0.6
-	add_box(Vector3(0.07, 0.11, 0.2), Color(0.12, 0.13, 0.14), Vector3.ZERO, true, 0.3)
-	add_box(Vector3(0.04, 0.12, 0.05), Color(0.08, 0.08, 0.08), Vector3(0, -0.1, 0.05), true)
-	var lens := add_cylinder(0.025, 0.02, Color(0.2, 0.9, 0.85), Vector3(0, 0.01, -0.105), false)
+	# The body is the approved digital Geiger counter: screen toward you, the emitter on its back.
+	add_model("res://assets/props/scanner.glb")
+	add_shape_box(Vector3(0.1, 0.19, 0.11))
+	var lens := add_cylinder(0.018, 0.012, Color(0.2, 0.9, 0.85), Vector3(0, 0.05, -0.058), false)
 	lens.rotation_degrees = Vector3(90, 0, 0)
 	_bar = MeshInstance3D.new()
 	var bm := BoxMesh.new()
@@ -28,7 +29,7 @@ func build() -> void:
 	_bar_mat = StandardMaterial3D.new()
 	_bar_mat.emission_enabled = true
 	_bar.material_override = _bar_mat
-	_bar.position = Vector3(0, 0.058, 0.02)
+	_bar.position = Vector3(0, 0.1, 0.0)
 	add_child(_bar)
 
 
@@ -56,7 +57,7 @@ func item_tick(delta: float) -> void:
 		return
 	battery = maxf(0.0, battery - 5.0 * delta)
 	var space := get_world_3d().direct_space_state
-	var origin := global_transform * Vector3(0, 0.01, -0.11)
+	var origin := global_transform * Vector3(0, 0.05, -0.065)
 	var fwd := -global_transform.basis.z
 	var right := global_transform.basis.x
 	var up := global_transform.basis.y

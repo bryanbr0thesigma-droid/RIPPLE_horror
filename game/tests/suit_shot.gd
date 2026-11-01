@@ -63,7 +63,7 @@ func _ready() -> void:
 		m.position = Vector3(x, 0, 0)
 		x += 1.2
 		models.append(m)
-		_markers(m)
+		pass
 	await get_tree().create_timer(0.5).timeout
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(out + "/suits_rest.png")

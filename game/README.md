@@ -75,27 +75,30 @@ exports a build for the other (see below).
 | Climb out of the water | Grab the pool edge or a ladder and pull | Space while facing the edge, or W on a ladder |
 | Pick up | Grip | E |
 | Use the held item (scan, pour, throw) | Trigger, or tip the canteen, or throw it | Left mouse |
-| Dip the canteen in the water | Reach down with it | Hold right mouse (and crouch with Ctrl) |
+| Fill the canteen | Hold it in the water and click the trigger | Hold right mouse to dip it (crouch with Ctrl), then left mouse |
+| Hold with both hands | Grab an item you're holding with your other hand too | |
 | Give an item | Your teammate grabs it out of your hand | Your teammate presses E on it |
 | Shove a teammate | Swing your hand into them | F |
 | Drop | Let go of grip | Q |
+| Drop a test dummy (see below) | Click both thumbsticks | Ctrl+Shift+P |
 | Leave | Close the game | Esc twice |
 
 ## The level
 
 1. **Start room.** The plaque on the wall explains the rules.
-2. **Hall A (shallow, 1 m).** The staff room key sits on an island in the middle of the pool. Jump
+2. **Hall A.** All the pools are shallow, about knee-deep (0.65 m), so you wade rather than swim.
+   The channel between Hall A and Hall B is deep (1.5 m), and the creature crawls through it. The staff room key sits on an island in the middle of the pool. Jump
    the stepping columns to get it, or wade through the water slowly. Falling in is loud, and so is
    wading fast.
 3. **Staff room.** Unlock it with the key. Inside: two canteens, the lidar scanner on its charger,
    the distiller, and bottles to throw as decoys.
-4. **Hall B, the dark sector (1.5 m).** The lights are out. Scan with the lidar to find the narrow
+4. **Hall B, the dark sector.** The lights are out. Scan with the lidar to find the narrow
    beams. The slightly darker water in the north-west corner is the mineral water: kneel at the
    platform's edge and dip a canteen in it, then carry it along the beams without spilling and pour
    it into the generator's funnel. It takes 2 canteens. Distilled water starts it faster. Starting
    the generator makes noise; once it runs, the lights come on and its hum masks your noise nearby.
-5. **Hall C (deep, 2.3 m).** Pull the lever on the west ledge (loud) to extend the pool cover across
-   the deep pool. Or swim, if you're brave.
+5. **Hall C.** Pull the lever on the west ledge (loud) to extend the pool cover across the pool so
+   you can cross on dry ground. Or wade the whole way, if you're brave.
 6. **Exit.** The level ends when everyone gets here.
 
 ## The mechanics in this demo
@@ -115,7 +118,19 @@ exports a build for the other (see below).
 - **Lidar:** only the holder sees the dots. It sees through the water, and shows the creature in red
   and teammates in yellow. The battery drains while scanning and recharges at the charger once the
   power is on.
-- **Getting caught:** you respawn at the last dry room you passed through (a checkpoint).
+- **Getting caught:** it grabs you and kills you in one of two ways: it rips your head off with
+  the spine still attached, or it tears you in half and your organs spill into the water. If it's
+  you, your view blurs as it pulls (head and spine) or cuts straight to black (torn in half), and
+  you respawn at the last dry room you passed through (a checkpoint). Your teammates see all of it.
+- **Feeding:** after a kill it feeds on the remains for 3 to 5 seconds and ignores every noise.
+  That's your teammates' chance to run.
+- **Canteen:** hold it under the water and click the trigger to fill it (a hint floats over it).
+  It doesn't fill just from being underwater.
+- **Two-handed holding:** grab an item you're already holding with your other hand as well.
+- **Test dummy:** click both thumbsticks in VR (Ctrl+Shift+P on desktop) to drop a plain grey
+  player into the water in front of you. It has no mind of its own: it fidgets a little, so the
+  creature finds it and you can watch the kills from outside. Only the host's creature hunts it,
+  and everyone in the game sees it.
 
 ## Build the APK yourself
 
@@ -169,8 +184,9 @@ Add `--fakevr` instead of `--desktop` to build the VR rig without a headset.
 ## Not done yet
 
 - It hasn't been played on a real headset yet. The VR rig is tested by forcing VR mode without one.
-- Gray-box level art. The key, doors, lever, canteen, generator, lidar scanner, distiller, bottles
-  and ladders are still simple shapes; real models for them are in review (Round 20 in ASSETS.md).
+- The generator and distiller are still simple shapes; real models for them are in review
+  (Round 22 in ASSETS.md). The rest of the level is gray-box walls and pools with real props.
+- The blur when you're killed uses the screen texture; it hasn't been checked on a real headset.
 - Other players' suits follow their head and hands, but their legs don't step when they walk;
   the body glides.
 - The creature's search shows as its search animation while it circles the area; there's no

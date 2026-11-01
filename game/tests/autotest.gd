@@ -77,6 +77,12 @@ func _run() -> void:
 			await _screens()
 		"creature_shot":
 			await _creature_shot()
+		"kill_shot":
+			await _kill_shot()
+		"props_shot":
+			await _props_shot()
+		"dummy":
+			await _dummy_test()
 	_finish()
 
 
@@ -128,7 +134,8 @@ func _smoke() -> void:
 		rig.teleport(Vector3(26, 0.5, -28))
 		await wait(3.0)
 		var cam_y: float = rig.camera.global_position.y
-		check(absf(cam_y - (-0.3 + 0.15)) < 0.35, "VR player floats in the deep pool with the head at the surface (camera y=%.2f)" % cam_y)
+		var feet_y: float = rig.feet_position().y
+		check(absf(feet_y - (-0.95)) < 0.15 and cam_y > 0.4, "the pools are shallow: VR player stands on the bottom, head well above the water (feet y=%.2f, camera y=%.2f)" % [feet_y, cam_y])
 	else:
 		check(rig.is_on_floor(), "desktop player stands on the start room floor")
 
@@ -180,6 +187,10 @@ func _mechanics() -> void:
 		can.desktop_holder = null   # hold it in place by hand for the test
 		can.freeze = true
 		can.global_transform = Transform3D(Basis(), Vector3(-6.0, -0.6, -36.0))
+		await wait(0.5)
+		check(can.fill < 0.01, "%s doesn't fill until you click" % cname)
+		can.use(true)
+		can.use(false)
 		var filled := await wait_for(func(): return can.fill >= 0.999 and can.mineral, 6.0)
 		check(filled, "%s fills with mineral water" % cname)
 		can.global_transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(150)), L.funnel_point + Vector3(0, 0.4, 0))
@@ -288,7 +299,7 @@ func _screens() -> void:
 	]
 	L.creature.set_physics_process(false)
 	L.creature._play_anim("search")
-	L.creature.global_position = Vector3(4, -1.05, -12)
+	L.creature.global_position = Vector3(4, -0.95, -12)
 	for s in shots:
 		rig.teleport(s[1])
 		rig._yaw = deg_to_rad(s[2])
@@ -301,7 +312,7 @@ func _screens() -> void:
 	rig.teleport(Vector3(4, 0.05, -1.2))
 	rig._yaw = deg_to_rad(0)
 	rig._pitch = deg_to_rad(-30)
-	L.creature.global_position = Vector3(4, -1.05, -5.5)
+	L.creature.global_position = Vector3(4, -0.95, -5.5)
 	await wait(0.6)
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("%s/creature.png" % out)
@@ -310,7 +321,7 @@ func _screens() -> void:
 	rig.teleport(Vector3(3, 0.05, -23.2))
 	rig._yaw = deg_to_rad(0)
 	rig._pitch = deg_to_rad(-12)
-	L.creature.global_position = Vector3(3, -1.05, -31)
+	L.creature.global_position = Vector3(3, -0.95, -31)
 	rig.held = lidar
 	lidar.grab_desktop(rig)
 	await wait(0.3)
@@ -360,3 +371,168 @@ func _creature_shot() -> void:
 	print("CREATURE pos ", C.global_position, " model scale ", C.model.scale, " meshes ", vis)
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("%s/creature_dry.png" % out)
+
+
+## Renders the creature wading beside a player (for scale), both kills seen by a teammate, and
+## both from the victim's own eyes.
+func _kill_shot() -> void:
+	var L = Game.level
+	var rig := _rig()
+	var out := str(Game.args.get("out", "user://"))
+	var C = L.creature
+	C.set_physics_process(false)
+	var shoot := func(file: String) -> void:
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("%s/%s.png" % [out, file])
+		print("SHOT ", file)
+	# Steps the creature's kill a fixed 1/30 s per frame (this renderer is slow), shooting at kill times.
+	var run := func(marks: Dictionary, until: float, extra: Callable) -> void:
+		var done := {}
+		var t := 0.0
+		while t < until:
+			C._update_presentation(1.0 / 30.0)
+			extra.call(t)
+			await get_tree().process_frame
+			t += 1.0 / 30.0
+			for m in marks.keys():
+				if t >= m and not done.has(m):
+					done[m] = true
+					await shoot.call(marks[m])
+	var mate_at := func(id: int, suit: int, col: Color, at: Vector3) -> Node:
+		L._spawn_player(id, {"name": "Teammate", "suit": suit, "color": col}, at)
+		var m = L.players[id]
+		var down := Basis(Vector3.RIGHT, -PI * 0.5)
+		for k in 3:
+			m.avatar.set_target(Transform3D(Basis(Vector3.UP, PI * 0.5), at + Vector3.UP * 1.62),
+				Transform3D(down, at + Vector3(0, 0.85, 0.25)), Transform3D(down, at + Vector3(0, 0.85, -0.25)), at, k < 2)
+			await get_tree().process_frame
+		return m
+	# 1. Wading past a teammate, slowly.
+	var mate = await mate_at.call(99, 1, Color(0.2, 0.6, 0.95), Vector3(5, -0.95, -6))
+	rig.teleport(Vector3(5.5, 0.05, -1.0))
+	rig._yaw = deg_to_rad(10)
+	rig._pitch = deg_to_rad(-2)
+	C.global_position = Vector3(8.5, -0.95, -6.8)
+	C.rotation.y = -PI * 0.5
+	C._last_pos = C.global_position
+	C.state = C.S.PATROL
+	await run.call({1.6: "wade_scale"}, 1.7, func(_t):
+		C._speed_now = 0.7
+		C.global_position += Vector3(-0.7 * get_process_delta_time(), 0, 0))
+	C._speed_now = 0.0
+	# 2. The head rip, from the walkway.
+	C.global_position = Vector3(6.6, -0.95, -6.0)
+	C.rotation.y = -PI * 0.5
+	rig.teleport(Vector3(5.8, 0.05, -2.3))
+	rig._yaw = deg_to_rad(0)
+	rig._pitch = deg_to_rad(4)
+	C.play_kill(mate, 3, C.K.HEAD_RIP)
+	await run.call({0.9: "rip_1_grab", 1.25: "rip_2_pull", 1.6: "rip_3_off", 2.2: "rip_4_lift", 2.6: "rip_5_bite", 3.4: "rip_6_thrown", 6.5: "rip_7_after"}, 6.6, func(t):
+		if t > 5.5:
+			rig.teleport(Vector3(5.2, 0.05, -2.4))
+			rig._pitch = deg_to_rad(-38))
+	# 3. Torn in half, elsewhere.
+	var mate2 = await mate_at.call(98, 0, Color(0.9, 0.45, 0.15), Vector3(10.0, -0.95, -5.0))
+	C.global_position = Vector3(11.6, -0.95, -5.0)
+	C.rotation.y = -PI * 0.5
+	rig.teleport(Vector3(10.6, 0.05, -1.0))
+	rig._yaw = deg_to_rad(0)
+	rig._pitch = deg_to_rad(-14)
+	C.play_kill(mate2, 5, C.K.HALVES)
+	await run.call({0.9: "half_1_grab", 1.55: "half_2_tear", 1.85: "half_3_apart", 2.4: "half_4_drop", 3.0: "half_5_hold", 3.8: "half_6_thrown", 6.5: "half_7_after"}, 6.6, func(t):
+		if t > 5.5:
+			rig.teleport(Vector3(10.4, 0.05, -1.4))
+			rig._pitch = deg_to_rad(-40))
+	# 4. The victim's own eyes during the spine kill: its hand on your head, vision blurring.
+	rig.teleport(Vector3(2.0, -0.9, -15.0))
+	rig._yaw = deg_to_rad(0)
+	rig._pitch = deg_to_rad(8)
+	await wait(0.5)
+	C.global_position = Vector3(2.0, -0.95, -16.4)
+	C.rotation.y = 0.0
+	C._last_pos = C.global_position
+	C.play_kill(L.local_player, 0, C.K.HEAD_RIP)
+	var blur: MeshInstance3D = Gore.blur_overlay(rig.cam)
+	await run.call({1.0: "victim_rip_clear"}, 1.05, func(_t2): pass)
+	blur.material_override.set_shader_parameter("amount", 0.5)
+	await run.call({0.05: "victim_rip_blur"}, 0.1, func(_t2): pass)
+	blur.material_override.set_shader_parameter("amount", 1.0)
+	await run.call({0.05: "victim_rip_blur2"}, 0.1, func(_t2): pass)
+	blur.queue_free()
+	C._end_kill()
+	print("KILLSHOTS done")
+
+
+## Renders the approved props where they stand, and the items up close.
+func _props_shot() -> void:
+	var L = Game.level
+	var rig := _rig()
+	var out := str(Game.args.get("out", "user://"))
+	L.creature.set_physics_process(false)
+	L.creature.global_position = Vector3(30, -0.95, -44)
+	var views := [
+		["p_staff_door", Vector3(13.5, 0.05, -5.0), -90.0, 0.0],
+		["p_ladder", Vector3(-4.6, 0.05, -14.0), 90.0, -35.0],
+		["p_lever", Vector3(17.9, 0.05, -32.2), 60.0, -25.0],
+		["p_exit", Vector3(40.0, 0.05, -36.0), -90.0, 0.0],
+		["p_bunker", Vector3(4.0, 0.05, 3.0), -90.0, -5.0],
+		["p_generator", Vector3(7.0, 0.05, -43.0), -60.0, -15.0],
+	]
+	for v in views:
+		rig.teleport(v[1])
+		rig._yaw = deg_to_rad(v[2])
+		rig._pitch = deg_to_rad(v[3])
+		await wait(0.5)
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("%s/%s.png" % [out, v[0]])
+	# Items lined up on the start room floor.
+	rig.teleport(Vector3(4, 0.05, 6.5))
+	rig._yaw = 0.0
+	rig._pitch = deg_to_rad(-38)
+	var x := 3.3
+	for n in ["Key", "Canteen1", "Lidar", "Bottle1", "Bottle2", "Bottle3", "Bottle4"]:
+		var it = L.items[n]
+		it.freeze = true
+		it.global_transform = Transform3D(Basis(), Vector3(x, 0.15, 5.6))
+		x += 0.24
+	await wait(0.6)
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png("%s/p_items.png" % out)
+	# The test dummy, dropped into Hall A.
+	rig.teleport(Vector3(4, 0.05, -1.0))
+	rig._yaw = 0.0
+	rig._pitch = deg_to_rad(-10)
+	await wait(0.3)
+	L.spawn_dummy(rig.cam.global_transform)
+	await wait(1.0)
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png("%s/p_dummy.png" % out)
+	print("PROPSHOTS done")
+
+
+## The test dummy: dropped in, the creature comes for it and kills it, and it's cleaned up after.
+func _dummy_test() -> void:
+	var L = Game.level
+	var rig := _rig()
+	rig.teleport(Vector3(4, 0.05, -1.0))
+	rig._yaw = 0.0
+	await wait(0.3)
+	L.spawn_dummy(rig.cam.global_transform)
+	var spawned := await wait_for(func(): return L.players.size() == 2, 3.0)
+	check(spawned, "Ctrl+Shift+P drops a test dummy")
+	var dummy_id := 0
+	for id in L.players:
+		if id >= 900:
+			dummy_id = id
+	check(dummy_id > 0 and L.players[dummy_id].is_in_water(), "the dummy is in the water ahead")
+	var killed := await wait_for(func(): return L.creature.state == L.creature.S.ATTACK and L.creature._attack_peer == dummy_id, 40.0)
+	check(killed, "the creature finds the fidgeting dummy and kills it")
+	var feasting := await wait_for(func(): return L.creature.state == L.creature.S.FEAST, 8.0)
+	check(feasting, "then it feasts on the remains")
+	NoiseBus.make(Vector3(6, -0.3, -8), 0.9, "fall")
+	await wait(1.0)
+	check(L.creature.state == L.creature.S.FEAST, "while feasting it ignores even a loud splash")
+	var gone := await wait_for(func(): return not L.players.has(dummy_id), 6.0)
+	check(gone, "the dummy is removed after")
+	var done := await wait_for(func(): return L.creature.state != L.creature.S.FEAST, 7.0)
+	check(done, "the feast lasts at most 5 seconds")

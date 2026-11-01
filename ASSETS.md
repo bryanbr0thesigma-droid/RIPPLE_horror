@@ -34,6 +34,23 @@ approved.
 | [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | Not used by the current creature, which is built from The Rake alone. Kept in case. | Sketchfab | Timsblends | CC BY 4.0 |
 | [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e) | The creature: body, head, limbs and animations (see "The creature" in `DESIGN.md`) | Sketchfab | Sealife Fan 3 | CC BY 4.0 |
 | [Brown Leather](https://polyhaven.com/a/brown_leather) | Pore and wrinkle detail for the creature's skin | Poly Haven | Poly Haven | CC0 |
+| [Old Key](https://sketchfab.com/3d-models/d846b203f4754ee3825e8c4c76d21b21) | The staff room key. Recolored gold. In the game (0.4). | Sketchfab | TheFalkonett | CC BY 4.0 |
+| [Metal Door 2](https://sketchfab.com/3d-models/4da6b538427244aaababe36d3e228a40) | The locked staff room door; the leaf swings open on its hinge. In the game (0.4). | Sketchfab | tboiston | CC BY 4.0 |
+| [Fire Escape / Exit Doors](https://sketchfab.com/3d-models/4ad9f395571a4dfaadce33dfeccc7a53) | The exit. In the game (0.4). | Sketchfab | bloobloo | CC BY 4.0 |
+| [Old metal bunker door](https://sketchfab.com/3d-models/a602f52789fb4bc1a46cc1d0633def60) | A sealed door in the start room (dressing). In the game (0.4). | Sketchfab | rakutin | CC BY 4.0 |
+| [Industrial Electricity's Lever](https://sketchfab.com/3d-models/66915915e3234d319415d6bfb4e3a59e) | The generator's power lever. In the game (0.4). | Sketchfab | Amine.Elouneg | CC BY 4.0 |
+| [Old lever](https://sketchfab.com/3d-models/f1075e12ba4a49368e0f29c62881ac73) | The pool cover lever; its handle turns. In the game (0.4). | Sketchfab | gunnarcorrea | CC BY 4.0 |
+| [Geiger counter](https://sketchfab.com/3d-models/25b8e5c2de1148c0b991bb239efa1808) | The lidar scanner's body. In the game (0.4). | Sketchfab | DenisKorablyov | CC BY 4.0 |
+| [Dusty Beer Bottle](https://sketchfab.com/3d-models/03d9062085214988b2e984470c7c0d28) | Throwable bottle. In the game (0.4). | Sketchfab | GameDevNick | CC BY 4.0 |
+| [Whiskey and Wine Low-Poly Bottles](https://sketchfab.com/3d-models/99999f032f624e8cb05651f041dbf8eb) | Three more throwable bottles. In the game (0.4). | Sketchfab | Helyeouka | CC BY 4.0 |
+| [CC0 - Pool Ladder 3](https://sketchfab.com/3d-models/43cbe4e6e68140e1ad202cf8a3e53650) | Every pool ladder, stretched to the pool's depth. Titled CC0 but listed as CC BY, so credited. In the game (0.4). | Sketchfab | plaggy | CC BY 4.0 |
+| [Human Spine](https://sketchfab.com/3d-models/57c71ac4134e40be9506be639a29c9a4) | Hangs from the head in the head-and-spine kill. In the game (0.4). | Sketchfab | b_bear | CC BY 4.0 |
+| [Realistic Human Heart](https://sketchfab.com/3d-models/3f8072336ce94d18b3d0d055a1ece089) | Spills out in the torn-in-half kill. In the game (0.4). | Sketchfab | neshallads | CC BY 4.0 |
+| [Realistic Human Lungs](https://sketchfab.com/3d-models/ce09f4099a68467880f46e61eb9a3531) | Same. In the game (0.4). | Sketchfab | neshallads | CC BY 4.0 |
+| [Human liver and gallbladder](https://sketchfab.com/3d-models/6c4e9bd0d49f4828b804259330c0c6c4) | Same. In the game (0.4). | Sketchfab | ElliotSS | CC BY 4.0 |
+| [Human kidney (Lowpoly example 9k)](https://sketchfab.com/3d-models/2417146cf20a49b5960c79d554d20650) | Same. In the game (0.4). | Sketchfab | linejung | CC BY 4.0 |
+| [digestive system](https://sketchfab.com/3d-models/f78ce703805f49d3b732e37be5b93188) | The stomach, same. In the game (0.4). | Sketchfab | 7D_Production | CC BY 4.0 |
+| [Plastic Thermos](https://polyhaven.com/a/plastic_thermos) | The canteen. In the game (0.4). | Poly Haven | PierreB3D | CC0 |
 
 ## Maybe
 
@@ -58,7 +75,11 @@ Not added unless they're approved later.
 The co-op demo in `game/` already uses these approved assets (credits in `game/CREDITS.md`):
 Tiles 132 A and Tiles 133 A (pool and wall tiles), the Godot XR Tools hands, the creature (The
 Rake, reworked, with Brown Leather skin detail, built by `tools/creature/` at 1024 px textures),
-the creature's voice, and the three ambience loops. Its other sounds (splashes, wading, plop,
+the creature's voice, the three ambience loops, the suits, and since 0.4 the props, spine and
+organs listed above. The kill sounds (screeches 1, 3 and 5, bites, tearing, the spine rip and
+feeding) are mixed by `tools/sound/mix_kill.py` from the same CC0 recordings as the
+voice. Screeches 2, 4 and 7 were trimmed as asked and are back in Round 22; the
+game doesn't play them until they're approved. Its other sounds (splashes, wading, plop,
 pouring, generator, distiller) are cut from the same approved CC0 recordings; the metal clank
 and door were synthesized for the project.
 
@@ -80,16 +101,19 @@ and door were synthesized for the project.
   OpenGameArt). Other sound effects come later.
 - **Made by the team:** diving boards and towers, water slides, retractable pool covers,
   inflatable rings and floats.
-- **Round 20 (waiting for picks):** real models for the key, doors, lever, canteen,
-  generator, lidar scanner body, distiller, throwable bottles and pool ladder. Until they're
-  picked, the game uses simple stand-in shapes for these.
+- **Round 20 and 21 (done):** the key, doors, levers, canteen, scanner, bottles, pool
+  ladder, spine and organs are approved and in the game (0.4). Every generator and
+  distiller in Round 20 was turned down; the two "maybe" generators and new options for
+  both are in **Round 22**. Until one is picked, the generator and distiller stay simple
+  shapes.
 - **Suit models:** in the game since 0.3 (`game/assets/suits/`). Each was prepared in
   Blender by the scripts in `tools/suits/`: the anti-radiation suit is rebuilt from the
   author's source FBX (the download's hands and boots hung off IK control bones), the
   diver is stood upright, and the jumpsuit's skeleton is refitted to its mesh. The
-  jumpsuit's own gloves can't be used (they are stored half a metre from the hands), so it
-  wears the XR Tools gloves, the same ones the player sees in first person. One color mask
-  per suit marks the parts that take the player's color.
+  jumpsuit's own gloves can't be used (they are stored half a metre from the hands), so the
+  diver's gloved hands are moved onto it (`tools/suits/transplant_hands.py`). One color mask
+  per suit marks the parts that take the player's color. Each suit is also split into
+  head, chest and legs pieces by skin weight (`tools/suits/split_parts.py`) for the kills.
 - **Avatar movement:** other players' suits follow their real head and hand tracking
   (`game/player/suit_ik.gd`): the hips drop and the legs bend when they crouch, the arms
   reach for their hands, the head turns with theirs. No animation library is needed.

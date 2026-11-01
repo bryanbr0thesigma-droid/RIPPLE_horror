@@ -80,6 +80,11 @@ func _ready() -> void:
 	left.button_pressed.connect(func(b):
 		if b == "menu_button":
 			toggle_pause())
+	# Both thumbsticks clicked together: drop a test dummy in the water ahead.
+	for pair in [[left, right], [right, left]]:
+		pair[0].button_pressed.connect(func(b):
+			if b == "primary_click" and pair[1].is_button_pressed("primary_click") and Game.level:
+				Game.level.spawn_dummy(camera.global_transform))
 	# Hands that can shove teammates.
 	for c in [left, right]:
 		var a := Area3D.new()

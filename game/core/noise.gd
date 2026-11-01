@@ -27,6 +27,12 @@ func make(pos: Vector3, loudness: float, kind: String, in_water := true) -> void
 		rpc_id(1, "_srv_noise", pos, loudness, kind, in_water)
 
 
+## Host only: a noise made by someone who isn't a real peer (the test dummy).
+func make_for(peer: int, pos: Vector3, loudness: float, kind: String, in_water := true) -> void:
+	if Net.is_host() or not Net.is_online():
+		_receive(pos, loudness, kind, in_water, peer)
+
+
 @rpc("any_peer", "call_remote", "reliable")
 func _srv_noise(pos: Vector3, loudness: float, kind: String, in_water: bool) -> void:
 	if not Net.is_host():

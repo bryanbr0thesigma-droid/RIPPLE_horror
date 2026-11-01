@@ -33,6 +33,10 @@ const AMBIENCE := {
 }
 
 const SURFACE := -0.3
+## The pools are shallow: about 0.65 m of water, mid-thigh. Only the channels the creature uses
+## to cross between halls under the walkways are deep (it crawls through those underwater).
+const FLOOR := -0.95
+const CHANNEL_FLOOR := -1.8
 
 var G: LevelGeometry
 var players: Dictionary = {}      # peer id -> Player
@@ -56,6 +60,7 @@ var escaped: Dictionary = {}      # host: peer id -> bool
 var hall_b_lights: Array[OmniLight3D] = []
 var hall_b_fittings: Array[MeshInstance3D] = []
 var staff_door: StaticBody3D
+var staff_leaf: Node3D
 var exit_door: StaticBody3D
 var cover_bridge: AnimatableBody3D
 var cover_amount := 0.0
@@ -68,12 +73,12 @@ var gen_noise_timer := 0.0
 
 ## Fixed places other scripts ask about.
 var spawn_points: Array[Vector3] = [Vector3(2.5, 0.05, 4.5), Vector3(5.5, 0.05, 4.5), Vector3(2.5, 0.05, 6.5), Vector3(5.5, 0.05, 6.5)]
-var lock_point := Vector3(15.95, 1.0, -5.55)
+var lock_point := Vector3(15.88, 0.95, -4.54)
 var funnel_point := Vector3(10.5, 1.15, -44.4)
 var distiller_slot := Vector3(18.6, 0.98, -9.1)
 var charger_point := Vector3(23.15, 1.0, -6.6)
-var lever_point := Vector3(17.0, 1.0, -33.0)
-var creature_spawn := Vector3(8.0, -1.05, -38.0)
+var lever_point := Vector3(17.05, 1.2, -33.0)
+var creature_spawn := Vector3(8.0, FLOOR, -38.0)
 
 ## Rooms: ambience, checkpoints, exit. Rect2 is x, z, width, depth.
 var zones := [
@@ -119,6 +124,7 @@ func _ready() -> void:
 	_build_creature()
 	_build_audio()
 	_build_lidar_dots()
+	Gore.warm_up()
 	_ripples.resize(16)
 	NoiseBus.ripple.connect(_on_ripple)
 	hud = preload("res://ui/hud.gd").new()
@@ -156,12 +162,28 @@ func _build_start_room() -> void:
 	G.ceiling(0, 8, 0, 8, 3.4)
 	G.wall_lamp(Vector3(0, 2.5, 4), Vector3.RIGHT, 1.3, 9.5)
 	G.chair(Vector3(7.2, 0, 7.0), -135)
-	G.plaque("RIPPLE test level\n\nSomething lives in the water and hunts by sound. Falling in is loud. Wading fast is loud. Moving your hands in the water makes noise.\n\nIf you hear it coming, freeze. It knows roughly where you are and feels around with its arm. Don't move at all.\n\nFind the key, get into the staff room, power the generator with the darker mineral water (2 canteens), and get across the deep pool.", Vector3(4, 1.7, 7.95), 180, 0.0022)
+	# A sealed bunker door (CC BY, rakutin): the way deeper in, for later levels.
+	var bunker: Node3D = preload("res://assets/props/bunker_door.glb").instantiate()
+	bunker.transform = Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(7.35, 0.0, 3.2))
+	$Props.add_child(bunker)
+	# It stands open onto darkness; you can't go through.
+	var dark := MeshInstance3D.new()
+	var dq := QuadMesh.new()
+	dq.size = Vector2(1.1, 2.1)
+	dark.mesh = dq
+	var dm := StandardMaterial3D.new()
+	dm.albedo_color = Color(0, 0, 0)
+	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dark.material_override = dm
+	dark.transform = Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(7.97, 1.12, 3.2))
+	$Props.add_child(dark)
+	G.block(7.3, 8.0, 0.0, 2.4, 2.4, 4.0, null, LevelGeometry.L_WORLD, $Props).visible = false
+	G.plaque("RIPPLE test level\n\nSomething lives in the water and hunts by sound. Falling in is loud. Wading fast is loud. Moving your hands in the water makes noise.\n\nIf you hear it coming, freeze. It knows roughly where you are and feels around with its arm. Don't move at all.\n\nFind the key, get into the staff room, power the generator with the darker mineral water (2 canteens), and get across the last pool.", Vector3(4, 1.7, 7.95), 180, 0.0022)
 
 
 func _build_hall_a() -> void:
-	# Room: x -8..16, z -20..0. Pool: x -6..14, z -18..-2, floor -1.3.
-	G.walls(-8, 16, -20, 0, 0.0, 4.2, {"s": [[3.0, 5.0, 2.4]], "n": [[2.0, 4.5, 2.4]], "e": [[-6.0, -4.0, 2.4]]})
+	# Room: x -8..16, z -20..0. Pool: x -6..14, z -18..-2, shallow.
+	G.walls(-8, 16, -20, 0, 0.0, 4.2, {"s": [[3.0, 5.0, 2.4]], "n": [[2.0, 4.5, 2.4]], "e": [[-5.64, -4.36, 2.15]]})
 	G.ceiling(-8, 16, -20, 0, 4.2)
 	G.floor_slab(-8, 16, -2, 0)
 	G.floor_slab(-8, 8, -20, -18)
@@ -169,24 +191,24 @@ func _build_hall_a() -> void:
 	G.floor_slab(10.5, 16, -20, -18)
 	G.floor_slab(-8, -6, -18, -2)
 	G.floor_slab(14, 16, -18, -2)
-	G.pool(-6, 14, -18, -2, -1.3, SURFACE, {"n": [[8.0, 10.5]]})
+	G.pool(-6, 14, -18, -2, FLOOR, SURFACE, {"n": [[8.0, 10.5]]})
 	# The island with the key, and stepping columns to it from both sides.
-	G.pillar(3, 6, -11, -8, -1.3)
+	G.pillar(3, 6, -11, -8, FLOOR)
 	for x in [-4.9, -3.2, -1.5, 0.2, 1.9, 7.0, 8.7, 10.4, 12.1, 13.6]:
-		G.pillar(x - 0.4, x + 0.4, -9.9, -9.1, -1.3)
+		G.pillar(x - 0.4, x + 0.4, -9.9, -9.1, FLOOR)
 	# Steps down into the shallow end, and ladders.
-	for i in range(4):
-		var top := -0.3 - i * 0.25
-		G.block(-6, -4.5, -1.3, top, -2.0 - (i + 1) * 0.5, -2.0 - i * 0.5, G.mat_white)
-	G.ladder(Vector3(-6, -1.3, -14), Vector3(1, 0, 0), 0.0)
-	G.ladder(Vector3(14, -1.3, -14), Vector3(-1, 0, 0), 0.0)
-	G.ladder(Vector3(0, -1.3, -18), Vector3(0, 0, 1), 0.0)
+	for i in range(2):
+		var top := -0.3 - i * 0.3
+		G.block(-6, -4.5, FLOOR, top, -2.0 - (i + 1) * 0.5, -2.0 - i * 0.5, G.mat_white)
+	G.ladder(Vector3(-6, FLOOR, -14), Vector3(1, 0, 0), 0.0)
+	G.ladder(Vector3(14, FLOOR, -14), Vector3(-1, 0, 0), 0.0)
+	G.ladder(Vector3(0, FLOOR, -18), Vector3(0, 0, 1), 0.0)
 	for p in [Vector3(-2, 4.1, -5), Vector3(10, 4.1, -5), Vector3(-2, 4.1, -15), Vector3(10, 4.1, -15)]:
 		G.fitting(p)
 	G.light(Vector3(4, 4.0, -5), 1.6, 15.0)
 	G.light(Vector3(4, 4.0, -15), 1.6, 15.0)
 	# Channel under the north wall to Hall B (water only, for the creature).
-	G.pool(8, 10.5, -24, -18, -1.8, SURFACE, {"n": "open", "s": "open"}, false)
+	G.pool(8, 10.5, -24, -18, CHANNEL_FLOOR, SURFACE, {"n": "open", "s": "open"}, false)
 	# Corridor to Hall B.
 	G.floor_slab(2, 4.5, -22, -20)
 	G.walls(2, 4.5, -22, -20, 0.0, 2.6, {"n": [[2.0, 4.5, 3.0]], "s": [[2.0, 4.5, 3.0]]})
@@ -204,16 +226,30 @@ func _build_hall_a() -> void:
 
 
 func _build_staff_room() -> void:
-	# x 16..24, z -10..0. The door from Hall A is on the west wall (z -6..-4) and starts locked.
+	# x 16..24, z -10..0. The door from Hall A is on the west wall (z -5.64..-4.36) and starts locked.
 	G.floor_slab(16, 24, -10, 0)
-	G.walls(16, 24, -10, 0, 0.0, 3.2, {"w": [[-6.0, -4.0, 2.4]]})
+	G.walls(16, 24, -10, 0, 0.0, 3.2, {"w": [[-5.64, -4.36, 2.15]]})
 	G.ceiling(16, 24, -10, 0, 3.2)
 	G.wall_lamp(Vector3(24, 2.4, -3.5), Vector3.LEFT, 1.3, 9.5)
 	G.chair(Vector3(20.5, 0, -3.15), 0)
 	G.chair(Vector3(21.6, 0, -3.2), 12)
-	staff_door = G.block(15.85, 16.15, 0.0, 2.4, -6.0, -4.0, G.mat_metal, LevelGeometry.L_DYNAMIC, $Props)
+	# The approved metal door (CC BY, tboiston): frame in the wall, leaf hinged on its far edge.
+	var door: Node3D = preload("res://assets/props/staff_door.glb").instantiate()
+	door.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(16.0, 0.0, -5.0))
+	$Props.add_child(door)
+	staff_leaf = door.find_child("Leaf", true, false)
+	staff_door = StaticBody3D.new()
 	staff_door.name = "StaffDoor"
-	var lock := G.block(15.75, 15.85, 0.9, 1.1, -5.65, -5.45, G.mat_rail, 0, $Props)
+	staff_door.collision_layer = LevelGeometry.L_DYNAMIC
+	staff_door.collision_mask = 0
+	var dcs := CollisionShape3D.new()
+	var dsh := BoxShape3D.new()
+	dsh.size = Vector3(1.08, 2.06, 0.1)
+	dcs.shape = dsh
+	dcs.position = Vector3(-0.54, 1.03, 0.0)
+	staff_door.add_child(dcs)
+	staff_leaf.add_child(staff_door)
+	var lock := G.block(15.86, 15.9, 0.9, 1.0, -4.6, -4.48, G.mat_rail, 0, $Props)
 	lock.name = "Lock"
 	# Table, shelf, distiller, charger.
 	G.block(20.0, 22.0, 0.0, 0.85, -2.6, -1.4, G.mat_metal, LevelGeometry.L_WORLD, $Props)
@@ -231,25 +267,25 @@ func _build_hall_b() -> void:
 	G.floor_slab(-8, 8, -24, -22)
 	G.floor_slab(8, 10.5, -24, -22, 0.0, null, 0.2)   # bridge over the channel
 	G.floor_slab(10.5, 16, -24, -22)
-	G.pool(-8, 16, -46, -24, -1.8, SURFACE, {"s": [[8.0, 10.5]], "e": "open"})
+	G.pool(-8, 16, -46, -24, FLOOR, SURFACE, {"s": [[8.0, 10.5]], "e": "open"})
 	# Beams and platforms, all at walkway level.
-	G.pillar(2.65, 3.35, -30, -24, -1.8)         # beam north from the entrance
-	G.pillar(1.5, 4.5, -33, -30, -1.8)           # platform 1
-	G.pillar(-4.5, 1.5, -31.85, -31.15, -1.8)    # beam west
-	G.pillar(-8, -4.5, -34, -29, -1.8)           # platform by the mineral water
-	G.pillar(2.65, 3.35, -38, -33, -1.8)         # beam north
-	G.pillar(2.55, 3.45, -39.95, -39.05, -1.8)   # stepping columns
-	G.pillar(2.55, 3.45, -41.45, -40.55, -1.8)
-	G.pillar(3.45, 4.35, -43.05, -42.15, -1.8)
-	G.pillar(5.2, 14, -46, -42, -1.8)            # generator platform
-	G.pillar(14, 16, -46, -34, -1.8)             # ledge to the door to Hall C
+	G.pillar(2.65, 3.35, -30, -24, FLOOR)         # beam north from the entrance
+	G.pillar(1.5, 4.5, -33, -30, FLOOR)           # platform 1
+	G.pillar(-4.5, 1.5, -31.85, -31.15, FLOOR)    # beam west
+	G.pillar(-8, -4.5, -34, -29, FLOOR)           # platform by the mineral water
+	G.pillar(2.65, 3.35, -38, -33, FLOOR)         # beam north
+	G.pillar(2.55, 3.45, -39.95, -39.05, FLOOR)   # stepping columns
+	G.pillar(2.55, 3.45, -41.45, -40.55, FLOOR)
+	G.pillar(3.45, 4.35, -43.05, -42.15, FLOOR)
+	G.pillar(5.2, 14, -46, -42, FLOOR)            # generator platform
+	G.pillar(14, 16, -46, -34, FLOOR)             # ledge to the door to Hall C
 	# The mineral water: slightly darker, in the north-west corner, next to the platform.
-	G.water(Rect2(-8, -40, 3.5, 6), SURFACE, -1.8, true)
-	G.ladder(Vector3(0, -1.8, -24), Vector3(0, 0, -1), 0.0)
-	G.ladder(Vector3(12, -1.8, -24), Vector3(0, 0, -1), 0.0)
-	G.ladder(Vector3(-6.25, -1.8, -29), Vector3(0, 0, -1), 0.0)
-	G.ladder(Vector3(10, -1.8, -42), Vector3(0, 0, 1), 0.0)
-	G.ladder(Vector3(4.5, -1.8, -31.5), Vector3(1, 0, 0), 0.0)
+	G.water(Rect2(-8, -40, 3.5, 6), SURFACE, FLOOR, true)
+	G.ladder(Vector3(0, FLOOR, -24), Vector3(0, 0, -1), 0.0)
+	G.ladder(Vector3(12, FLOOR, -24), Vector3(0, 0, -1), 0.0)
+	G.ladder(Vector3(-6.25, FLOOR, -29), Vector3(0, 0, -1), 0.0)
+	G.ladder(Vector3(10, FLOOR, -42), Vector3(0, 0, 1), 0.0)
+	G.ladder(Vector3(4.5, FLOOR, -31.5), Vector3(1, 0, 0), 0.0)
 	for p in [Vector3(-2, 4.4, -28), Vector3(10, 4.4, -28), Vector3(-2, 4.4, -40), Vector3(10, 4.4, -40)]:
 		hall_b_fittings.append(G.fitting(p, Color(0.85, 0.95, 1.0)))
 	for p in [Vector3(4, 4.3, -29), Vector3(4, 4.3, -40)]:
@@ -272,6 +308,9 @@ func _build_hall_b() -> void:
 func _build_generator() -> void:
 	var g := G.block(9.5, 11.5, 0.0, 1.0, -45.6, -44.8, G.mat_metal, LevelGeometry.L_WORLD, $Props)
 	g.name = "Generator"
+	var power_lever: Node3D = preload("res://assets/props/power_lever.glb").instantiate()   # CC BY, Amine.Elouneg
+	power_lever.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(8.7, 0.0, -45.3))
+	$Props.add_child(power_lever)
 	# Funnel on top: the canteen's stream has to land in it.
 	var funnel := Area3D.new()
 	funnel.name = "Funnel"
@@ -322,14 +361,14 @@ func _build_generator() -> void:
 
 
 func _build_hall_c() -> void:
-	# x 16..38, z -46..-22. Deep pool with a ledge on each side; the pool cover bridges them.
+	# x 16..38, z -46..-22. A wide pool with a ledge on each side; the pool cover bridges them.
 	G.walls(16, 38, -46, -22, 0.0, 4.8, {"w": [[-37.0, -35.0, 2.4]], "e": [[-37.0, -35.0, 2.4]]})
 	G.ceiling(16, 38, -46, -22, 4.8)
-	G.pool(16, 38, -46, -22, -2.6, SURFACE, {"w": [[-30.0, -27.0]]})
-	G.pillar(16, 18, -40, -32, -2.6)
-	G.pillar(36, 38, -40, -32, -2.6)
-	G.ladder(Vector3(18, -2.6, -38.5), Vector3(1, 0, 0), 0.0)
-	G.ladder(Vector3(36, -2.6, -33.5), Vector3(-1, 0, 0), 0.0)
+	G.pool(16, 38, -46, -22, FLOOR, SURFACE, {"w": [[-30.0, -27.0]]})
+	G.pillar(16, 18, -40, -32, FLOOR)
+	G.pillar(36, 38, -40, -32, FLOOR)
+	G.ladder(Vector3(18, FLOOR, -38.5), Vector3(1, 0, 0), 0.0)
+	G.ladder(Vector3(36, FLOOR, -33.5), Vector3(-1, 0, 0), 0.0)
 	for p in [Vector3(22, 4.7, -30), Vector3(32, 4.7, -30), Vector3(22, 4.7, -40), Vector3(32, 4.7, -40)]:
 		G.fitting(p, Color(0.9, 0.95, 1.0))
 	G.light(Vector3(27, 4.6, -30), 1.3, 15.0, Color(0.9, 0.95, 1.0))
@@ -358,30 +397,13 @@ func _build_hall_c() -> void:
 	cover_bridge.add_child(cs)
 	$Props.add_child(cover_bridge)
 	# The lever on the west ledge.
-	G.block(16.6, 17.4, 0.0, 0.9, -33.3, -32.7, G.mat_metal, LevelGeometry.L_WORLD, $Props)
-	lever_arm = Node3D.new()
-	lever_arm.position = Vector3(17.0, 0.9, -33.0)
-	var arm := MeshInstance3D.new()
-	var am := CylinderMesh.new()
-	am.top_radius = 0.03
-	am.bottom_radius = 0.03
-	am.height = 0.55
-	arm.mesh = am
-	arm.material_override = G.mat_rail
-	arm.position = Vector3(0, 0.27, 0)
-	lever_arm.add_child(arm)
-	var knob := MeshInstance3D.new()
-	var km := SphereMesh.new()
-	km.radius = 0.06
-	km.height = 0.12
-	knob.mesh = km
-	var red := StandardMaterial3D.new()
-	red.albedo_color = Color(0.7, 0.08, 0.06)
-	knob.material_override = red
-	knob.position = Vector3(0, 0.55, 0)
-	lever_arm.add_child(knob)
+	# The approved lever in its red box (CC BY, gunnarcorrea) on a post; its handle moves.
+	G.block(16.75, 17.25, 0.0, 0.9, -33.25, -32.75, G.mat_metal, LevelGeometry.L_WORLD, $Props)
+	var lever: Node3D = preload("res://assets/props/cover_lever.glb").instantiate()
+	lever.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(17.0, 0.9, -33.0))
+	$Props.add_child(lever)
+	lever_arm = lever.find_child("Handle", true, false)
 	lever_arm.rotation_degrees = Vector3(-35, 0, 0)
-	$Props.add_child(lever_arm)
 	var handle := preload("res://items/lever_handle.gd").new()
 	handle.name = "LeverHandle"
 	$Props.add_child(handle)
@@ -395,7 +417,11 @@ func _build_exit() -> void:
 	G.ceiling(38, 44, -40, -32, 3.2)
 	G.wall_lamp(Vector3(41, 2.4, -40), Vector3.BACK, 1.6, 9.5, Color(0.85, 1.0, 0.85))
 	G.chair(Vector3(43.2, 0, -32.8), -135)
-	G.plaque("EXIT\nYou made it. Wait here for the others.", Vector3(43.95, 1.7, -36), -90, 0.006)
+	# The approved fire exit doors (CC BY, bloobloo) on the far wall.
+	var exit_doors: Node3D = preload("res://assets/props/exit_doors.glb").instantiate()
+	exit_doors.position = Vector3(43.92, 0.0, -36.0)
+	$Props.add_child(exit_doors)
+	G.plaque("EXIT\nYou made it. Wait here for the others.", Vector3(43.85, 2.7, -36), -90, 0.004)
 
 
 func _add_prop_label(text: String, pos: Vector3, yaw := 0.0) -> void:
@@ -554,9 +580,9 @@ func _process(delta: float) -> void:
 	_place_cover()
 	if lever_arm:
 		lever_arm.rotation_degrees.x = lerpf(lever_arm.rotation_degrees.x, 35.0 if state.cover else -35.0, delta * 6.0)
-	if staff_door:
-		var open_y := 2.35 if state.staff_door else 0.0
-		staff_door.position.y = move_toward(staff_door.position.y, 1.2 + open_y, delta * 1.5)
+	if staff_leaf:
+		var open := -1.7 if state.staff_door else 0.0
+		staff_leaf.rotation.y = move_toward(staff_leaf.rotation.y, open, delta * 1.2)
 	var distilling := false
 	for it in items.values():
 		if it.has_method("is_distilling") and it.is_distilling():
@@ -570,6 +596,7 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if Net.is_host() or not Net.is_online():
 		_host_tick(delta)
+		_dummy_tick(delta)
 	_sync_timer -= delta
 	if _sync_timer <= 0.0:
 		_sync_timer = 0.05
@@ -699,6 +726,12 @@ func _srv_request(action: String, args: Array) -> void:
 	if sender == 0:
 		sender = Net.my_id()
 	match action:
+		"dummy":
+			var id := 900 + _dummy_n
+			_dummy_n += 1
+			_add_dummy(id, args[0], args[1])
+			Net.send(self, &"_add_dummy", [id, args[0], args[1]])
+			NoiseBus.make_for(id, args[0] + Vector3.UP * 0.6, 0.9, "fall")
 		"unlock":
 			if not state.staff_door:
 				set_state("staff_door", true)
@@ -825,18 +858,87 @@ func on_peer_left(id: int) -> void:
 				Net.send(self, &"_set_item_owner", [it.name, 0, 1])
 
 
-## The creature caught someone (host decides; everyone shows it).
-func player_caught(id: int) -> void:
-	_caught(id)
-	Net.send(self, &"_caught", [id])
+## The creature caught someone (host decides, and picks the kill and the screech; everyone plays it).
+func player_caught(id: int, screech := 0, kind := 0) -> void:
+	_caught(id, screech, kind)
+	Net.send(self, &"_caught", [id, screech, kind])
 
 
 @rpc("authority", "call_remote", "reliable")
-func _caught(id: int) -> void:
+func _caught(id: int, screech: int, kind: int) -> void:
 	var p = players.get(id)
 	if p:
-		_sfx("screech", p.body_position())
-		p.on_caught()
+		creature.play_kill(p, screech, kind)
+		p.on_caught(kind)
+		if p.info.get("dummy", false):
+			p.net_alive = false
+			get_tree().create_timer(creature.ATTACK_TIME + 0.5).timeout.connect(func(): _remove_dummy(id))
+
+
+# --- The test dummy -------------------------------------------------------------------------------
+# Ctrl+Shift+P (desktop) or both thumbsticks clicked (VR) drops a plain grey player into the water
+# in front of you. It has no mind of its own: it just fidgets a little, so the creature finds it,
+# and you can watch the kills from outside. The host spawns it for everyone.
+
+var _dummy_n := 0
+var _dummy_t := 0.0
+
+
+## Where to drop a dummy: the first water ahead of you (up to 10 m), else 2 m ahead.
+func dummy_spot(from: Transform3D) -> Vector3:
+	var fwd := -from.basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
+	var d := 1.8
+	while d <= 10.0:
+		var p := from.origin + fwd * d
+		var w := WaterVolume.below(Vector3(p.x, -0.35, p.z))
+		if w and not w.mineral:
+			return Vector3(p.x, w.floor_y, p.z)
+		d += 0.4
+	var q := from.origin + fwd * 2.0
+	return Vector3(q.x, local_player.body_position().y if local_player else 0.0, q.z)
+
+
+func spawn_dummy(from: Transform3D) -> void:
+	var at := dummy_spot(from)
+	var face := from.origin - at
+	request("dummy", [at, atan2(face.x, face.z)])
+	Game.notify("Test dummy dropped in. Stand back and watch.")
+
+
+@rpc("authority", "call_remote", "reliable")
+func _add_dummy(id: int, at: Vector3, yaw: float) -> void:
+	_spawn_player(id, {"name": "Dummy", "suit": 2, "color": Color(0.6, 0.6, 0.58), "dummy": true}, at)
+	var p = players[id]
+	p.net_feet = at
+	p.net_alive = true
+	var w := WaterVolume.below(at + Vector3.UP * 0.1)
+	p.net_in_water = w != null and at.y < w.surface_y
+	p.avatar.suit.make_featureless()
+	var b := Basis(Vector3.UP, yaw + PI)            # facing whoever dropped it
+	var down := Basis(Vector3.RIGHT, -PI * 0.5)
+	var side := b.x
+	p.avatar.set_target(Transform3D(b, at + Vector3.UP * 1.62), Transform3D(b * down, at + Vector3.UP * 0.85 - side * 0.25),
+		Transform3D(b * down, at + Vector3.UP * 0.85 + side * 0.25), at, true)
+
+
+func _remove_dummy(id: int) -> void:
+	if players.has(id):
+		players[id].queue_free()
+		players.erase(id)
+
+
+## Host: dummies fidget (tiny hand noises), and splash when they arrive.
+func _dummy_tick(delta: float) -> void:
+	_dummy_t -= delta
+	if _dummy_t > 0.0:
+		return
+	_dummy_t = 0.4
+	for id in players:
+		var p = players[id]
+		if p.info.get("dummy", false) and p.net_alive and p.net_in_water:
+			NoiseBus.make_for(id, p.net_feet + Vector3.UP * 0.5, 0.06, "hands")
 
 
 ## Push another player (or myself).

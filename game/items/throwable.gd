@@ -4,10 +4,16 @@ extends NetItem
 
 func build() -> void:
 	mass = 0.4
-	var glass := Color(0.25, 0.45, 0.3)
-	add_cylinder(0.035, 0.18, glass, Vector3.ZERO, true, 0.1)
-	add_cylinder(0.014, 0.07, glass, Vector3(0, 0.12, 0), false, 0.1)
-	add_cylinder(0.016, 0.015, Color(0.6, 0.15, 0.1), Vector3(0, 0.16, 0), false)
+
+
+## Each bottle is one of the four approved ones (picked by its name, so everyone sees the same).
+func _ready() -> void:
+	var files := ["bottle_beer", "bottle_glass_1", "bottle_glass_2", "bottle_glass_3"]
+	var i := absi(hash(String(name))) % files.size()
+	add_model("res://assets/props/%s.glb" % files[i])
+	var tall := 0.24 if i == 0 else 0.3
+	add_shape_cylinder(0.04 if i < 2 else 0.055, tall * 0.95)
+	super._ready()
 
 
 ## Desktop throws on release of the use button (handled by the desktop rig).

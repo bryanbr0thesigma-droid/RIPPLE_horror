@@ -142,6 +142,12 @@ func hold_transform_for(item: Node3D) -> Transform3D:
 # --- Input and movement --------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Ctrl+Shift+P: drop a test dummy in the water ahead, to watch the creature from outside.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_P and event.ctrl_pressed and event.shift_pressed:
+		if Game.level:
+			Game.level.spawn_dummy(cam.global_transform)
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_yaw -= event.relative.x * 0.0025
 		_pitch = clampf(_pitch - event.relative.y * 0.0025, -1.45, 1.45)

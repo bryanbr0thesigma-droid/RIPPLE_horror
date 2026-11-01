@@ -4,12 +4,17 @@ extends RefCounted
 ## gaps, pools with water, walkway slabs, ladders and grab rims.
 
 const WALL_T := 0.3
+## Pool walls stop just under walkway level, so where they run under a walkway slab the two tops
+## aren't in the same plane (that flickered). Room walls start just under the floor for the same reason.
+const RIM_TOP := -0.006
+const WALL_SINK := 0.02
 const CLIMBABLE := preload("res://addons/godot-xr-tools/objects/climbable.gd")
 const WATER_SHADER := preload("res://core/water.gdshader")
 const WALL_LAMP := preload("res://assets/props/wall_lamp.glb")
 const CHAIR := preload("res://assets/props/chair.glb")
 const WET_SIGN := preload("res://assets/props/wet_floor_sign.glb")
 const PIPES := preload("res://assets/props/pipes_kit.glb")
+const POOL_LADDER := preload("res://assets/props/pool_ladder.glb")
 
 const L_WORLD := 1
 const L_DYNAMIC := 1 << 1
@@ -63,6 +68,7 @@ func _init(level_root: Node3D) -> void:
 	mineral_mat = ShaderMaterial.new()
 	mineral_mat.shader = WATER_SHADER
 	mineral_mat.set_shader_parameter("water_color", Color(0.05, 0.13, 0.15, 0.6))
+	mineral_mat.render_priority = 1   # always drawn over the pool's own surface
 
 
 func _tiles(color_path: String, normal_path: String, scale: float, tint: Color) -> StandardMaterial3D:
@@ -128,7 +134,7 @@ func walls(x0: float, x1: float, z0: float, z1: float, y0: float, y1: float, doo
 		var lo := (x0 - t) if along_x else z0
 		var hi := (x1 + t) if along_x else z1
 		for sp in spans(lo, hi, d):
-			_wall_piece(side, sp[0], sp[1], y0, y1, x0, x1, z0, z1, m)
+			_wall_piece(side, sp[0], sp[1], y0 - WALL_SINK, y1, x0, x1, z0, z1, m)
 		for g in d:
 			var top: float = g[2] if g.size() > 2 else 2.4
 			if y0 + top < y1:
@@ -169,10 +175,10 @@ func pool(x0: float, x1: float, z0: float, z1: float, floor_y: float, surface_y:
 		var hi := x1 if along_x else z1
 		for sp in spans(lo, hi, d):
 			match side:
-				"n": block(sp[0], sp[1], floor_y - 0.3, 0.0, z0 - t, z0, mat_blue)
-				"s": block(sp[0], sp[1], floor_y - 0.3, 0.0, z1, z1 + t, mat_blue)
-				"w": block(x0 - t, x0, floor_y - 0.3, 0.0, sp[0], sp[1], mat_blue)
-				"e": block(x1, x1 + t, floor_y - 0.3, 0.0, sp[0], sp[1], mat_blue)
+				"n": block(sp[0], sp[1], floor_y - 0.3, RIM_TOP, z0 - t, z0, mat_blue)
+				"s": block(sp[0], sp[1], floor_y - 0.3, RIM_TOP, z1, z1 + t, mat_blue)
+				"w": block(x0 - t, x0, floor_y - 0.3, RIM_TOP, sp[0], sp[1], mat_blue)
+				"e": block(x1, x1 + t, floor_y - 0.3, RIM_TOP, sp[0], sp[1], mat_blue)
 			if rims:
 				match side:
 					"n": grab_rim(Vector3(sp[0], 0.0, z0), Vector3(sp[1], 0.0, z0))
@@ -194,7 +200,7 @@ func water(r: Rect2, surface_y: float, floor_y: float, is_mineral: bool) -> Wate
 	mi.mesh = pm
 	mi.material_override = mineral_mat if is_mineral else water_mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mi.position = Vector3(r.position.x + r.size.x * 0.5, surface_y + (0.004 if is_mineral else 0.0), r.position.y + r.size.y * 0.5)
+	mi.position = Vector3(r.position.x + r.size.x * 0.5, surface_y + (0.015 if is_mineral else 0.0), r.position.y + r.size.y * 0.5)
 	w.add_child(mi)
 	return w
 
@@ -233,17 +239,11 @@ func grab_rim(a: Vector3, b: Vector3) -> void:
 func ladder(base: Vector3, out: Vector3, y_top: float) -> Area3D:
 	var side := Vector3(out.z, 0, -out.x).normalized()
 	var height := y_top - base.y
-	for s in [-1.0, 1.0]:
-		var p: Vector3 = base + side * 0.22 * s + out * 0.12
-		var rail := MeshInstance3D.new()
-		var cm := CylinderMesh.new()
-		cm.top_radius = 0.025
-		cm.bottom_radius = 0.025
-		cm.height = height + 0.9
-		rail.mesh = cm
-		rail.material_override = mat_rail
-		rail.position = p + Vector3(0, (height + 0.9) * 0.5, 0)
-		geo.add_child(rail)
+	# The approved pool ladder (CC0, plaggy), sized so its rails rise half a metre over the edge.
+	var model: Node3D = POOL_LADDER.instantiate()
+	var k := (height + 0.5) / 1.13
+	model.transform = Transform3D(Basis.looking_at(out, Vector3.UP).scaled(Vector3.ONE * k), base + out * 0.16)
+	geo.add_child(model)
 	var climb := StaticBody3D.new()
 	climb.set_script(CLIMBABLE)
 	climb.collision_layer = L_GRAB
@@ -255,16 +255,6 @@ func ladder(base: Vector3, out: Vector3, y_top: float) -> Area3D:
 	ccs.shape = csh
 	climb.add_child(ccs)
 	geo.add_child(climb)
-	var y := base.y + 0.3
-	while y < y_top + 0.5:
-		var rung := MeshInstance3D.new()
-		var rm := BoxMesh.new()
-		rm.size = side.abs() * 0.44 + out.abs() * 0.03 + Vector3(0, 0.03, 0)
-		rung.mesh = rm
-		rung.material_override = mat_rail
-		rung.position = Vector3(climb.position.x, y, climb.position.z)
-		geo.add_child(rung)
-		y += 0.3
 	var area := Area3D.new()
 	area.add_to_group("ladder")
 	area.collision_layer = L_TRIGGERS

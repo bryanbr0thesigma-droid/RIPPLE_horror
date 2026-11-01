@@ -5,10 +5,8 @@ extends Node3D
 ## (see suit_ik.gd); the player's color goes on the parts marked by each suit's mask.
 
 const IK := preload("res://player/suit_ik.gd")
+const EYE_FORWARD := 0.09        # the eyes are this far in front of the head bone
 const TINT := preload("res://player/suit_tint.gdshader")
-const XR_GLOVES := [preload("res://addons/godot-xr-tools/hands/model/Hand_low_L.gltf"),
-	preload("res://addons/godot-xr-tools/hands/model/Hand_low_R.gltf")]
-const GLOVE_MAT := preload("res://addons/godot-xr-tools/hands/materials/cleaning_glove.tres")
 
 const SUITS := [
 	{"name": "Anti-radiation suit", "about": "Baggy rubberized suit, hood and gas mask. Your color tints the camo.",
@@ -16,7 +14,7 @@ const SUITS := [
 		"masks": {"kostum": "res://assets/suits/ozk_mask.png"}, "gain": 1.9, "flat": []},
 	{"name": "Striker jumpsuit", "about": "Fitted work jumpsuit and helmet. Your color is the stripes.",
 		"glove": Color(0.07, 0.07, 0.08), "file": "res://assets/suits/jumpsuit.glb",
-		"masks": {"Jumpsuit": "res://assets/suits/jumpsuit_mask.png"}, "gain": 1.7, "flat": [], "hide": ["gloves"], "xr_gloves": true},
+		"masks": {"Jumpsuit": "res://assets/suits/jumpsuit_mask.png"}, "gain": 1.7, "flat": [], "hide": ["gloves"]},
 	{"name": "Diver", "about": "Neoprene wetsuit, mask and snorkel. Your color is the panels.",
 		"glove": Color(0.05, 0.05, 0.06), "file": "res://assets/suits/diver.glb",
 		"masks": {}, "gain": 1.0, "flat": ["Buso_Stroke", "Lentes_Respirador"]},
@@ -24,7 +22,7 @@ const SUITS := [
 
 # Bone roles -> base names to look for (after stripping "mixamorig_" and numeric suffixes).
 const ROLES := {
-	"Hips": ["Hips"], "Spine": ["Spine"], "Neck": ["Neck"], "Head": ["Head"],
+	"Hips": ["Hips"], "Spine": ["Spine"], "Spine1": ["Spine1"], "Spine2": ["Spine2"], "Neck": ["Neck"], "Head": ["Head"],
 	"LeftArm": ["LeftArm"], "LeftForeArm": ["LeftForeArm"], "LeftHand": ["LeftHand"],
 	"RightArm": ["RightArm"], "RightForeArm": ["RightForeArm"], "RightHand": ["RightHand"],
 	"LeftUpLeg": ["LeftUpLeg"], "LeftLeg": ["LeftLeg"], "LeftFoot": ["LeftFoot"],
@@ -42,7 +40,11 @@ var skeleton: Skeleton3D
 var head_target := Transform3D()
 var hand_targets: Array[Transform3D] = [Transform3D(), Transform3D()]
 var eye_height := 1.6
-var gloves: Array[Node3D] = []    # the jumpsuit's own gloves are unusable; it wears the XR Tools ones
+## The suit split for the kills: "head" (head and neck), "upper" (chest and arms), "lower" (hips
+## and legs). Each holds that part's meshes.
+var parts := {"head": [], "upper": [], "lower": []}
+var bones := {}
+var _sk_xf := Transform3D()       # skeleton space -> this node's space
 var _stand_h := 0.0
 var _t := 0.0
 
@@ -83,35 +85,22 @@ func _build() -> void:
 	var names := {}
 	for i in skeleton.get_bone_count():
 		names[_base_name(skeleton.get_bone_name(i))] = i
-	var bones := {}
+	bones = {}
 	for role in ROLES:
 		for n in ROLES[role]:
 			if names.has(n):
 				bones[role] = names[n]
 				break
 	# Eye height: a little above the head bone.
+	var xf := Transform3D()
+	var n: Node = skeleton
+	while n != model:
+		xf = (n as Node3D).transform * xf
+		n = n.get_parent()
+	_sk_xf = model.transform * xf
 	if bones.has("Head"):
-		var xf := Transform3D()
-		var n: Node = skeleton
-		while n != model:
-			xf = (n as Node3D).transform * xf
-			n = n.get_parent()
-		var head_world := model.transform * xf * skeleton.get_bone_global_rest(bones.Head).origin
-		eye_height = head_world.y + 0.11
+		eye_height = (_sk_xf * skeleton.get_bone_global_rest(bones.Head).origin).y + 0.11
 	_recolor(info)
-	if info.get("xr_gloves", false):
-		var gm: BaseMaterial3D = GLOVE_MAT.duplicate()
-		gm.albedo_texture = null
-		gm.albedo_color = (info.glove as Color).lightened(0.15)
-		for i in 2:
-			var holder := Node3D.new()
-			add_child(holder)
-			var g: Node3D = XR_GLOVES[i].instantiate()
-			holder.add_child(g)
-			g.position = Vector3(-0.01 if i == 0 else 0.01, 0, 0.05)   # as XR Tools places them
-			for mi: MeshInstance3D in g.find_children("*", "MeshInstance3D", true, false):
-				mi.material_override = gm
-			gloves.append(holder)
 	var ik := IK.new()
 	ik.name = "SuitIK"
 	skeleton.add_child(ik)
@@ -130,6 +119,9 @@ func _recolor(info: Dictionary) -> void:
 		if first and first.resource_name in hide:
 			mi.visible = false
 			continue
+		for part in parts:
+			if String(mi.name).ends_with("__" + part):
+				parts[part].append(mi)
 		for s in mi.mesh.get_surface_count():
 			var src := mi.mesh.surface_get_material(s) as BaseMaterial3D
 			if not src:
@@ -158,11 +150,66 @@ func _tinted(src: BaseMaterial3D, mask: Texture2D, gain: float) -> ShaderMateria
 	return m
 
 
+## Plain grey all over: the test dummy.
+func make_featureless() -> void:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.6, 0.6, 0.58)
+	m.roughness = 0.85
+	for part in parts:   # the suit itself only, not the raw flesh where it was torn
+		for mi: MeshInstance3D in parts[part]:
+			for s in mi.mesh.get_surface_count():
+				mi.set_surface_override_material(s, m)
+
+
+# --- Tearing apart -------------------------------------------------------------------------------
+
+## Show only some parts ("head", "upper", "lower"), with raw flesh where they were torn off.
+func show_only(keep: Array) -> void:
+	for part in parts:
+		for mi: MeshInstance3D in parts[part]:
+			mi.visible = part in keep
+	var neck_cut := ("head" in keep) != ("upper" in keep)
+	var waist_cut := ("upper" in keep) != ("lower" in keep)
+	if neck_cut and bones.has("Neck") and bones.has("Head"):
+		_add_cap("Neck", "Head", 0.065, not ("head" in keep))
+	if waist_cut and bones.has("Spine1"):
+		_add_cap("Spine1", "Spine2" if bones.has("Spine2") else "Neck", 0.15, "lower" in keep)
+
+
+## A flesh cap at bone `at`, facing toward bone `toward` (or away from it when flip).
+func _add_cap(at: String, toward: String, radius: float, flip: bool) -> void:
+	var rest_a := skeleton.get_bone_global_rest(bones[at])
+	var rest_b := skeleton.get_bone_global_rest(bones[toward])
+	var n_sk := (rest_b.origin - rest_a.origin).normalized() * (-1.0 if flip else 1.0)
+	var local_n := (rest_a.basis.inverse() * n_sk).normalized()
+	var att := BoneAttachment3D.new()
+	att.bone_name = skeleton.get_bone_name(bones[at])
+	skeleton.add_child(att)
+	var c := Gore.cap(radius)
+	att.add_child(c)
+	var sc := _sk_xf.basis.get_scale().x * rest_a.basis.get_scale().x
+	c.transform = Transform3D(Basis(Quaternion(Vector3.UP, local_n)).scaled(Vector3.ONE / maxf(sc, 1e-4)), Vector3.ZERO)
+
+
+## Where a bone sits in this node's space at rest (for holding a torn-off piece by it).
+func bone_rest(role: String) -> Vector3:
+	if not bones.has(role):
+		return Vector3(0, eye_height, 0)
+	return _sk_xf * skeleton.get_bone_global_rest(bones[role]).origin
+
+
+## Where a bone is right now, in world space (after the IK).
+func bone_world(role: String) -> Vector3:
+	if not bones.has(role):
+		return global_position
+	return skeleton.global_transform * skeleton.get_bone_global_pose(bones[role]).origin
+
+
 # --- Posing --------------------------------------------------------------------------------------
 
 ## A neutral standing pose (feet at the origin), arms relaxed, for the preview.
 func stand() -> void:
-	head_target = Transform3D(Basis(), Vector3(0, eye_height, 0))
+	head_target = Transform3D(Basis(), Vector3(0, eye_height, -EYE_FORWARD))
 	var k := eye_height / 1.6
 	var down := Basis(Vector3.RIGHT, -PI * 0.5)   # fingers down, thumbs forward
 	hand_targets[0] = Transform3D(down, Vector3(-0.22, 0.84, 0.02) * Vector3(k, k, 1))
@@ -172,7 +219,9 @@ func stand() -> void:
 ## Follow a tracked head and hands (global transforms) with the feet on the ground.
 func pose(head_xf: Transform3D, lh: Transform3D, rh: Transform3D, feet: Vector3) -> void:
 	var yaw := atan2(head_xf.basis.z.x, head_xf.basis.z.z)   # facing where the head looks (-Z)
-	global_transform = Transform3D(Basis(Vector3.UP, yaw), feet)
+	# The body stands under the middle of the head, which is a little behind the eyes.
+	var b := Basis(Vector3.UP, yaw)
+	global_transform = Transform3D(b, feet + b * Vector3(0, 0, EYE_FORWARD))
 	var inv := global_transform.affine_inverse()
 	head_target = inv * head_xf
 	hand_targets[0] = inv * lh
@@ -192,5 +241,3 @@ func _process(delta: float) -> void:
 		stand()
 		head_target.basis = Basis(Vector3.UP, sin(_t * 0.5) * 0.35) * Basis(Vector3.RIGHT, sin(_t * 0.31) * 0.08)
 		head_target.origin.y += sin(_t * 1.6) * 0.006
-	for i in gloves.size():
-		gloves[i].transform = hand_targets[i]

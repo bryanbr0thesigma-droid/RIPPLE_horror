@@ -53,6 +53,26 @@ hydrophone bubbles, and the Goblin Death scream. Not used yet:
 In the game, play these as 3D positional sounds and vary them (start offset, small
 pitch changes) so the clicking doesn't loop audibly.
 
+## Kill sounds
+
+`mix_kill.py` makes the kill sounds from the same voice recordings, plus the water
+recording `480855.mp3` for the tearing. It writes WAVs; convert them to OGG for the game.
+
+```
+python3 mix_kill.py recordings ambience_recordings out
+```
+
+- `kill_screech_1` to `_8`: death screech takes, each a different mix and pitch of the
+  three screams. Approved: 1, 3 and 5 (in the game). Trimmed after review and back in
+  Round 22: 2 (end rattle removed), 4 (water gurgle removed), 7 (rattle removed).
+  Rejected: 6 and 8.
+- `kill_bite_1`, `kill_bite_2`: crunches from the teeth clicks, pitched down and driven.
+- `kill_tear`: a fast run of short wet grains of the water recording, a low synthesized
+  strain under it, and teeth clicks dropped very low for bones giving way.
+- `kill_spine`: a longer tear with vertebrae cracking one after another, faster and faster.
+- `kill_feast`: wet chewing, played now and then while the creature feeds.
+- `kill_gurgle`: approved, not used since the victim's view became a blur and a cut to black.
+
 ## Ambience
 
 `mix_ambience.py` mixes seamless 60-second ambience loops from CC0 Freesound

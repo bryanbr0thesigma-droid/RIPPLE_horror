@@ -26,4 +26,17 @@ func _init() -> void:
 				print("suit ", i, " ", c, " hand ", h, " error ", snappedf(err, 0.001), " got ", (ik.last_hands[h] as Vector3).snapped(Vector3.ONE * 0.01), " want ", want.snapped(Vector3.ONE * 0.01))
 		r.queue_free()
 	print("IK worst error ", snappedf(worst, 0.001))
+	for i in 3:
+		var r := SuitRig.create(i, Color.ORANGE)
+		root.add_child(r)
+		r.stand()
+		for k in 4:
+			await process_frame
+		var ik = r.skeleton.get_node("SuitIK")
+		var sk := r.skeleton
+		var n: int = ik.bones.Neck
+		var h: int = ik.bones.Head
+		var s2: int = ik.bones.Spine2
+		print("suit ", i, " stand head shift ", (ik.last_head_shift as Vector3).snapped(Vector3.ONE * 0.001), " neck rest->head rest ", (sk.global_transform.basis * (sk.get_bone_global_rest(h).origin - sk.get_bone_global_rest(n).origin)).snapped(Vector3.ONE * 0.001), " spine2->neck ", (sk.global_transform.basis * (sk.get_bone_global_rest(n).origin - sk.get_bone_global_rest(s2).origin)).snapped(Vector3.ONE * 0.001))
+		r.queue_free()
 	quit()

@@ -24,7 +24,7 @@ func _init() -> void:
 		names.append(sk.get_bone_name(i))
 	print("BONES ", names)
 	print("SK xform ", sk.global_transform)
-	for anim_name in ["metarig|run", "metarig|walk", "metarig|idle", "metarig|search", "metarig|screech"]:
+	for anim_name in ["metarig|idle standing", "metarig|standing run", "metarig|getup1", "metarig|screech", "metarig|search"]:
 		ap.play(anim_name)
 		ap.seek(0.3, true)
 		ap.advance(0.0)

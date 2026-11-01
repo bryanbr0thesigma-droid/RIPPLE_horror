@@ -24,6 +24,7 @@ func _init() -> void:
 	continuous_cd = true
 	freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
 	ranged_grab_method = RangedMethod.LERP
+	second_hand_grab = SecondHandGrab.SECOND   # hold it with both hands
 	build()
 
 
@@ -225,6 +226,34 @@ func item_tick(_delta: float) -> void:
 
 
 ## Helpers for building item meshes.
+## A model (from assets/props) as this item's look. Collision is added separately.
+func add_model(path: String, xf := Transform3D()) -> Node3D:
+	var m: Node3D = (load(path) as PackedScene).instantiate()
+	m.transform = xf
+	add_child(m)
+	return m
+
+
+## A collision box with no mesh.
+func add_shape_box(size: Vector3, offset := Vector3.ZERO) -> void:
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size
+	cs.shape = sh
+	cs.position = offset
+	add_child(cs)
+
+
+func add_shape_cylinder(radius: float, height: float, offset := Vector3.ZERO) -> void:
+	var cs := CollisionShape3D.new()
+	var sh := CylinderShape3D.new()
+	sh.radius = radius
+	sh.height = height
+	cs.shape = sh
+	cs.position = offset
+	add_child(cs)
+
+
 func add_box(size: Vector3, color: Color, offset := Vector3.ZERO, collide := true, metal := 0.0) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var bm := BoxMesh.new()

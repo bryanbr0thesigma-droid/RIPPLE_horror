@@ -1,9 +1,11 @@
 extends NetItem
-## The water canteen. Dip it in the darker mineral water to fill it, carry it without spilling,
-## and pour it into the generator's funnel. Tip it and it spills; spilling into the pool splashes.
-## Dipping it in ordinary pool water swaps the contents for ordinary water, which is useless.
+## The water canteen (the approved green plastic flask). Hold its mouth under the darker mineral
+## water and click the trigger (desktop: left mouse) to fill it; carry it without spilling, and pour
+## it into the generator's funnel. Tip it and it spills; spilling into the pool splashes. Filling
+## it from ordinary pool water swaps the contents for ordinary water, which is useless.
 
-const SPOUT := Vector3(0, 0.15, 0)
+const SPOUT := Vector3(0, 0.125, 0)
+const FILL_TIME := 1.2
 const PourLoop := preload("res://assets/audio/pour_loop.ogg")
 
 var fill := 0.0
@@ -22,14 +24,16 @@ var _fuel_acc := 0.0
 var _fuel_timer := 0.0
 var _warned_plain := false
 var _last_speed := 0.0
+var _filling := false
+var _hint: Label3D
 
 
 func build() -> void:
 	mass = 0.8
-	add_cylinder(0.055, 0.24, Color(0.28, 0.32, 0.22), Vector3.ZERO, true, 0.2)
-	add_cylinder(0.022, 0.035, Color(0.15, 0.15, 0.15), Vector3(0, 0.135, 0), false, 0.5)
+	add_model("res://assets/props/canteen.glb")
+	add_shape_cylinder(0.05, 0.25)
 	# A window strip on the side shows how full it is and what's inside.
-	add_box(Vector3(0.022, 0.2, 0.004), Color(0.05, 0.05, 0.05), Vector3(0, 0, 0.056), false)
+	add_box(Vector3(0.022, 0.2, 0.004), Color(0.05, 0.05, 0.05), Vector3(0, -0.01, 0.052), false)
 	_level_mesh = MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = Vector3(0.016, 0.19, 0.004)
@@ -38,7 +42,7 @@ func build() -> void:
 	_level_mat.emission_enabled = true
 	_level_mat.emission_energy_multiplier = 0.4
 	_level_mesh.material_override = _level_mat
-	_level_mesh.position = Vector3(0, 0, 0.0585)
+	_level_mesh.position = Vector3(0, -0.01, 0.0545)
 	add_child(_level_mesh)
 	_stream = CPUParticles3D.new()
 	_stream.emitting = false
@@ -67,10 +71,31 @@ func build() -> void:
 	_audio.volume_db = -8.0
 	_audio.unit_size = 2.0
 	add_child(_audio)
+	_hint = Label3D.new()
+	_hint.text = "Click trigger to fill" if Game.vr_mode else "Click to fill"
+	_hint.pixel_size = 0.0012
+	_hint.font_size = 36
+	_hint.outline_size = 8
+	_hint.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_hint.no_depth_test = true
+	_hint.position = Vector3(0, 0.24, 0)
+	_hint.visible = false
+	add_child(_hint)
 
 
+## Trigger or left mouse: with the mouth under water, one click fills it; otherwise (desktop) it tips.
 func use(pressed: bool) -> void:
-	desktop_pour = pressed
+	if pressed and _dipped():
+		_filling = true
+		desktop_pour = false
+		return
+	desktop_pour = pressed and not _dipped()
+
+
+func _dipped() -> bool:
+	var sp := spout_global()
+	var pool := WaterVolume.at(sp)
+	return pool != null and sp.y < pool.surface_y
 
 
 func spout_global() -> Vector3:
@@ -92,15 +117,20 @@ func item_tick(delta: float) -> void:
 		return
 	var sp := spout_global()
 	var pool := WaterVolume.at(sp)
-	if pool and sp.y < pool.surface_y:
-		# Dipped in the water: it fills with whatever water this is.
-		if pool.mineral != mineral and fill > 0.0:
-			fill = 0.0
-		if not pool.mineral or not mineral:
-			distilled = false
-		mineral = pool.mineral
-		fill = minf(1.0, fill + 0.4 * delta)
+	var dipped := pool != null and sp.y < pool.surface_y
+	_hint.visible = dipped and is_held_by_me() and fill < 0.99 and not _filling
+	if dipped:
 		pouring = false
+		if _filling:
+			# Filling with whatever water this is.
+			if pool.mineral != mineral and fill > 0.0:
+				fill = 0.0
+			if not pool.mineral or not mineral:
+				distilled = false
+			mineral = pool.mineral
+			fill = minf(1.0, fill + delta / FILL_TIME)
+			if fill >= 1.0:
+				_filling = false
 	else:
 		var tilt := tilt_deg()
 		pouring = fill > 0.0 and tilt > 80.0

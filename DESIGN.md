@@ -139,8 +139,32 @@ by Sealife Fan 3 (CC BY), reworked into RIPPLE's own "drowned" creature:
   then sudden fast scuttling. Done in code on top of its own animations.
 - **Long arms for feeling around.** When it can't pinpoint you, it sweeps one long arm
   through the water to find you by touch.
-- **A gaunt, long-limbed crawling shape** that uses the model's own animations (walk,
+- **A gaunt, long-limbed shape** that uses the model's own animations (walk,
   run, idle, search, screech and more). Built with the scripts in `tools/creature/`.
+- **A quarter taller than a player** (1.25x). In the shallow pools it
+  stands upright and wades slowly, its legs stepping through the water (done in code,
+  `game/creature/wade_modifier.gd`). It runs upright when it charges and crawls only
+  in the deep channel.
+
+### Kills
+
+When it catches someone it grabs them, and kills them one of two ways (the host picks,
+and everyone sees the same one):
+
+- **Head and spine:** one hand on the shoulder, the other on the head. It pulls the
+  head off with the spine still hanging from it, lifts it to its face, bites it and
+  throws it. The body drops into the water, blood pumping from the neck.
+- **Torn in half:** it lifts them with both hands and tears them apart at the waist.
+  The intestines stretch between the halves and snap; the heart, lungs, liver,
+  kidneys and stomach spill out and float or sink.
+
+Each kill has its own screech (no two in a row are the same), tearing and bone
+cracks, and bites. **The victim's view:** for the head and spine, the view blurs as it
+pulls, then cuts to black. For torn in half, it cuts straight to black. Remains and
+a spreading blood pool stay in the water for a while.
+
+**Feeding:** after a kill it feeds on the remains for 3 to 5 seconds, chewing wetly,
+and ignores every noise while it eats. That's the teammates' window to get away.
 
 ### Its voice
 
@@ -150,7 +174,7 @@ how it finds you. It still hunts only by listening to the water. Its voice is 3D
 positional audio, so you can tell where it is in the dark, and each state sounds
 different:
 
-- **Patrol:** slow, occasional clicks
+- **Patrol:** slow wading, with a short burst of clicks now and then
 - **Investigate:** steady clicking
 - **Close by:** rattling clicks and teeth
 - **Charge:** a death screech. This is the warning to get off the spot it's charging
@@ -271,10 +295,10 @@ in order, so a team learns them by playing.
 | # | Room | Water | What happens | What it teaches |
 |---|---|---|---|---|
 | 1 | Start room | none | Plaque with the rules. Checkpoint. | The goal and the rules |
-| 2 | Hall A | 1 m, shallow | The staff room key is on an island in the middle of the pool, reached by stepping columns from either side, or by wading slowly. | Platforming, falling in, wading noise, going still |
+| 2 | Hall A | 0.65 m, shallow (the channel to Hall B is 1.5 m) | The staff room key is on an island in the middle of the pool, reached by stepping columns from either side, or by wading slowly. | Platforming, falling in, wading noise, going still |
 | 3 | Staff room | none | Locked; the key opens it. Two canteens, the lidar on its charger, the distiller, bottles. Checkpoint. | Keys, items, decoys |
-| 4 | Hall B, the dark sector | 1.5 m | Lights out. Narrow beams and stepping columns across the pool. The darker mineral water is in the far corner beside a platform; the generator is on the far side. Two canteen trips (or two players with one canteen each). The generator is noisy while starting, then lights the room, powers the charger and masks noise nearby. | The lidar, mineral water, carrying the canteen, generators, distillers, co-op |
-| 5 | Hall C | 2.3 m, deep | The lever on the west ledge (loud) extends the pool cover across to the exit ledge. Swimming across is possible but very dangerous. | Timing a loud action, waiting for the creature to lose interest |
+| 4 | Hall B, the dark sector | 0.65 m, shallow | Lights out. Narrow beams and stepping columns across the pool. The darker mineral water is in the far corner beside a platform; the generator is on the far side. Two canteen trips (or two players with one canteen each). The generator is noisy while starting, then lights the room, powers the charger and masks noise nearby. | The lidar, mineral water, carrying the canteen, generators, distillers, co-op |
+| 5 | Hall C | 0.65 m, shallow | The lever on the west ledge (loud) extends the pool cover across to the exit ledge, so you cross on dry ground. Wading the whole way is possible but very dangerous. | Timing a loud action, waiting for the creature to lose interest |
 | 6 | Exit | none | The level ends when everyone is inside. | |
 
 - **The creature** starts in Hall B. Water channels under the walls connect all three pools, so it

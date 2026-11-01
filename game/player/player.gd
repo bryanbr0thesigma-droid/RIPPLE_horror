@@ -223,22 +223,35 @@ func _on_my_noise(loudness: float) -> void:
 		rig.rumble(clampf(loudness, 0.0, 1.0))
 
 
-## The creature got me (or a teammate, on their screen).
-func on_caught() -> void:
-	if not is_local:
-		if avatar:
-			avatar.flash_caught()
-		return
-	if not alive:
+## The creature got me. (Teammates see it on my avatar; the creature plays that part.)
+## In my own view: when it pulls my head off, my vision blurs and then cuts to black; when it tears
+## me in half, it cuts straight to black. Then back at the last checkpoint.
+func on_caught(kind := 0) -> void:
+	if not is_local or not alive:
 		return
 	alive = false
 	in_water = false
 	Game.notify("It got you.")
 	rig.drop_all()
 	rig.set_controls_enabled(false)
+	var cam: Camera3D = rig.get("camera") if rig.get("camera") else rig.get("cam")
+	var grab: float = 0.55
+	var cut: float = 1.35 if kind == 0 else 1.4      # creature.gd RIP_AT / TEAR_AT
 	var tw := create_tween()
-	tw.tween_method(rig.set_fade, 0.0, 1.0, 0.5)
-	tw.tween_interval(2.0)
+	if kind == 0:
+		var blur := Gore.blur_overlay(cam)
+		tw.tween_interval(grab)
+		tw.tween_callback(func(): _on_my_noise(1.0))
+		tw.tween_method(func(v: float): blur.material_override.set_shader_parameter("amount", v), 0.0, 1.0, cut - grab)
+		tw.tween_callback(func():
+			rig.set_fade(1.0)
+			blur.queue_free())
+	else:
+		tw.tween_interval(grab)
+		tw.tween_callback(func(): _on_my_noise(1.0))
+		tw.tween_interval(cut - grab)
+		tw.tween_callback(func(): rig.set_fade(1.0))
+	tw.tween_interval(2.4)
 	tw.tween_callback(func():
 		rig.teleport(respawn_point)
 		_last_feet = respawn_point

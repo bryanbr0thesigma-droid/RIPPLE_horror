@@ -1,5 +1,5 @@
 extends Node3D
-## The title screen: a dark pool hall with the creature slowly circling under the water, the
+## The title screen: a dark pool hall with the creature slowly wading round the shallow pool, the
 ## RIPPLE title, your character on a pedestal, and the menu. In VR you point at the menu with the
 ## right controller; on desktop the menu sits on the left of the screen.
 
@@ -18,6 +18,9 @@ var preview: SuitRig
 var preview_spot := Vector3(1.6, 0.0, -2.7)
 var preview_yaw := 205.0
 var creature: Node3D
+var _wade: Node
+var _voice: AudioStreamPlayer3D
+var _click_t := 4.0
 var _t := 0.0
 var _ripples := PackedVector4Array()
 var _ripple_i := 0
@@ -75,7 +78,7 @@ func _room() -> void:
 	G.floor_slab(-7, -5, -13, -3)
 	G.floor_slab(5, 7, -13, -3)
 	G.floor_slab(-7, 7, -14, -13)
-	G.pool(-5, 5, -13, -3, -1.6, -0.3, {}, false)
+	G.pool(-5, 5, -13, -3, -0.95, -0.3, {}, false)
 	G.ladder(Vector3(-2.5, -1.6, -3), Vector3(0, 0, -1), 0.0)
 	G.light(Vector3(0, 4.9, -1), 0.9, 9.0)
 	G.light(Vector3(0, 4.9, -10), 0.7, 10.0, Color(0.8, 0.92, 1.0))
@@ -114,25 +117,30 @@ func _title_text() -> void:
 
 func _creature() -> void:
 	creature = CreatureModel.instantiate()
-	creature.scale = Vector3.ONE * 3.4
+	creature.scale = Vector3.ONE * 4.1
 	add_child(creature)
 	var ap := creature.find_children("*", "AnimationPlayer", true, false)
 	if ap.size() > 0:
 		var anim: AnimationPlayer = ap[0]
 		for n in anim.get_animation_list():
-			if n.ends_with("|walk"):
+			if n.ends_with("|idle standing"):
 				anim.get_animation(n).loop_mode = Animation.LOOP_LINEAR
 				anim.play(n)
-				anim.speed_scale = 0.7
-	var v := AudioStreamPlayer3D.new()
+	var sk := creature.find_children("*", "Skeleton3D", true, false)
+	if sk.size() > 0:
+		_wade = preload("res://creature/wade_modifier.gd").new()
+		_wade.creature = creature
+		sk[0].add_child(_wade)
+		_wade.setup(sk[0])
+		_wade.amount = 1.0
+	_voice = AudioStreamPlayer3D.new()
 	var vs: AudioStreamOggVorbis = Voice
 	vs.loop = true
-	v.stream = vs
-	v.volume_db = -12.0
-	v.unit_size = 3.0
-	v.position = Vector3(0, 0.3, 0)
-	creature.add_child(v)
-	v.play()
+	_voice.stream = vs
+	_voice.volume_db = -10.0
+	_voice.unit_size = 3.0
+	_voice.position = Vector3(0, 2.2, 0)
+	creature.add_child(_voice)
 
 
 func _audio() -> void:
@@ -216,11 +224,18 @@ func _refresh_preview() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	# The creature circles slowly under the water.
-	var a := _t * 0.12
-	var p := Vector3(cos(a) * 2.6, -1.85, -8.0 + sin(a) * 2.6)
+	# The creature wades slowly round the shallow pool, clicking now and then.
+	var a := _t * 0.2
+	var p := Vector3(cos(a) * 2.6, -0.95, -8.0 + sin(a) * 2.6)
 	creature.position = p
-	creature.rotation.y = atan2(-sin(a), cos(a)) + PI
+	creature.rotation.y = atan2(-sin(a), cos(a))
+	if _wade:
+		_wade.phase += 0.2 * 2.6 * delta / _wade.stride * PI
+	_click_t -= delta
+	if _click_t <= 0.0:
+		_click_t = randf_range(8.0, 16.0)
+		_voice.play(randf() * maxf(_voice.stream.get_length() - 3.0, 0.0))
+		get_tree().create_timer(randf_range(1.0, 2.2)).timeout.connect(_voice.stop)
 	# Drips land on the water now and then, and the creature leaves ripples.
 	_drip_timer -= delta
 	if _drip_timer <= 0.0:
