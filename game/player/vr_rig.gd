@@ -27,7 +27,9 @@ func _ready() -> void:
 	current = true
 	$MovementWater.rig = self
 	for p in [$LeftHand/CollisionHandLeft/FunctionPickup, $RightHand/CollisionHandRight/FunctionPickup]:
-		p.grab_collision_mask = LevelGeometry.L_ITEMS | LevelGeometry.L_GRAB
+		# An item in one hand sits on XR Tools' "held" layer; the other hand must see that layer too,
+		# or it can't take hold of it as well.
+		p.grab_collision_mask = LevelGeometry.L_ITEMS | LevelGeometry.L_GRAB | XRToolsPickable.DEFAULT_LAYER
 		p.ranged_collision_mask = LevelGeometry.L_ITEMS
 	body.collision_mask = LevelGeometry.L_WORLD | LevelGeometry.L_DYNAMIC | LevelGeometry.L_AVATARS
 	# Your real height, 1:1 (no calibrating everyone to one height, which can start shorter or

@@ -127,6 +127,7 @@ func _smoke() -> void:
 		rig.camera.position.y = 1.7
 		check(not rig.body.player_calibrate_height and rig.body.head_behavior_mode == 0, "VR player uses real height and is pushed back from walls")
 		check(rig.get_node("LeftHand/CollisionHandLeft").collision_mask & LevelGeometry.L_WORLD != 0, "VR hands collide with the level")
+		check(rig.get_node("RightHand/CollisionHandRight/FunctionPickup").grab_collision_mask & XRToolsPickable.DEFAULT_LAYER != 0, "a hand can take hold of an item the other hand already holds")
 		rig.teleport(Vector3(4, -20, 4))
 		await wait(1.0)
 		check(rig.feet_position().y > -1.0, "falling out of the map returns you to a checkpoint (y=%.2f)" % rig.feet_position().y)
@@ -481,6 +482,7 @@ func _props_shot() -> void:
 	var views := [
 		["p_staff_door", Vector3(13.5, 0.05, -5.0), -90.0, 0.0],
 		["p_ladder", Vector3(-4.6, 0.05, -14.0), 90.0, -35.0],
+		["p_ladder_side", Vector3(-4.2, 0.05, -11.6), 37.0, -22.0],
 		["p_lever", Vector3(17.9, 0.05, -32.2), 60.0, -25.0],
 		["p_exit", Vector3(40.0, 0.05, -36.0), -90.0, 0.0],
 		["p_bunker", Vector3(4.0, 0.05, 3.0), -90.0, -5.0],

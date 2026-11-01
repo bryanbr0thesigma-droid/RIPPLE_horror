@@ -253,7 +253,8 @@ func ladder(base: Vector3, out: Vector3, y_top: float) -> Area3D:
 	# The approved pool ladder (CC0, plaggy), sized so its rails rise half a metre over the edge.
 	var model: Node3D = POOL_LADDER.instantiate()
 	var k := (height + 0.5) / 1.13
-	model.transform = Transform3D(Basis.looking_at(out, Vector3.UP).scaled(Vector3.ONE * k), base + out * 0.16)
+	# Facing the pool, its handrails curving back over the edge onto the deck.
+	model.transform = Transform3D(Basis.looking_at(-out, Vector3.UP).scaled(Vector3.ONE * k), base + out * 0.16)
 	geo.add_child(model)
 	var climb := StaticBody3D.new()
 	climb.set_script(CLIMBABLE)
