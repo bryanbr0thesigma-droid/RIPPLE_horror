@@ -98,6 +98,7 @@ var _head_bone := -1
 var _feast_for := 4.0
 var _last_kill := -1
 var _feast_spot := Vector3.ZERO
+var _feast_kind := 0
 var _feed := {}
 var _growl: AudioStreamPlayer3D
 var _screams: Array[AudioStreamPlayer3D] = []
@@ -1194,11 +1195,13 @@ func _throw(n: Node3D, vel: Vector3) -> void:
 	var bleed = _kill.get("bleed")
 	if bleed and is_instance_valid(bleed):
 		bleed.emitting = false
+	var opened := int(_kill.get("kind", 0)) != K.HEAD_RIP     # the spine kill doesn't open the body
 	if is_instance_valid(n):
 		get_tree().create_timer(0.7).timeout.connect(func():
 			if is_instance_valid(n):
 				Gore.blood_pool(level, n.global_position, -0.3)
-				Gore.remains(level, n.global_position + Vector3.UP * 0.2, -0.3, SuitRig.glove_color(n.suit), 4))
+				if opened:
+					Gore.remains(level, n.global_position + Vector3.UP * 0.2, -0.3, SuitRig.glove_color(n.suit), 4))
 
 
 func _end_kill() -> void:
@@ -1213,6 +1216,7 @@ func _end_kill() -> void:
 		bleed.queue_free()
 	if _kill.has("pos"):
 		_feast_spot = _kill.pos
+		_feast_kind = int(_kill.get("kind", 0))
 	_kill = {}
 	if wade:
 		wade.hold = 0.0
@@ -1293,11 +1297,15 @@ func _feed_tick(delta: float) -> void:
 		_feed_sound(SPLASH_SMALL, -6.0)
 		_feed.step = 1
 	elif step == 1 and c >= 0.75:
-		var bits := Gore.organs()                        # comes up with a piece of them
-		var keep: Node3D = bits[_rng.randi() % bits.size()]
-		for o in bits:
-			if o != keep:
-				o.queue_free()
+		var keep: Node3D
+		if _feast_kind == K.HEAD_RIP:                    # the body wasn't opened: torn flesh
+			keep = Gore.chunk()
+		else:                                            # comes up with one of their organs
+			var bits := Gore.organs()
+			keep = bits[_rng.randi() % bits.size()]
+			for o in bits:
+				if o != keep:
+					o.queue_free()
 		Game.level.add_child(keep)
 		keep.scale = Vector3.ONE * 0.8
 		_feed.piece = keep

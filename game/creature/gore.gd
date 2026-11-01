@@ -297,6 +297,35 @@ static func remains(parent: Node, pos: Vector3, surface_y: float, glove_color: C
 	_float(parent, glove, pos, surface_y)
 
 
+## One torn-off chunk of flesh, maybe with bone sticking out (what it chews on after a kill that
+## didn't open the body).
+static func chunk() -> Node3D:
+	_setup()
+	var n := Node3D.new()
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	var r := randf_range(0.05, 0.08)
+	sm.radius = r
+	sm.height = r * 2.0
+	sm.radial_segments = 7
+	sm.rings = 4
+	mi.mesh = sm
+	mi.material_override = _flesh_mat
+	mi.scale = Vector3(randf_range(1.0, 1.6), randf_range(0.5, 0.8), randf_range(0.8, 1.3))
+	n.add_child(mi)
+	var bone := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.008
+	cm.bottom_radius = 0.012
+	cm.height = 0.14
+	cm.radial_segments = 6
+	bone.mesh = cm
+	bone.material_override = _bone_mat
+	bone.rotation = Vector3(1.1, randf() * TAU, 0)
+	n.add_child(bone)
+	return n
+
+
 static func _float(parent: Node, n: Node3D, pos: Vector3, surface_y: float) -> void:
 	var f := _Floater.new()
 	f.surface_y = surface_y
