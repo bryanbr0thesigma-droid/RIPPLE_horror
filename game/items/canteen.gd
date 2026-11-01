@@ -1,8 +1,10 @@
 extends NetItem
-## The water canteen (the approved green plastic flask). Hold its mouth under the darker mineral
-## water and click the trigger (desktop: left mouse) to fill it; carry it without spilling, and pour
-## it into the generator's funnel. Tip it and it spills; spilling into the pool splashes. Filling
-## it from ordinary pool water swaps the contents for ordinary water, which is useless.
+## The water canteen (the approved green plastic flask). Hold it in the glowing mineral water and
+## pull either trigger (desktop: left mouse) to fill it: a prompt floats over the water, a bar shows
+## it filling, and it pops and buzzes when it's full. Carry it without spilling and pour it into the
+## generator's funnel. Tip it and it spills; spilling into the pool splashes. Filling it from
+## ordinary pool water swaps the contents for ordinary water, which is useless.
+## No physics: let go and it drops straight down and stands upright (or floats upright).
 
 const SPOUT := Vector3(0, 0.125, 0)
 const FILL_TIME := 1.2
@@ -26,9 +28,13 @@ var _warned_plain := false
 var _last_speed := 0.0
 var _filling := false
 var _hint: Label3D
+var _done_t := 0.0
+var _was_trigger := false
+var _fill_click := false
 
 
 func build() -> void:
+	steady = true
 	mass = 0.8
 	add_model("res://assets/props/canteen.glb")
 	add_shape_cylinder(0.05, 0.25)
@@ -71,31 +77,54 @@ func build() -> void:
 	_audio.volume_db = -8.0
 	_audio.unit_size = 2.0
 	add_child(_audio)
-	_hint = Label3D.new()
-	_hint.text = "Click trigger to fill" if Game.vr_mode else "Click to fill"
+	_hint = Label3D.new()                 # floats over the water, never under it
+	_hint.top_level = true
 	_hint.pixel_size = 0.0012
 	_hint.font_size = 36
 	_hint.outline_size = 8
 	_hint.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_hint.no_depth_test = true
-	_hint.position = Vector3(0, 0.24, 0)
+	_hint.render_priority = 20
 	_hint.visible = false
 	add_child(_hint)
 
 
-## Trigger or left mouse: with the mouth under water, one click fills it; otherwise (desktop) it tips.
+## Left mouse (desktop): in the water, a click fills it; out of it, holding the button tips it.
+## (In VR the triggers are read directly every frame: see item_tick.)
 func use(pressed: bool) -> void:
 	if pressed and _dipped():
-		_filling = true
+		_fill_click = true
 		desktop_pour = false
 		return
 	desktop_pour = pressed and not _dipped()
 
 
+## In the water: half of it under, at least (not just the spout, which was fiddly).
 func _dipped() -> bool:
-	var sp := spout_global()
-	var pool := WaterVolume.at(sp)
-	return pool != null and sp.y < pool.surface_y
+	var pool := _pool()
+	return pool != null and global_position.y < pool.surface_y + 0.02
+
+
+func _pool() -> WaterVolume:
+	return WaterVolume.at(Vector3(global_position.x, global_position.y - 0.05, global_position.z))
+
+
+## Either trigger while I'm holding it (VR), so it doesn't matter which hand has it.
+func _any_trigger() -> bool:
+	if trigger_down():
+		return true
+	if is_picked_up():
+		var me = Game.level.local_player if Game.level else null
+		if me and me.rig and me.rig.get("left"):
+			return me.rig.left.get_float("trigger") > 0.5 or me.rig.right.get_float("trigger") > 0.5
+	return false
+
+
+func _buzz(amount: float, secs: float) -> void:
+	if is_picked_up() and _grab_driver:
+		for g in [_grab_driver.primary, _grab_driver.secondary]:
+			if g and g.controller:
+				(g.controller as XRController3D).trigger_haptic_pulse("haptic", 0.0, amount, secs, 0.0)
 
 
 func spout_global() -> Vector3:
@@ -116,9 +145,19 @@ func item_tick(delta: float) -> void:
 	if not is_mine():
 		return
 	var sp := spout_global()
-	var pool := WaterVolume.at(sp)
-	var dipped := pool != null and sp.y < pool.surface_y
-	_hint.visible = dipped and is_held_by_me() and fill < 0.99 and not _filling
+	var pool := _pool()
+	var dipped := _dipped()
+	var held := holder == Net.my_id()
+	var trig := _any_trigger()
+	var pulled := (trig and not _was_trigger) or _fill_click
+	_was_trigger = trig
+	_fill_click = false
+	if dipped and held and pulled and fill < 0.99 and not _filling:
+		_filling = true
+		_buzz(0.3, 0.06)
+	if not dipped or not held:
+		_filling = false
+	_done_t = maxf(_done_t - delta, 0.0)
 	if dipped:
 		pouring = false
 		if _filling:
@@ -131,6 +170,9 @@ func item_tick(delta: float) -> void:
 			fill = minf(1.0, fill + delta / FILL_TIME)
 			if fill >= 1.0:
 				_filling = false
+				_done_t = 1.8
+				_buzz(0.8, 0.15)
+				Game.level.play_sfx("plop", global_position)
 	else:
 		var tilt := tilt_deg()
 		pouring = fill > 0.0 and tilt > 80.0
@@ -144,6 +186,7 @@ func item_tick(delta: float) -> void:
 		mineral = false
 		distilled = false
 		pouring = false
+	_update_hint(pool, dipped and held)
 	_fuel_timer -= delta
 	if _fuel_timer <= 0.0 and _fuel_acc > 0.0:
 		Game.level.request("fuel", [_fuel_acc, distilled])
@@ -186,10 +229,38 @@ func _pour_land(sp: Vector3, amount: float, delta: float) -> void:
 			NoiseBus.make(Vector3(sp.x, pool.surface_y, sp.z), 0.12, "spill")
 
 
-func on_entered_water(pool: WaterVolume) -> void:
-	mineral = pool.mineral
-	distilled = false
-	fill = 1.0
+## The prompt over the water: what to do, how full, and what's in it once it's full.
+func _update_hint(pool: WaterVolume, in_water: bool) -> void:
+	var text := ""
+	if _done_t > 0.0:
+		text = "Full: mineral water" if mineral else "Full: plain pool water (no use to the generator)"
+	elif in_water and _filling:
+		var n := int(round(fill * 10.0))
+		text = "Filling  " + "|".repeat(n) + ".".repeat(10 - n)
+	elif in_water and fill < 0.99:
+		text = "Pull a trigger to fill" if Game.vr_mode else "Click to fill"
+	elif in_water:
+		text = "Full: mineral water" if mineral else "Full: plain pool water"
+	_hint.visible = text != ""
+	if _hint.visible:
+		_hint.text = text
+		var y := global_position.y + 0.22
+		if pool:
+			y = maxf(y, pool.surface_y + 0.22)
+		_hint.global_position = Vector3(global_position.x, y, global_position.z)
+
+
+## Let go near the distiller: it goes onto the stand.
+func _start_fall() -> void:
+	var slot: Vector3 = Game.level.distiller_slot if Game.level else Vector3(0, -100, 0)
+	if global_position.distance_to(slot) < 0.5:
+		linear_velocity = Vector3.ZERO
+		angular_velocity = Vector3.ZERO
+		global_transform = Transform3D(Basis(), slot)
+		_falling = false
+		_settle_timer = 0.5
+		return
+	super._start_fall()
 
 
 func _update_visuals() -> void:

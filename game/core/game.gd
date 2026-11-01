@@ -93,7 +93,7 @@ func _setup_desktop_input() -> void:
 		"move_forward": [KEY_W, KEY_UP], "move_back": [KEY_S, KEY_DOWN],
 		"move_left": [KEY_A, KEY_LEFT], "move_right": [KEY_D, KEY_RIGHT],
 		"jump": [KEY_SPACE], "run": [KEY_SHIFT], "crouch": [KEY_CTRL, KEY_C],
-		"interact": [KEY_E], "drop": [KEY_Q], "push": [KEY_F], "pause": [KEY_ESCAPE],
+		"interact": [KEY_E], "drop": [KEY_Q], "push": [KEY_F], "pause": [KEY_ESCAPE], "backpack": [KEY_B],
 	}
 	for action in keys:
 		if not InputMap.has_action(action):

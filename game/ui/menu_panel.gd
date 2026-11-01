@@ -226,7 +226,7 @@ const CREDITS := """[b]Models[/b] (CC BY 4.0, changed for the game)
 The creature: "The Rake" by Sealife Fan 3
 Anti-radiation suit: "Antiradiation suit - OZK" by sanyaork
 Striker jumpsuit: "Jumpsuit Low Poly Game Ready (Striker14)" by DanlyVostok
-Diver: "Nanando diver" by Marco Lopez (its hands are on the jumpsuit too)
+Diver: "Nanando diver" by Marco Lopez (its hands are on the jumpsuit, its torch is the flashlight)
 Key: "Old Key" by TheFalkonett
 Staff door: "Metal Door 2" by tboiston
 Exit doors: "Fire Escape / Exit Doors" by bloobloo

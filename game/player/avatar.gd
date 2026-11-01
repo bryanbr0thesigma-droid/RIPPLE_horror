@@ -40,6 +40,7 @@ func setup(info: Dictionary, id: int) -> void:
 	add_child(body)
 	suit = SuitRig.create(int(info.get("suit", 0)), color)
 	add_child(suit)
+	suit.add_backpack()
 	label = Label3D.new()
 	label.text = str(info.get("name", "Player"))
 	label.pixel_size = 0.003

@@ -164,9 +164,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_release(-cam.global_transform.basis.z * 1.5)
 	elif event.is_action_pressed("push"):
 		_shove()
+	elif event.is_action_pressed("backpack"):
+		_backpack()
 	elif event.is_action_pressed("use_item") and held:
+		held.set_desktop_trigger(true)
 		held.use(true)
 	elif event.is_action_released("use_item") and held:
+		held.set_desktop_trigger(false)
 		held.use(false)
 		if held.has_method("is_throwable"):
 			_release(-cam.global_transform.basis.z * 9.0 + Vector3.UP * 1.5)
@@ -285,6 +289,30 @@ func _interact() -> void:
 	if c is NetItem and not c.retired:
 		held = c
 		c.grab_desktop(self)
+
+
+## B: put what you're holding in your backpack, or take out the last thing you put in.
+func _backpack() -> void:
+	var L = Game.level
+	if not L:
+		return
+	if held:
+		if L.backpack_of(Net.my_id()).size() >= L.BACKPACK_SIZE:
+			Game.notify("Your backpack is full.")
+			return
+		var item := held
+		held = null
+		item.use(false)
+		item.set_desktop_trigger(false)
+		item.desktop_holder = null
+		L.stow_item(item)
+		return
+	var it = L.take_from_backpack(hold_point.global_transform)
+	if it:
+		held = it
+		it.grab_desktop(self)
+	else:
+		Game.notify("Your backpack is empty.")
 
 
 func _release(vel: Vector3) -> void:

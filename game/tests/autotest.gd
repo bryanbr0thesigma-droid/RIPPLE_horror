@@ -100,7 +100,7 @@ func _rig() -> Node3D:
 func _smoke() -> void:
 	var L = Game.level
 	check(WaterVolume.all.size() >= 5, "water volumes built (%d)" % WaterVolume.all.size())
-	check(L.items.size() == 8, "items spawned (%d)" % L.items.size())
+	check(L.items.size() == 9, "items spawned (%d)" % L.items.size())
 	await wait(0.5)   # let the navigation map pick up the level's region
 	var nav := NavigationServer3D.map_get_closest_point(L.get_world_3d().navigation_map, Vector3(4, -1.3, -10))
 	check(nav.distance_to(Vector3(4, -1.3, -10)) < 3.0, "creature navigation covers Hall A's pool")
@@ -147,6 +147,44 @@ func _smoke() -> void:
 		check(Game.recentered.is_connected(rig._on_recentered) and moved < 0.15, "holding the Meta button recenters without moving you (moved %.2f m)" % moved)
 	else:
 		check(rig.is_on_floor(), "desktop player stands on the start room floor")
+		# The backpack: B puts what you hold in, B takes it back out.
+		var fl = L.items["Flashlight"]
+		rig.held = fl
+		fl.grab_desktop(rig)
+		await wait(0.1)
+		rig._backpack()
+		check(fl.stowed == Net.my_id() and not fl.visible and rig.held == null, "B puts the flashlight in the backpack")
+		rig._backpack()
+		check(fl.stowed == 0 and rig.held == fl and fl.visible, "B takes it back out")
+		# The squeeze flashlight: each squeeze lights it, it fades unless you keep pumping.
+		fl.use(true)
+		fl.use(false)
+		await wait(0.05)
+		check(fl._light.visible, "a squeeze lights the flashlight")
+		await wait(1.0)
+		check(not fl._light.visible, "it goes dark unless you keep squeezing")
+		var lit_all := true
+		for i in 6:
+			fl.use(true)
+			fl.use(false)
+			await wait(0.3)
+			lit_all = lit_all and fl._light.visible
+		check(lit_all, "pumping the trigger keeps it lit")
+		rig._release(Vector3.ZERO)
+		# The canteen has no physics: let go and it drops straight down, upright.
+		var can = L.items["Canteen1"]
+		rig.held = can
+		can.grab_desktop(rig)
+		await wait(0.1)
+		rig.held = null
+		can.desktop_holder = null
+		can.global_transform = Transform3D(Basis(Vector3.RIGHT, 1.2), Vector3(3.0, 1.3, 1.0))
+		await get_tree().physics_frame
+		await get_tree().physics_frame
+		can.release_desktop(Vector3(3, 0, 0))
+		await wait(1.2)
+		check(absf(can.global_position.x - 3.0) < 0.01 and can.global_position.y < 0.3 and can.global_transform.basis.y.dot(Vector3.UP) > 0.99,
+			"a dropped canteen falls straight down and stands upright (at %s, up %.3f)" % [can.global_position, can.global_transform.basis.y.dot(Vector3.UP)])
 
 
 ## Single-player run through every mechanic, moving the player and items directly.

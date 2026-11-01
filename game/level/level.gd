@@ -17,6 +17,7 @@ const ItemScripts := {
 	"canteen": preload("res://items/canteen.gd"),
 	"lidar": preload("res://items/lidar.gd"),
 	"throwable": preload("res://items/throwable.gd"),
+	"flashlight": preload("res://items/flashlight.gd"),
 }
 const SFX := {
 	"splash_big": preload("res://assets/audio/splash_big.ogg"),
@@ -473,6 +474,7 @@ func _build_items() -> void:
 	_spawn_item("throwable", "Bottle2", Vector3(21.0, 0.95, -1.7))
 	_spawn_item("throwable", "Bottle3", Vector3(15.0, 0.1, -36.5))
 	_spawn_item("throwable", "Bottle4", Vector3(3.0, 0.1, -23.0))
+	_spawn_item("flashlight", "Flashlight", Vector3(3.2, 0.06, 1.6))
 
 
 func _spawn_item(kind: String, item_name: String, pos: Vector3) -> void:
@@ -879,6 +881,11 @@ func _warm_up_kills(p: Node) -> void:
 
 
 func on_peer_left(id: int) -> void:
+	for it in items.values():          # whatever was in their backpack falls out where they were
+		if it.stowed == id:
+			if players.has(id):
+				it.global_position = players[id].body_position() + Vector3.UP * 0.5
+			it.set_stowed(0)
 	if players.has(id):
 		players[id].queue_free()
 		players.erase(id)
@@ -1005,6 +1012,58 @@ func _srv_item(item_name: String, action: String) -> void:
 	elif action == "drop" and it.holder == sender:
 		_set_item_owner(item_name, 0, sender)
 		Net.send(self, &"_set_item_owner", [item_name, 0, sender])
+	elif action == "stow":
+		_set_item_owner(item_name, 0, sender)
+		Net.send(self, &"_set_item_owner", [item_name, 0, sender])
+		_set_item_stowed(item_name, sender)
+		Net.send(self, &"_set_item_stowed", [item_name, sender])
+	elif action == "unstow" and it.stowed == sender:
+		_set_item_stowed(item_name, 0)
+		Net.send(self, &"_set_item_stowed", [item_name, 0])
+		_set_item_owner(item_name, sender, sender)
+		Net.send(self, &"_set_item_owner", [item_name, sender, sender])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _set_item_stowed(item_name: String, peer: int) -> void:
+	var it = items.get(item_name)
+	if it and it.stowed != peer:
+		it.set_stowed(peer)
+
+
+# --- Backpacks -------------------------------------------------------------------------------------
+# Everyone carries a backpack for up to four items. In VR, let go of an item over your shoulder to
+# put it in, and grip there with an empty hand to take the last one out (desktop: B).
+const BACKPACK_SIZE := 4
+
+func backpack_of(peer: int) -> Array:
+	var out := []
+	for it in items.values():
+		if it.stowed == peer and not it.retired:
+			out.append(it)
+	out.sort_custom(func(a, b): return a.stow_t < b.stow_t)
+	return out
+
+
+## Put an item in my backpack (right away here, and tell everyone).
+func stow_item(it) -> void:
+	it.set_stowed(Net.my_id())
+	request_item(it.name, "stow")
+	Game.notify("In your backpack (%d/%d)" % [backpack_of(Net.my_id()).size(), BACKPACK_SIZE])
+
+
+## Take the last thing I put in my backpack out, to `at`. Returns it, or null if it's empty.
+func take_from_backpack(at: Transform3D):
+	var mine := backpack_of(Net.my_id())
+	if mine.is_empty():
+		return null
+	var it = mine.back()
+	it.set_stowed(0)
+	it.global_transform = at
+	it.holder = Net.my_id()
+	it.auth = it.holder
+	request_item(it.name, "unstow")
+	return it
 
 
 @rpc("authority", "call_remote", "reliable")

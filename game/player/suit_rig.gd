@@ -232,6 +232,32 @@ func _add_cap(at: String, toward: String, radius: float, flip: bool) -> void:
 	c.transform = Transform3D(Basis(Quaternion(Vector3.UP, local_n)).scaled(Vector3.ONE / maxf(sc, 1e-4)), Vector3.ZERO)
 
 
+## The backpack everyone carries (see level.gd): a canvas pack on the upper back, further out on the
+## suits with an air tank so it sits over the tank.
+func add_backpack() -> void:
+	if not bones.has("Spine2"):
+		return
+	var rest := skeleton.get_bone_global_rest(bones["Spine2"])
+	var att := BoneAttachment3D.new()
+	att.bone_name = skeleton.get_bone_name(bones["Spine2"])
+	skeleton.add_child(att)
+	var pack := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.3, 0.38, 0.14)
+	pack.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.2, 0.22, 0.17)
+	mat.roughness = 0.9
+	pack.material_override = mat
+	pack.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	att.add_child(pack)
+	# Upright and behind the back in this node's space (players face -Z), whatever the bone's axes.
+	var back := 0.3 if suit != 1 else 0.17
+	var want := Transform3D(Basis(), bone_rest("Spine2") + Vector3(0, -0.05, back))
+	var bone_xf := _sk_xf * rest                        # the bone in this node's space, at rest
+	pack.transform = bone_xf.affine_inverse() * want
+
+
 ## Where a bone sits in this node's space at rest (for holding a torn-off piece by it).
 func bone_rest(role: String) -> Vector3:
 	if not bones.has(role):

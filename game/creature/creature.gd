@@ -286,6 +286,11 @@ func _react(n: Dictionary) -> void:
 	if state == S.ATTACK or state == S.FEAST:
 		return
 	var p := _nav_point(n.pos)
+	# Already on its way somewhere: a noise farther off than where it's going doesn't pull it away
+	# (several noisy things in the water used to make it flip between them and never arrive).
+	var heading: bool = state in [S.INVESTIGATE, S.CHARGE] and _path_i < _path.size()
+	if heading and p.distance_to(target) >= 3.0 and _flat_dist(p) > _flat_dist(target):
+		return
 	var escalate: bool = state in [S.INVESTIGATE, S.SEARCH, S.LINGER] and p.distance_to(target) < 6.0 and n.level >= 0.05
 	if state == S.CHARGE or n.level >= 0.45 or escalate:
 		_go(S.CHARGE, p)
@@ -491,11 +496,21 @@ func _players_in_water_near(center: Vector3, radius: float) -> Array:
 	return out
 
 
+## The nearest player (to the creature) in the water near `center` who moved just now.
 func _moving_player_near(center: Vector3, radius: float, within: float) -> int:
+	var best := 0
+	var best_d := INF
 	for id in _players_in_water_near(center, radius):
 		if _clock - float(_last_noise.get(id, -100.0)) < within:
-			return id
-	return 0
+			var d := _flat_dist(Game.level.players[id].body_position())
+			if d < best_d:
+				best_d = d
+				best = id
+	return best
+
+
+func _flat_dist(p: Vector3) -> float:
+	return Vector2(p.x - global_position.x, p.z - global_position.z).length()
 
 
 # --- Presentation (everyone) ---------------------------------------------------------------------

@@ -75,7 +75,9 @@ exports a build for the other (see below).
 | Climb out of the water | Grab the pool edge or a ladder and pull | Space while facing the edge, or W on a ladder |
 | Pick up | Grip | E |
 | Use the held item (scan, pour, throw) | Trigger, or tip the canteen, or throw it | Left mouse |
-| Fill the canteen | Hold it in the water and click the trigger | Hold right mouse to dip it (crouch with Ctrl), then left mouse |
+| Fill the canteen | Hold it in the water and pull either trigger | Hold right mouse to dip it (crouch with Ctrl), then left mouse |
+| Squeeze flashlight | Keep pumping the trigger: each squeeze gives a burst of light | Keep clicking left mouse |
+| Backpack (4 items) | Let go of an item over your shoulder to put it in; grip there with an empty hand to take the last one out | B |
 | Hold with both hands | Grab an item you're holding with your other hand too | |
 | Give an item | Your teammate grabs it out of your hand | Your teammate presses E on it |
 | Shove a teammate | Swing your hand into them | F |
@@ -124,9 +126,18 @@ exports a build for the other (see below).
   you respawn at the last dry room you passed through (a checkpoint). Your teammates see all of it.
 - **Feeding:** after a kill it feeds on the remains for 3 to 5 seconds and ignores every noise.
   That's your teammates' chance to run.
-- **Canteen:** hold it under the water and click the trigger to fill it (a hint floats over it).
-  It doesn't fill just from being underwater.
+- **Canteen:** hold it in the water and pull either trigger to fill it. A prompt floats over the
+  water, a bar shows it filling, and it pops and buzzes when it's full (and says what's in it).
+  It has no physics: let go and it drops straight down and stands upright, or floats upright.
+  Let go of it near the distiller and it goes onto the stand.
+- **Squeeze flashlight** (start room): a dynamo torch. Every pull of the trigger gives it a burst of
+  charge that drains in a moment, so it only stays lit while you keep pumping, pulsing with each
+  squeeze. The creature can't hear it.
+- **Backpack:** everyone carries one for up to four items, and teammates can see it on your back.
+  Whatever is in it stays with you; if you leave the game, it falls out where you were.
 - **Two-handed holding:** grab an item you're already holding with your other hand as well.
+- **The creature's target:** with several things making noise in the water, it goes for the
+  nearest and doesn't turn back for farther ones until it gets there.
 - **Test dummy:** click both thumbsticks in VR (Ctrl+Shift+P on desktop) to drop a plain grey
   player into the water in front of you. It has no mind of its own: it fidgets a little, so the
   creature finds it and you can watch the kills from outside. Only the host's creature hunts it,

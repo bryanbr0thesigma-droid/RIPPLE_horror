@@ -20,6 +20,7 @@ var _msg: Label3D
 var _msg_time := 0.0
 var _hand_areas: Array[Area3D] = []
 var _last_hand_pos := [Vector3.ZERO, Vector3.ZERO]
+var _in_pack := [false, false]
 
 
 func _ready() -> void:
@@ -88,6 +89,11 @@ func _ready() -> void:
 		pair[0].button_pressed.connect(func(b):
 			if b == "primary_click" and pair[1].is_button_pressed("primary_click") and Game.level:
 				Game.level.spawn_dummy(camera.global_transform))
+	# The backpack, over your shoulder: grip there with an empty hand to take the last item out.
+	for pair in [[left, $LeftHand/CollisionHandLeft/FunctionPickup], [right, $RightHand/CollisionHandRight/FunctionPickup]]:
+		pair[0].button_pressed.connect(func(b):
+			if b == "grip_click":
+				_take_from_backpack(pair[0], pair[1]))
 	# Hands that can shove teammates.
 	for c in [left, right]:
 		var a := Area3D.new()
@@ -104,6 +110,14 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# A buzz when a hand holding something reaches into the backpack, so you know you can let go.
+	for i in 2:
+		var c: XRController3D = left if i == 0 else right
+		var p = ($LeftHand/CollisionHandLeft/FunctionPickup if i == 0 else $RightHand/CollisionHandRight/FunctionPickup)
+		var inside := in_backpack(c.global_position)
+		if inside and not _in_pack[i] and Game.level and (is_instance_valid(p.picked_up_object) or not Game.level.backpack_of(Net.my_id()).is_empty()):
+			c.trigger_haptic_pulse("haptic", 0.0, 0.35, 0.08, 0.0)
+		_in_pack[i] = inside
 	if _msg_time > 0.0:
 		_msg_time -= delta
 		_msg.modulate.a = clampf(_msg_time, 0.0, 1.0)
@@ -175,6 +189,21 @@ func hand_transforms() -> Array:
 ## don't count as hand movement. Only actually moving your hands does.
 func hands_relative() -> Array:
 	return [left.position, right.position]
+
+
+## Is this point in the backpack: behind your head, over either shoulder?
+func in_backpack(p: Vector3) -> bool:
+	var local := camera.global_transform.affine_inverse() * p
+	return local.z > 0.08 and local.y > -0.7 and local.y < 0.3 and absf(local.x) < 0.5
+
+
+func _take_from_backpack(c: XRController3D, pickup: Node) -> void:
+	if is_instance_valid(pickup.picked_up_object) or not in_backpack(c.global_position) or not Game.level:
+		return
+	var it = Game.level.take_from_backpack(c.global_transform)
+	if it:
+		pickup._pick_up_object(it)
+		c.trigger_haptic_pulse("haptic", 0.0, 0.6, 0.1, 0.0)
 
 
 ## After the Meta-button recenter, the view faces forward again; keep the player standing where
