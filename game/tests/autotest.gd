@@ -100,6 +100,13 @@ func _rig() -> Node3D:
 func _smoke() -> void:
 	var L = Game.level
 	check(WaterVolume.all.size() >= 5, "water volumes built (%d)" % WaterVolume.all.size())
+	# The secret suit: locked until its code is typed in.
+	var codes_before: Array = Profile.codes.duplicate()
+	Profile.codes = []
+	var secret := SuitRig.SUITS.size() - 1
+	check(not Profile.suit_unlocked(secret) and Profile.enter_code("12") == -1, "the secret suit is locked and a wrong code does nothing")
+	check(Profile.enter_code("34") == secret and Profile.suit_unlocked(secret), "code 34 unlocks the latex diver")
+	Profile.codes = codes_before
 	check(L.items.keys().filter(func(n): return not n.begins_with("Bag_")).size() == 9, "items spawned (%d)" % L.items.size())
 	await wait(0.5)   # let the navigation map pick up the level's region
 	var nav := NavigationServer3D.map_get_closest_point(L.get_world_3d().navigation_map, Vector3(4, -1.3, -10))

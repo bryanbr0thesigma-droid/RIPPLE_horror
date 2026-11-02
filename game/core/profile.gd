@@ -13,6 +13,7 @@ var color := Color(0.95, 0.55, 0.15)
 var snap_turn := true
 var volume := 0.85
 var music := 0.6
+var codes: Array = []        # secret codes typed in (they unlock hidden suits)
 
 
 func _ready() -> void:
@@ -25,6 +26,9 @@ func _ready() -> void:
 		snap_turn = cfg.get_value("settings", "snap_turn", true)
 		volume = cfg.get_value("settings", "volume", 0.85)
 		music = cfg.get_value("settings", "music", 0.6)
+		codes = cfg.get_value("player", "codes", [])
+	if not suit_unlocked(suit):
+		suit = 0
 	if player_name == "":
 		player_name = random_name()
 	if Game.args.has("name"):
@@ -38,6 +42,7 @@ func save() -> void:
 	cfg.set_value("player", "name", player_name)
 	cfg.set_value("player", "suit", suit)
 	cfg.set_value("player", "color", color)
+	cfg.set_value("player", "codes", codes)
 	cfg.set_value("settings", "snap_turn", snap_turn)
 	cfg.set_value("settings", "volume", volume)
 	cfg.set_value("settings", "music", music)
@@ -45,6 +50,23 @@ func save() -> void:
 	apply_audio()
 	_sync_net()
 	changed.emit()
+
+
+func suit_unlocked(i: int) -> bool:
+	if i < 0 or i >= SuitRig.SUITS.size():
+		return false
+	var code: String = SuitRig.SUITS[i].get("code", "")
+	return code == "" or code in codes
+
+
+## Tries a secret code. Returns the index of the suit it unlocks, or -1.
+func enter_code(code: String) -> int:
+	for i in SuitRig.SUITS.size():
+		if SuitRig.SUITS[i].get("code", "") == code and code != "":
+			if not code in codes:
+				codes.append(code)
+			return i
+	return -1
 
 
 static func random_name() -> String:

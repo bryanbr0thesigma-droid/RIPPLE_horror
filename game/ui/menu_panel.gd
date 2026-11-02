@@ -16,6 +16,9 @@ var _status: Label
 var _hosts_box: VBoxContainer
 var _ip := ""
 var _ip_label: Label
+var _code := ""
+var _code_label: Label
+var _code_msg: Label
 var _name_label: Label
 var _suit_label: Label
 var _suit_about: Label
@@ -45,6 +48,7 @@ func _ready() -> void:
 	_build_play(stack)
 	_build_address(stack)
 	_build_character(stack)
+	_build_code(stack)
 	_build_settings(stack)
 	_build_credits(stack)
 	_build_connecting(stack)
@@ -146,6 +150,13 @@ func _build_character(parent: Control) -> void:
 	nxt.custom_minimum_size = Vector2(64, 56)
 	suit_row.add_child(nxt)
 	p.add_child(suit_row)
+	var code_btn := _button("Enter a code", func():
+		_code = ""
+		_code_label.text = "_"
+		_code_msg.text = ""
+		show_page("code"), 16)
+	code_btn.custom_minimum_size = Vector2(0, 40)
+	p.add_child(code_btn)
 	_suit_about = _label("", 16, DIM)
 	_suit_about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	p.add_child(_suit_about)
@@ -172,6 +183,43 @@ func _build_character(parent: Control) -> void:
 		Profile.save()
 		show_page("main")))
 	_refresh_character()
+
+
+func _build_code(parent: Control) -> void:
+	var p := _page("code", parent)
+	p.add_child(_label("Enter a code", 36, ACCENT))
+	_code_label = _label("_", 38, INK)
+	p.add_child(_code_label)
+	var pad := GridContainer.new()
+	pad.columns = 3
+	pad.add_theme_constant_override("h_separation", 8)
+	pad.add_theme_constant_override("v_separation", 8)
+	for k in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "<", "0", "OK"]:
+		var b := _button(k, _code_key.bind(k), 30)
+		b.custom_minimum_size = Vector2(110, 64)
+		pad.add_child(b)
+	p.add_child(pad)
+	_code_msg = _label("", 20, DIM)
+	p.add_child(_code_msg)
+	p.add_child(_button("Back", func(): show_page("character")))
+
+
+func _code_key(k: String) -> void:
+	if k == "<":
+		_code = _code.substr(0, maxi(_code.length() - 1, 0))
+	elif k == "OK":
+		var i := Profile.enter_code(_code)
+		if i >= 0:
+			Profile.suit = i
+			Profile.save()
+			_refresh_character()
+			_code_msg.text = "Unlocked: " + SuitRig.SUITS[i].name
+		else:
+			_code_msg.text = "Nothing happens."
+		_code = ""
+	elif _code.length() < 8:
+		_code += k
+	_code_label.text = _code if _code != "" else "_"
 
 
 func _keyboard() -> Control:
@@ -228,7 +276,7 @@ Anti-radiation suit: "Antiradiation suit - OZK" by sanyaork
 Diver: "Nanando diver" by Marco Lopez (its torch is the flashlight)
 Scuba diver: "Scuba Diver" by turelljc
 Brass-helmet diver: "The Diver" by amt16
-(The female suits are these suits, reshaped.)
+Latex diver (secret): "Cat Girl - Anime Character Model" by VR_Avatars, wearing the scuba diver's gear
 Key: "Old Key" by TheFalkonett
 Staff door: "Metal Door 2" by tboiston
 Exit doors: "Fire Escape / Exit Doors" by bloobloo
@@ -370,7 +418,18 @@ func _type(ch: String) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	# Desktop: type the name on the real keyboard while the character page is open.
+	# Desktop: type the name on the real keyboard while the character page is open (or a code on
+	# the code page).
+	if _pages.get("code") and _pages.code.visible and event.pressed:
+		var ck := event as InputEventKey
+		if ck.keycode == KEY_BACKSPACE:
+			_code_key("<")
+		elif ck.keycode == KEY_ENTER or ck.keycode == KEY_KP_ENTER:
+			_code_key("OK")
+		elif ck.unicode >= 48 and ck.unicode <= 57:
+			_code_key(char(ck.unicode))
+		get_viewport().set_input_as_handled()
+		return
 	if not _pages.get("character") or not _pages.character.visible or not event.pressed:
 		return
 	var k := event as InputEventKey
@@ -390,7 +449,10 @@ func _random_name() -> void:
 
 
 func _cycle_suit(d: int) -> void:
-	Profile.suit = posmod(Profile.suit + d, SuitRig.SUITS.size())
+	for n in SuitRig.SUITS.size():             # skip suits still locked by a code
+		Profile.suit = posmod(Profile.suit + d, SuitRig.SUITS.size())
+		if Profile.suit_unlocked(Profile.suit):
+			break
 	_refresh_character()
 
 
