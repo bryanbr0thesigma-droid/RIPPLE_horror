@@ -2,7 +2,7 @@ extends Node3D
 # Renders the three suits driven by the IK in a few poses (stand, reach, crouch, wave), front and
 # side views.   xvfb-run godot --path game --rendering-driver opengl3 res://tests/suit_pose_shot.tscn -- --out=DIR
 
-const COLORS := [Color(0.9, 0.45, 0.15), Color(0.2, 0.6, 0.95), Color(0.85, 0.15, 0.2)]
+const COLORS := [Color(0.9, 0.45, 0.15), Color(0.2, 0.6, 0.95), Color(0.85, 0.15, 0.2), Color(0.3, 0.8, 0.3)]
 
 
 func _ready() -> void:
@@ -30,22 +30,23 @@ func _ready() -> void:
 	floor_mi.mesh = pm
 	add_child(floor_mi)
 	var rigs: Array[SuitRig] = []
-	for i in 3:
-		var r := SuitRig.create(i, COLORS[i])
+	for i in SuitRig.SUITS.size():
+		var r := SuitRig.create(i, COLORS[i % COLORS.size()])
 		add_child(r)
 		rigs.append(r)
 	for p in ["stand", "reach", "crouch", "wave"]:
 		for view in ["front", "side", "close"]:
 			if view == "front":
-				cam.position = Vector3(0, 1.1, 4.2)
+				cam.position = Vector3(0, 1.0, 6.2)
 			elif view == "side":
 				cam.position = Vector3(4.6, 1.1, 0.6)
 			else:
 				cam.position = Vector3(0.3, 1.2, 1.5)
 			cam.look_at(Vector3(0, 1.0 if view == "close" else 0.9, 0))
 			for k in 4:
-				for i in 3:
-					_pose(rigs[i], p, Transform3D(Basis(Vector3.UP, PI), Vector3(-1.2 + 1.2 * i, 0, 0)))
+				for i in rigs.size():
+					var gap := 5.6 / maxf(rigs.size() - 1, 1)
+					_pose(rigs[i], p, Transform3D(Basis(Vector3.UP, PI), Vector3(-2.8 + gap * i, 0, 0)))
 				await get_tree().process_frame
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("%s/pose_%s_%s.png" % [out, p, view])

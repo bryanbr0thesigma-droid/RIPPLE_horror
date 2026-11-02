@@ -226,6 +226,9 @@ const CREDITS := """[b]Models[/b] (CC BY 4.0, changed for the game)
 The creature: "The Rake" by Sealife Fan 3
 Anti-radiation suit: "Antiradiation suit - OZK" by sanyaork
 Diver: "Nanando diver" by Marco Lopez (its torch is the flashlight)
+Scuba diver: "Scuba Diver" by turelljc
+Brass-helmet diver: "The Diver" by amt16
+(The female suits are these suits, reshaped.)
 Key: "Old Key" by TheFalkonett
 Staff door: "Metal Door 2" by tboiston
 Exit doors: "Fire Escape / Exit Doors" by bloobloo

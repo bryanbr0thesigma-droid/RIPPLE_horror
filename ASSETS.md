@@ -30,6 +30,8 @@ approved.
 | [Godot XR Tools hands](https://github.com/GodotVR/godot-xr-tools/tree/master/addons/godot-xr-tools/hands) | The player's own hands. Recolored to match the gloves of the suit the player wears. | Godot XR Tools | DigitalN8m4r3 | CC0 |
 | [Anti-radiation suit (OZK)](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a) | Player suit. Player color changes the camo. | Sketchfab | sanyaork | CC BY 4.0 |
 | [Nanando diver](https://sketchfab.com/3d-models/nanando-diver-underwater-0073b3e5348640fbbaf73278726400fb) | Player suit. Player color changes the yellow parts. Fins removed. | Sketchfab | Marco Lopez | CC BY 4.0 |
+| [Scuba Diver](https://sketchfab.com/3d-models/3cffae9b572d4506b3025e29d6ff068c) | Player suit (0.8). Rigged with the diver's skeleton (`tools/suits/rig_like_diver.py`). Player color changes the tank and gear. | Sketchfab | turelljc | CC BY 4.0 |
+| [The Diver](https://sketchfab.com/3d-models/cf096d52e26a4ed397e13c7ccbd52f6b) | Player suit (0.8): the brass-helmet diver. Rigged the same way; textures shrunk for the Quest. Player color changes the straps. | Sketchfab | amt16 | CC BY 4.0 |
 | [Four Legged Predator](https://sketchfab.com/3d-models/four-legged-predator-7f68f9daa698433299092bfecaae4e9e) | Not used by the current creature, which is built from The Rake alone. Kept in case. | Sketchfab | Timsblends | CC BY 4.0 |
 | [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e) | The creature: body, head, limbs and animations (see "The creature" in `DESIGN.md`) | Sketchfab | Sealife Fan 3 | CC BY 4.0 |
 | [Brown Leather](https://polyhaven.com/a/brown_leather) | Pore and wrinkle detail for the creature's skin | Poly Haven | Poly Haven | CC0 |
@@ -114,13 +116,17 @@ and door were synthesized for the project.
   diver's gloved hands are moved onto it (`tools/suits/transplant_hands.py`). One color mask
   per suit marks the parts that take the player's color. Each suit is also split into
   head, chest and legs pieces by skin weight (`tools/suits/split_parts.py`) for the kills.
+  Since 0.8 every suit also has a female version (`*_f.glb`): the same model reshaped by
+  `tools/suits/feminize.py` (bigger chest and rear, narrower waist, wider hips, thicker
+  thighs; the arms are left alone). Every suit and female version is also cut into left and
+  right halves (`tools/suits/split_lr.py`) for the vertical tear.
 - **Avatar movement:** other players' suits follow their real head and hand tracking
   (`game/player/suit_ik.gd`): the hips drop and the legs bend when they crouch, the arms
   reach for their hands, the head turns with theirs. No animation library is needed.
 
 ## Dropped
 
-- Striker jumpsuit (DanlyVostok): removed from the game in 0.8; female suits are being picked to replace it (Round 23).
+- Striker jumpsuit (DanlyVostok): removed from the game in 0.8.
 
 - Quaternius Universal Base Characters and Universal Animation Library: the approved
   suits are complete characters, so the bare bodies aren't needed.

@@ -91,13 +91,28 @@ def field(p):
     return out * K
 
 
+ARM = re.compile(r'(Shoulder|Arm|ForeArm|Hand|Thumb|Index|Middle|Ring|Pinky)', re.I)
+# The arm bones: anything named like one, and everything below a shoulder (finger bones are not
+# always named the Mixamo way, e.g. "pointer4.R").
+arm_bones = set()
+for b in arm.data.bones:
+    chain = [b] + list(b.parent_recursive)
+    if any(re.search(r'Shoulder', c.name, re.I) for c in chain) or ARM.search(re.sub(r'^mixamorig[:_]?', '', b.name)):
+        arm_bones.add(b.name)
 meshes = [o for o in bpy.data.objects if o.type == 'MESH']
 for o in meshes:
     mw = o.matrix_world
     inv = mw.inverted().to_3x3()
+    arm_groups = {g.index for g in o.vertex_groups if g.name in arm_bones}
     for v in o.data.vertices:
+        # The arms and hands keep their shape (in the rest pose they can hang beside the hips).
+        aw = sum(g.weight for g in v.groups if g.group in arm_groups)
+        tw = sum(g.weight for g in v.groups) or 1.0
+        keep = 1.0 - min(1.0, max(0.0, (aw / tw - 0.03) / 0.12))   # any real arm weight: left alone
+        if keep <= 0.0:
+            continue
         pw = mw @ v.co
-        v.co += inv @ field(pw)
+        v.co += inv @ (field(pw) * keep)
     # The imported normals were baked in; let them follow the new shape.
     if o.data.has_custom_normals:
         bpy.context.view_layer.objects.active = o
