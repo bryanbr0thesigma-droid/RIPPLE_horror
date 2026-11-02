@@ -1,0 +1,104 @@
+# Builds the Quest APK from source and publishes it as a GitHub release, so anyone can download
+# the demo. The version comes from game/export_presets.cfg (version/name).
+#
+# Runs when this file changes on a push, or by hand: Actions -> "Release demo APK" -> Run workflow.
+# If a release for the version already exists, its APK is replaced.
+#
+# Signing: if the repository has the secrets ANDROID_KEYSTORE_BASE64 (a keystore file, base64),
+# ANDROID_KEYSTORE_USER (its key alias) and ANDROID_KEYSTORE_PASSWORD, the APK is signed with that
+# key, so every release can be installed over the last. Without them a fresh key is made for each
+# run, and installing a new release over an older one needs an uninstall first.
+name: Release demo APK
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/release-apk.yml']
+permissions:
+  contents: write
+concurrency:
+  group: release-apk
+  cancel-in-progress: false
+env:
+  GODOT_VERSION: 4.7.2
+  VENDORS_VERSION: 5.1.0-stable
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Android SDK pieces the Godot build template asks for
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.1.0" "platform-tools" > /dev/null
+
+      - name: Godot, export templates and the OpenXR vendors plugin
+        run: |
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          mkdir -p "$HOME/bin" && unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$HOME/bin/godot"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$dir" && unzip -q templates.tpz && mv templates/* "$dir/" && rm -rf templates templates.tpz
+          curl -fsSL -o vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/${VENDORS_VERSION}/godotopenxrvendorsaddon.zip"
+          unzip -q vendors.zip -d vendors && cp -r vendors/asset/addons/godotopenxrvendors game/addons/
+          mkdir -p "$HOME/.config/godot"
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' \
+            "$ANDROID_HOME" "$JAVA_HOME" > "$HOME/.config/godot/editor_settings-${GODOT_VERSION%.*}.tres"
+
+      - name: Import the project
+        run: |
+          godot --headless --path game --import > import.log 2>&1 || true
+          grep -vE "OpenXR|xrEnumerate|HMD|Godot will start" import.log | tail -20 || true
+
+      - name: Signing key
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            user="$KS_USER"; pass="$KS_PASS"
+          else
+            user=ripple; pass="$(openssl rand -hex 16)"
+            keytool -genkeypair -keystore "$RUNNER_TEMP/release.keystore" -alias "$user" -keyalg RSA -keysize 2048 \
+              -validity 10000 -storepass "$pass" -keypass "$pass" -dname "CN=RIPPLE demo" > /dev/null
+          fi
+          echo "::add-mask::$pass"
+          {
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$RUNNER_TEMP/release.keystore"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=$user"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=$pass"
+          } >> "$GITHUB_ENV"
+
+      - name: Export the Quest APK
+        run: |
+          VERSION="$(grep '^version/name=' game/export_presets.cfg | cut -d'"' -f2)"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          mkdir -p build
+          godot --headless --path game --install-android-build-template \
+            --export-release "Quest" "$GITHUB_WORKSPACE/build/RIPPLE-demo-$VERSION.apk" > export.log 2>&1 || true
+          grep -vE "OpenXR|xrEnumerate|HMD|Godot will start" export.log | tail -60 || true
+          ls -la build
+          test "$(stat -c %s "build/RIPPLE-demo-$VERSION.apk")" -gt 50000000
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sed "s/{VERSION}/$VERSION/g" .github/release-notes.md > "$RUNNER_TEMP/notes.md"
+          apk="build/RIPPLE-demo-$VERSION.apk"
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            gh release upload "v$VERSION" "$apk" --clobber
+          else
+            gh release create "v$VERSION" "$apk" --target "$GITHUB_SHA" \
+              --title "RIPPLE demo $VERSION" --notes-file "$RUNNER_TEMP/notes.md" --latest
+          fi
