@@ -56,7 +56,8 @@ exports a build for the other (see below).
 - **Online, from anywhere (room code):** one of you presses **Host online (room code)**. A
   6-character code like `QWX4P7` appears in the game (desktop: top-left; VR: a message, and in the
   pause menu). The other presses **Join online with a code**, types it and presses **Join**.
-  The games connect straight to each other with WebRTC; a free public MQTT broker is only used
+  The games connect straight to each other with WebRTC; free public message services (shiftr.io and
+  ntfy.sh on the normal HTTPS port 443 first, then MQTT brokers on other ports) are only used
   to swap connection details for that code (`game/core/online_room.gd`). It works through most home
   routers. If both players are on strict networks (some mobile hotspots, school or work Wi-Fi), the
   direct connection can fail; then use one of the options below. To test without the internet, run

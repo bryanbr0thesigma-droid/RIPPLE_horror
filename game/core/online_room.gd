@@ -7,16 +7,20 @@ extends RefCounted
 ## they pass the WebRTC offers and answers through a free public MQTT broker, on topics named
 ## after the room code. Game traffic never goes through the broker.
 ##
-## The code is 5 characters for the room plus 1 digit naming which broker the host reached
-## (several public brokers are tried in turn in case one is down).
+## The code is 5 characters for the room plus 1 digit naming which service the host reached
+## (several free services are tried in turn in case one is down or blocked).
 
 signal code_ready(code: String)
 signal failed(reason: String)
 
+# Tried in this order by the host. The first two use the normal HTTPS port 443, which gets through
+# networks (routers, ISPs, school or work Wi-Fi) that block the unusual ports of the others.
 const BROKERS := [
-	"wss://broker.hivemq.com:8884/mqtt",
-	"wss://broker.emqx.io:8084/mqtt",
-	"wss://test.mosquitto.org:8081/mqtt",
+	{"kind": "mqtt", "url": "wss://public.cloud.shiftr.io:443", "user": "public", "pass": "public"},
+	{"kind": "ntfy", "url": "https://ntfy.sh"},
+	{"kind": "mqtt", "url": "wss://broker.hivemq.com:8884/mqtt"},
+	{"kind": "mqtt", "url": "wss://broker.emqx.io:8084/mqtt"},
+	{"kind": "mqtt", "url": "wss://test.mosquitto.org:8081/mqtt"},
 ]
 const ALPHABET := "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # no I, O, 0 or 1: easy to read out
 const TOPIC := "rippledemo/v1/"
@@ -33,7 +37,9 @@ var is_host := false
 var brokers: Array = BROKERS
 var max_players := 4
 
-var _link: MqttLink
+var _link                  # MqttLink or NtfyLink
+var _ice_out := {}         # peer id -> candidates waiting to go out together
+var _ice_t := 0.0
 var _broker := -1
 var _broker_t := 0.0
 var _room := ""
@@ -96,6 +102,10 @@ func poll(delta: float) -> void:
 	if _closed:
 		return
 	_age += delta
+	_ice_t += delta
+	if _ice_t > 0.4 and not _ice_out.is_empty():
+		_ice_t = 0.0
+		_flush_ice_out()
 	if _link:
 		_link.poll(delta)            # may fail and drop the link (or the whole room) right here
 		if _closed:
@@ -152,12 +162,21 @@ func _open_broker(i: int) -> void:
 		return
 	_broker = i
 	_broker_t = 0.0
-	_link = MqttLink.new()
+	var b = brokers[i]
+	if b is String:                      # tests: an MQTT WebSocket address, or "ntfy:<https address>"
+		b = {"kind": "ntfy", "url": b.substr(5)} if b.begins_with("ntfy:") else {"kind": "mqtt", "url": b}
+	_link = NtfyLink.new() if b.kind == "ntfy" else MqttLink.new()
 	_link.opened.connect(_on_link_open)
 	_link.failed.connect(_on_link_failed)
 	_link.message.connect(_on_message)
-	if _link.open(brokers[i]) != OK:
+	if _link.open(b.url, b.get("user", ""), b.get("pass", "")) != OK:
 		_on_link_failed()
+		return
+	# Listen first; the code is only given out once the service has answered.
+	if is_host:
+		_link.subscribe(TOPIC + _room + str(i + 2) + "/host")
+	else:
+		_link.subscribe(TOPIC + code + "/p%d" % _my_id)
 
 
 func _on_link_failed() -> void:
@@ -176,9 +195,7 @@ func _on_link_open() -> void:
 		if code == "":
 			code = _room + str(_broker + 2)
 			code_ready.emit(code)
-		_link.subscribe(TOPIC + code + "/host")
 	else:
-		_link.subscribe(TOPIC + code + "/p%d" % _my_id)
 		_hello_t = 0.3
 
 
@@ -243,26 +260,37 @@ func _new_conn(id: int) -> WebRTCPeerConnection:
 		else:
 			_send_to_host({"t": type, "id": _my_id, "sdp": sdp}))
 	pc.ice_candidate_created.connect(func(mid: String, index: int, cand: String):
-		var msg := {"t": "ice", "mid": mid, "index": index, "cand": cand}
-		if is_host:
-			_send_to_peer(id, msg)
-		else:
-			msg.id = _my_id
-			_send_to_host(msg))
+		if not _ice_out.has(id):
+			_ice_out[id] = []
+		_ice_out[id].append({"mid": mid, "index": index, "cand": cand}))
 	rtc.add_peer(pc, id)
 	_conns[id] = pc
 	return pc
 
 
+## Send the candidates gathered in the last moment as one message (fewer messages through the
+## free services, which limit how many they take).
+func _flush_ice_out() -> void:
+	for id in _ice_out.keys():
+		var msg := {"t": "ice", "list": _ice_out[id]}
+		if is_host:
+			_send_to_peer(id, msg)
+		else:
+			msg.id = _my_id
+			_send_to_host(msg)
+	_ice_out.clear()
+
+
 func _add_ice(id: int, m: Dictionary) -> void:
 	if not _conns.has(id):
 		return
-	if not _remote_set.get(id, false):
-		if not _early_ice.has(id):
-			_early_ice[id] = []
-		_early_ice[id].append(m)
-		return
-	_conns[id].add_ice_candidate(str(m.mid), int(m.index), str(m.cand))
+	for c in m.get("list", []):
+		if not _remote_set.get(id, false):
+			if not _early_ice.has(id):
+				_early_ice[id] = []
+			_early_ice[id].append(c)
+		else:
+			_conns[id].add_ice_candidate(str(c.mid), int(c.index), str(c.cand))
 
 
 func _flush_ice(id: int) -> void:

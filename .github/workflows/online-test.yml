@@ -4,11 +4,17 @@ name: Online co-op test
 on:
   workflow_dispatch:
   push:
-    paths: ['.github/workflows/online-test.yml', 'game/core/online_room.gd', 'game/core/mqtt_link.gd', 'game/core/net.gd']
+    paths: ['.github/workflows/online-test.yml', 'game/core/online_room.gd', 'game/core/mqtt_link.gd', 'game/core/ntfy_link.gd', 'game/core/net.gd']
 jobs:
   online:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # "" = the game's normal order (shiftr.io first); the others force one service.
+        signal: ["", "ntfy:https://ntfy.sh"]
+    name: online ${{ matrix.signal || 'default' }}
     steps:
       - uses: actions/checkout@v4
       - name: Godot, OpenXR vendors plugin and WebRTC
@@ -24,14 +30,15 @@ jobs:
         run: |
           cd game
           room=$(tr -dc 'ABCDEFGHJKLMNPQRSTUVWXYZ' < /dev/urandom | head -c 5)
-          (timeout 300 godot --headless --path . -- --desktop --host-online --room=$room --autotest=net_host > ../host.log 2>&1; echo $? > ../host.exit) &
+          sig=""; [ -n "${{ matrix.signal }}" ] && sig="--signal=${{ matrix.signal }}"
+          (timeout 300 godot --headless --path . -- --desktop --host-online --room=$room $sig --autotest=net_host > ../host.log 2>&1; echo $? > ../host.exit) &
           code=""
           for i in $(seq 60); do
             code=$(grep -o "Online room code: [A-Z0-9]*" ../host.log | head -1 | awk '{print $4}')
             [ -n "$code" ] && break; sleep 1
           done
           echo "room code: $code"
-          timeout 300 godot --headless --path . -- --desktop --join-code=$code --autotest=net_client > ../client.log 2>&1; echo $? > ../client.exit
+          timeout 300 godot --headless --path . -- --desktop --join-code=$code $sig --autotest=net_client > ../client.log 2>&1; echo $? > ../client.exit
           wait
           grep -hE "^PASS|^FAIL|AUTOTEST done|RIPPLE\]" ../host.log ../client.log
           test "$(cat ../host.exit)" = 0 && test "$(cat ../client.exit)" = 0

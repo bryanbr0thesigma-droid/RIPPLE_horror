@@ -1,7 +1,7 @@
 # Builds the Quest APK from source and publishes it as a GitHub release, so anyone can download
 # the demo. The version comes from game/export_presets.cfg (version/name).
 #
-# Runs when this file changes on a push, or by hand: Actions -> "Release demo APK" -> Run workflow.
+# Runs when this file or the version changes on a push, or by hand: Actions -> "Release demo APK" -> Run workflow.
 # If a release for the version already exists, its APK is replaced.
 #
 # Signing: if the repository has the secrets ANDROID_KEYSTORE_BASE64 (a keystore file, base64),
@@ -12,7 +12,7 @@ name: Release demo APK
 on:
   workflow_dispatch:
   push:
-    paths: ['.github/workflows/release-apk.yml']
+    paths: ['.github/workflows/release-apk.yml', 'game/export_presets.cfg']
 permissions:
   contents: write
 concurrency:

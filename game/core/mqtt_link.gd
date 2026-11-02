@@ -20,9 +20,13 @@ var _next_id := 1
 var _ping_t := 0.0
 var _pending: Array = []      # subscriptions/publishes asked for before the session was accepted
 var _done := false
+var _user := ""
+var _pass := ""
 
 
-func open(url: String) -> Error:
+func open(url: String, user := "", password := "") -> Error:
+	_user = user
+	_pass = password
 	_ws.supported_protocols = PackedStringArray(["mqtt"])
 	_ws.inbound_buffer_size = 1 << 18
 	_ws.outbound_buffer_size = 1 << 18
@@ -89,9 +93,12 @@ func poll(delta: float) -> void:
 func _send_connect() -> void:
 	var body := _str("MQTT")
 	body.append(4)                                   # protocol level 3.1.1
-	body.append(0x02)                                # clean session
+	body.append(0x02 | (0xC0 if _user != "" else 0))   # clean session (+ user name and password)
 	body.append_array(_u16(KEEP_ALIVE))
 	body.append_array(_str("ripple-%08x%08x" % [randi(), randi()]))
+	if _user != "":
+		body.append_array(_str(_user))
+		body.append_array(_str(_pass))
 	_send(0x10, body)
 
 
