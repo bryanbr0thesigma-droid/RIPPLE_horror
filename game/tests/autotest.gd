@@ -40,7 +40,7 @@ func _run() -> void:
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("%s/title_main.png" % out)
 		var title = get_tree().current_scene
-		for page in ["character", "play", "settings", "credits"]:
+		for page in ["character", "play", "room", "settings", "credits"]:
 			title.menu.show_page(page)
 			if page == "character":
 				Profile.suit = 2
@@ -333,6 +333,7 @@ func _net_host() -> void:
 	var flash = L.items["Flashlight"]
 	var has_fl := await wait_for(func(): return flash.holder == other_id, 15.0)
 	check(has_fl, "host sees the client pick up the flashlight")
+	await wait(1.5)     # the client steps out into Hall A first: deaths happen out there, not in dry rooms
 	L.player_caught(other_id, 0, L.creature.K.HALVES)
 	var ghosted := await wait_for(func(): return L.players[other_id].net_ghost, 10.0)
 	check(ghosted, "the dead client comes back as a ghost (a teammate is still alive)")
@@ -384,6 +385,8 @@ func _net_client() -> void:
 		fl.grab_desktop(rig)
 	else:
 		fl._on_xr_picked_up(null)
+	await wait(0.3)
+	rig.teleport(Vector3(2, 0.05, -1))      # out of the dry room, into Hall A
 	var dead := await wait_for(func(): return L.local_player.ghost, 25.0)
 	check(dead, "killed with the host alive, I'm a ghost")
 	check(fl.stowed == -Net.my_id(), "what I carried is in my bag")

@@ -1,0 +1,37 @@
+# Real-internet check of online co-op: a host and a client on a GitHub runner join one room through
+# the public MQTT brokers and connect with WebRTC, then run the co-op autotests.
+name: Online co-op test
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/online-test.yml', 'game/core/online_room.gd', 'game/core/mqtt_link.gd', 'game/core/net.gd']
+jobs:
+  online:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Godot, OpenXR vendors plugin and WebRTC
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+          mkdir -p "$HOME/bin" && unzip -q godot.zip && mv Godot_v4.7.2-stable_linux.x86_64 "$HOME/bin/godot" && echo "$HOME/bin" >> "$GITHUB_PATH"
+          curl -fsSL -o vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/5.1.0-stable/godotopenxrvendorsaddon.zip"
+          unzip -q vendors.zip -d vendors && cp -r vendors/asset/addons/godotopenxrvendors game/addons/
+          sh tools/fetch_webrtc.sh
+      - name: Import
+        run: godot --headless --path game --import > import.log 2>&1 || true
+      - name: Host and client through the public brokers
+        run: |
+          cd game
+          room=$(tr -dc 'ABCDEFGHJKLMNPQRSTUVWXYZ' < /dev/urandom | head -c 5)
+          (timeout 300 godot --headless --path . -- --desktop --host-online --room=$room --autotest=net_host > ../host.log 2>&1; echo $? > ../host.exit) &
+          code=""
+          for i in $(seq 60); do
+            code=$(grep -o "Online room code: [A-Z0-9]*" ../host.log | head -1 | awk '{print $4}')
+            [ -n "$code" ] && break; sleep 1
+          done
+          echo "room code: $code"
+          timeout 300 godot --headless --path . -- --desktop --join-code=$code --autotest=net_client > ../client.log 2>&1; echo $? > ../client.exit
+          wait
+          grep -hE "^PASS|^FAIL|AUTOTEST done|RIPPLE\]" ../host.log ../client.log
+          test "$(cat ../host.exit)" = 0 && test "$(cat ../client.exit)" = 0

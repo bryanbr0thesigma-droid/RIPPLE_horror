@@ -18,13 +18,15 @@ headsets or PCs, with or without VR. Built in Godot 4.7.2 with Godot XR Tools.
 3. In the headset, open **Library**, choose **Unknown Sources** in the filter menu, and start
    **RIPPLE Demo**.
 
-Your friend does the same on their Quest. Then on the same Wi-Fi: one of you picks **Play, Host a
-game**, and the other picks **Play** and taps the host's game in the list (or **Join by address**
-and types the address the host sees on their screen).
+Your friend does the same on their Quest. Then, from anywhere: one of you picks **Play, Host online
+(room code)** and reads out the 6-character room code (it pops up in the game and stays in the pause
+menu); the other picks **Play, Join online with a code** and types it. On the same Wi-Fi you can
+also use **Host on this Wi-Fi** and tap the host's game in the list.
 
 ## The title screen
 
-- **Play:** host a game, play solo, join a game found on your network, or join by address.
+- **Play:** host online with a room code, join online with a code, host on your Wi-Fi, play solo,
+  join a game found on your network, or join by address.
 - **Character:** type your name on the keyboard (or press Random), pick one of the three suits with
   the arrows, and pick a color. Your character stands on the pedestal next to the menu. In the game,
   your hands match your suit's gloves and other players see your suit in your color.
@@ -51,7 +53,15 @@ and types the address the host sees on their screen).
 Both of you need the game: either both open the project in Godot (clone this repo), or one of you
 exports a build for the other (see below).
 
-- **Same Wi-Fi or network:** one of you presses **Host a game**. The other sees "*name*'s game"
+- **Online, from anywhere (room code):** one of you presses **Host online (room code)**. A
+  6-character code like `QWX4P7` appears in the game (desktop: top-left; VR: a message, and in the
+  pause menu). The other presses **Join online with a code**, types it and presses **Join**.
+  The games connect straight to each other with WebRTC; a free public MQTT broker is only used
+  to swap connection details for that code (`game/core/online_room.gd`). It works through most home
+  routers. If both players are on strict networks (some mobile hotspots, school or work Wi-Fi), the
+  direct connection can fail; then use one of the options below. To test without the internet, run
+  `python3 tools/mqtt_ws_broker.py 8899` and start both games with `--signal=ws://127.0.0.1:8899/mqtt`.
+- **Same Wi-Fi or network:** one of you presses **Host on this Wi-Fi**. The other sees "*name*'s game"
   under "Join a game on your network" and clicks it. If it doesn't appear, type the host's address
   on the keypad and press **Join this address**. The host's address is shown at the bottom of the
   menu ("This computer: ...") and at the top-left of the screen while hosting.

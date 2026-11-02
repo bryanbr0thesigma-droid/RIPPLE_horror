@@ -8,8 +8,11 @@
 
 If installing over an older RIPPLE build fails, uninstall the old one first.
 
-### Playing together
-Everyone needs to be on the same Wi-Fi. One player picks **Host**; the others pick **Join** and choose the host from the list (or type the host's address).
+### Playing together (up to 4)
+- **Online, from anywhere:** one player picks **Play → Host online (room code)** and reads out the 6-character code that appears (it's also in the pause menu). Friends pick **Play → Join online with a code** and type it.
+- **Same Wi-Fi:** **Host on this Wi-Fi**, and the others tap the host's game in the list.
+
+Online games connect straight between headsets. If it can't connect, one of your networks may be blocking direct connections (some mobile hotspots and school or work Wi-Fi do).
 
 ### Credits
 All models, sounds and music are by human artists under CC0 or CC BY licences. They're listed in-game (Credits) and in [ASSETS.md](https://github.com/bryanbr0thesigma-droid/RIPPLE_horror/blob/claude/admiring-ride-o5042e/ASSETS.md).

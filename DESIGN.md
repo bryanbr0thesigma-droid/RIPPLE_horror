@@ -360,10 +360,12 @@ Everything else is coordination through the level.
 - **Quest export:** Godot OpenXR Vendors plugin. Mobile renderer, or Compatibility if
   performance needs it.
 - **Physics:** Jolt (built into Godot 4.4+), for stable climbing and platform physics
-- **Networking:** Godot's built-in multiplayer (MultiplayerSpawner,
-  MultiplayerSynchronizer, RPCs). ENet over LAN during development. Online play needs
-  a relay or matchmaking service — still to be chosen (options include Nakama, Epic
-  Online Services, or WebRTC with a small signaling server).
+- **Networking:** Godot's built-in multiplayer (RPCs), host-authoritative. On the same
+  network: ENet with LAN discovery. Online (0.9): room codes. The players' games connect
+  peer-to-peer with WebRTC (Godot's webrtc-native extension, public STUN servers), and
+  find each other by passing the offers through free public MQTT brokers on topics named
+  after the code, so there is no server to run. No TURN relay yet, so two very strict
+  NATs can't connect; a TURN service would fix that if it becomes a problem.
 - **Voice chat:** Godot has no built-in voice chat, so this needs an addon or a custom
   setup with microphone capture. Still to be chosen.
 - **Host-authoritative creature:** the creature AI runs on the host. Each player's

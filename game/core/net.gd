@@ -1,5 +1,6 @@
 extends Node
-## Co-op session: hosting, joining, LAN discovery, and who has the level loaded.
+## Co-op session: hosting, joining (on the local network by address, or online by room code),
+## LAN discovery, and who has the level loaded.
 ##
 ## The host is authoritative for the creature and the world state. Every peer simulates its own
 ## player and the items it holds. Messages only go to peers that have finished loading the level
@@ -11,6 +12,9 @@ signal session_ended(reason: String)
 signal players_changed
 signal ready_peers_changed
 signal hosts_changed
+signal room_code_changed
+## Something went wrong with online hosting that doesn't end the game (e.g. no room code).
+signal online_problem(reason: String)
 
 const PORT := 7777
 const DISCOVERY_PORT := 7778
@@ -26,7 +30,10 @@ var lan_hosts: Dictionary = {}
 
 var local_info := {"name": "Player", "color": Color(0.9, 0.55, 0.15), "vr": false}
 
-var _peer: ENetMultiplayerPeer
+var _peer: MultiplayerPeer
+var _room: OnlineRoom
+## The online room code while hosting or in an online game ("" otherwise).
+var room_code := ""
 var _broadcaster: PacketPeerUDP
 var _listener: PacketPeerUDP
 var _broadcast_timer := 0.0
@@ -85,12 +92,12 @@ func to_host(node: Node, method: StringName, args: Array = []) -> void:
 
 func host() -> Error:
 	leave(true)
-	_peer = ENetMultiplayerPeer.new()
-	var err := _peer.create_server(PORT, MAX_PLAYERS - 1)
+	var enet := ENetMultiplayerPeer.new()
+	var err := enet.create_server(PORT, MAX_PLAYERS - 1)
 	if err != OK:
-		_peer = null
 		session_failed.emit("Could not host on port %d (is another copy already hosting?)" % PORT)
 		return err
+	_peer = enet
 	multiplayer.multiplayer_peer = _peer
 	players = {1: local_info.duplicate()}
 	ready_peers = []
@@ -102,18 +109,76 @@ func host() -> Error:
 
 func join(address: String) -> Error:
 	leave(true)
-	_peer = ENetMultiplayerPeer.new()
-	var err := _peer.create_client(address.strip_edges(), PORT)
+	var enet := ENetMultiplayerPeer.new()
+	var err := enet.create_client(address.strip_edges(), PORT)
 	if err != OK:
-		_peer = null
 		session_failed.emit("Could not start connecting to %s" % address)
 		return err
+	_peer = enet
 	multiplayer.multiplayer_peer = _peer
 	return OK
 
 
+## Host a game anyone can join over the internet with the room code this gives out
+## (room_code_changed fires once it's ready, usually within a second or two).
+func host_online(forced_room := "") -> Error:
+	leave(true)
+	_room = _new_room()
+	_room.code_ready.connect(func(c: String):
+		room_code = c
+		room_code_changed.emit()
+		_announce_code())
+	_room.failed.connect(func(reason: String):
+		online_problem.emit(reason)
+		Game.notify(reason))
+	_room.host(MAX_PLAYERS, forced_room)
+	_peer = _room.rtc
+	multiplayer.multiplayer_peer = _peer
+	players = {1: local_info.duplicate()}
+	ready_peers = []
+	players_changed.emit()
+	session_started.emit()
+	return OK
+
+
+## Join an online game by its room code.
+func join_online(code: String) -> Error:
+	leave(true)
+	_room = _new_room()
+	_room.failed.connect(func(reason: String):
+		leave(true)
+		session_failed.emit(reason))
+	_room.join(code)
+	if _room == null:          # the code was rejected straight away
+		return FAILED
+	room_code = _room.code
+	_peer = _room.rtc
+	multiplayer.multiplayer_peer = _peer
+	return OK
+
+
+func _announce_code() -> void:
+	if room_code != "":
+		Game.notify("Online room code: %s\nFriends pick Join online and type it in. It's also in the pause menu." % room_code)
+
+
+func is_online_room() -> bool:
+	return _room != null
+
+
+func _new_room() -> OnlineRoom:
+	var r := OnlineRoom.new()
+	if Game.args.has("signal"):                  # tests: a local broker instead of the public ones
+		r.brokers = str(Game.args.signal).split(",")
+	return r
+
+
 func leave(quiet := false) -> void:
 	_stop_broadcasting()
+	if _room:
+		_room.close()
+		_room = null
+	room_code = ""
 	if _peer:
 		_expected_disconnect = true
 		_peer.close()
@@ -130,6 +195,7 @@ func leave(quiet := false) -> void:
 func level_loaded() -> void:
 	if is_host():
 		_mark_ready(1)
+		_announce_code.call_deferred()
 	else:
 		rpc_id(1, "_client_level_ready")
 
@@ -212,6 +278,10 @@ func _on_connection_failed() -> void:
 
 
 func _on_server_disconnected() -> void:
+	if _room:
+		_room.close()
+		_room = null
+	room_code = ""
 	_peer = null
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	players = {}
@@ -250,6 +320,8 @@ func stop_listening() -> void:
 
 
 func _process(delta: float) -> void:
+	if _room:
+		_room.poll(delta)
 	if _broadcaster:
 		_broadcast_timer -= delta
 		if _broadcast_timer <= 0.0:

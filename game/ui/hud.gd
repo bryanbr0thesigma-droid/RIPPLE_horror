@@ -51,7 +51,9 @@ func _process(delta: float) -> void:
 	_msg_time -= delta
 	_msg.modulate.a = clampf(_msg_time, 0.0, 1.0)
 	var lines := []
-	if Net.is_host():
+	if Net.is_host() and Net.is_online_room():
+		lines.append("Online room code: %s" % Net.room_code if Net.room_code != "" else "Getting a room code...")
+	elif Net.is_host():
 		var addrs := Net.local_addresses()
 		lines.append("Hosting. Friends join at: %s" % (", ".join(addrs) if addrs.size() > 0 else "?"))
 	lines.append("Players: %d" % Net.players.size())

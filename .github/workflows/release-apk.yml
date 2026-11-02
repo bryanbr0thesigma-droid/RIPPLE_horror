@@ -38,7 +38,7 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.1.0" "platform-tools" > /dev/null
 
-      - name: Godot, export templates and the OpenXR vendors plugin
+      - name: Godot, export templates, the OpenXR vendors plugin and WebRTC
         run: |
           base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
           curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
@@ -49,6 +49,7 @@ jobs:
           mkdir -p "$dir" && unzip -q templates.tpz && mv templates/* "$dir/" && rm -rf templates templates.tpz
           curl -fsSL -o vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/${VENDORS_VERSION}/godotopenxrvendorsaddon.zip"
           unzip -q vendors.zip -d vendors && cp -r vendors/asset/addons/godotopenxrvendors game/addons/
+          sh tools/fetch_webrtc.sh
           mkdir -p "$HOME/.config/godot"
           printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' \
             "$ANDROID_HOME" "$JAVA_HOME" > "$HOME/.config/godot/editor_settings-${GODOT_VERSION%.*}.tres"

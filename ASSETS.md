@@ -123,6 +123,17 @@ and door were synthesized for the project.
   (`game/player/suit_ik.gd`): the hips drop and the legs bend when they crouch, the arms
   reach for their hands, the head turns with theirs. No animation library is needed.
 
+## Code libraries
+
+Not art, but shipped in the game, all allowing commercial use:
+
+| Library | Use | License |
+|---|---|---|
+| [Godot Engine](https://godotengine.org/) | The engine | MIT |
+| [Godot XR Tools](https://github.com/GodotVR/godot-xr-tools) | VR movement, grabbing, hands | MIT |
+| [Godot OpenXR Vendors](https://github.com/GodotVR/godot_openxr_vendors) | Quest export | MIT |
+| [webrtc-native](https://github.com/godotengine/webrtc-native) | Online co-op (0.9), downloaded by `tools/fetch_webrtc.sh`. Bundles [libdatachannel](https://github.com/paullouisageneau/libdatachannel) and [libjuice](https://github.com/paullouisageneau/libjuice) (MPL 2.0, unmodified), usrsctp and libsrtp (BSD), Mbed TLS (Apache 2.0) | MIT |
+
 ## Dropped
 
 - Striker jumpsuit (DanlyVostok): removed from the game in 0.8.

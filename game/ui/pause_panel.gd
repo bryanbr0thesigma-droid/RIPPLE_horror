@@ -28,6 +28,13 @@ func _ready() -> void:
 	note.add_theme_color_override("font_color", Color(0.55, 0.64, 0.66))
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(note)
+	if Net.room_code != "":
+		var code := Label.new()
+		code.text = "Online room code: %s" % Net.room_code
+		code.add_theme_font_size_override("font_size", 30)
+		code.add_theme_color_override("font_color", Color(0.95, 0.85, 0.4))
+		code.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(code)
 	v.add_child(_button("Resume", func(): resumed.emit()))
 	v.add_child(_button("Leave to title", func(): Game.go_to_menu("You left the game.")))
 

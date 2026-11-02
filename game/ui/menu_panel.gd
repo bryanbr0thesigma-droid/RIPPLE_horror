@@ -18,6 +18,8 @@ var _ip := ""
 var _ip_label: Label
 var _code := ""
 var _code_label: Label
+var _room_text := ""
+var _room_label: Label
 var _code_msg: Label
 var _name_label: Label
 var _suit_label: Label
@@ -47,6 +49,7 @@ func _ready() -> void:
 	_build_main(stack)
 	_build_play(stack)
 	_build_address(stack)
+	_build_room(stack)
 	_build_character(stack)
 	_build_code(stack)
 	_build_settings(stack)
@@ -95,14 +98,59 @@ func _build_main(parent: Control) -> void:
 func _build_play(parent: Control) -> void:
 	var p := _page("play", parent)
 	p.add_child(_label("Play", 40, ACCENT))
-	p.add_child(_button("Host a game", _host))
+	p.add_child(_button("Host online (room code)", _host_online))
+	p.add_child(_button("Join online with a code", func():
+		_room_text = ""
+		_room_label.text = "_"
+		show_page("room")))
+	p.add_child(_button("Host on this Wi-Fi", _host))
 	p.add_child(_button("Play solo", _host))
-	p.add_child(_label("Games on your network", 20, INK))
+	p.add_child(_label("Games on your Wi-Fi", 20, INK))
 	_hosts_box = VBoxContainer.new()
 	_hosts_box.add_theme_constant_override("separation", 8)
 	p.add_child(_hosts_box)
 	p.add_child(_button("Join by address", func(): show_page("address")))
 	p.add_child(_button("Back", func(): show_page("main")))
+
+
+func _build_room(parent: Control) -> void:
+	var p := _page("room", parent)
+	p.add_child(_label("Join online", 36, ACCENT))
+	p.add_child(_label("Type the room code the host sees (6 characters).", 18, DIM))
+	_room_label = _label("_", 44, INK)
+	p.add_child(_room_label)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	var alphabet := OnlineRoom.ALPHABET
+	for r in 4:
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 6)
+		h.alignment = BoxContainer.ALIGNMENT_CENTER
+		for ch in alphabet.substr(r * 8, 8):
+			var b := _button(ch, _room_key.bind(ch), 22)
+			b.custom_minimum_size = Vector2(58, 52)
+			h.add_child(b)
+		v.add_child(h)
+	p.add_child(v)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	var del := _button("Delete", _room_key.bind("<"), 20)
+	del.custom_minimum_size = Vector2(140, 56)
+	row.add_child(del)
+	var go := _button("Join", func(): _join_online(_room_text), 24)
+	go.custom_minimum_size = Vector2(200, 56)
+	row.add_child(go)
+	p.add_child(row)
+	p.add_child(_button("Back", func(): show_page("play")))
+
+
+func _room_key(k: String) -> void:
+	if k == "<":
+		_room_text = _room_text.substr(0, maxi(_room_text.length() - 1, 0))
+	elif _room_text.length() < 6:
+		_room_text += k
+	_room_label.text = _room_text if _room_text != "" else "_"
 
 
 func _build_address(parent: Control) -> void:
@@ -301,7 +349,8 @@ Sounds: Freesound users Fupicat, Moss___6, Zrte, DatBloxyBirb, DangAdv64, batchk
 Music made from "At the End of Hope" by Emma_MA and "Underwater Ambient Pad" by isaiah658 (OpenGameArt)
 
 [b]Code[/b]
-Godot Engine and Godot XR Tools (MIT)"""
+Godot Engine and Godot XR Tools (MIT)
+Online play: webrtc-native (MIT), with libdatachannel and libjuice by Paul-Louis Ageneau (MPL 2.0, source at github.com/paullouisageneau), usrsctp and libsrtp (BSD), Mbed TLS (Apache 2.0)"""
 
 
 func _build_credits(parent: Control) -> void:
@@ -370,6 +419,26 @@ func _host() -> void:
 		show_page("connecting")
 
 
+func _host_online() -> void:
+	Profile.save()
+	Net.local_info.vr = Game.vr_mode
+	if Net.host_online() == OK:
+		_connecting_label.text = "Starting your game. Your room code will show up in a moment..."
+		show_page("connecting")
+
+
+func _join_online(code: String) -> void:
+	if OnlineRoom.clean(code).length() != 6:
+		_status.text = "The room code is 6 characters."
+		show_page("play")
+		return
+	Profile.save()
+	Net.local_info.vr = Game.vr_mode
+	_connecting_label.text = "Joining room %s..." % OnlineRoom.clean(code)
+	show_page("connecting")
+	Net.join_online(code)
+
+
 func _join(ip: String) -> void:
 	if ip.strip_edges() == "":
 		_status.text = "Type the host's address first."
@@ -420,6 +489,16 @@ func _type(ch: String) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	# Desktop: type the name on the real keyboard while the character page is open (or a code on
 	# the code page).
+	if _pages.get("room") and _pages.room.visible and event.pressed:
+		var rk := event as InputEventKey
+		if rk.keycode == KEY_BACKSPACE:
+			_room_key("<")
+		elif rk.keycode == KEY_ENTER or rk.keycode == KEY_KP_ENTER:
+			_join_online(_room_text)
+		elif rk.unicode > 0 and char(rk.unicode).to_upper() in OnlineRoom.ALPHABET:
+			_room_key(char(rk.unicode).to_upper())
+		get_viewport().set_input_as_handled()
+		return
 	if _pages.get("code") and _pages.code.visible and event.pressed:
 		var ck := event as InputEventKey
 		if ck.keycode == KEY_BACKSPACE:
