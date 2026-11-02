@@ -22,9 +22,19 @@ const SUITS := [
 		"glove": Color(0.12, 0.1, 0.08), "file": "res://assets/suits/brass.glb",
 		"masks": {}, "gain": 1.0, "flat": ["straps_mat"]},
 	# Secret: hidden until its code is typed in on the character page.
-	{"name": "Latex diver", "about": "A goth in a glossy black latex wetsuit, with a tank and a mask pushed up on her head. Your color is the tank and gear.",
+	{"name": "Latex diver", "about": "A goth in a glossy black latex wetsuit, with a tank and a mask pushed up on her head. Your color is the suit's trim, the tank and gear.",
 		"glove": Color(0.02, 0.02, 0.025), "file": "res://assets/suits/latex.glb",
-		"masks": {}, "gain": 1.0, "flat": ["Diver_Objects"], "code": "34"},
+		"masks": {"N00_010_01_Onepiece_00_CLOTH_Instance": "res://assets/suits/latex_trim_mask.png"}, "gain": 1.7,
+		"flat": ["Diver_Objects"], "code": "34",
+		# Sprung soft-body bones: they bounce and sway with the wearer's movement.
+		"jiggle": [
+			{"root": "J_Sec_L_Bust1", "end": "J_Sec_L_Bust2", "dir": SkeletonModifier3D.BONE_DIRECTION_FROM_PARENT, "stiffness": 0.55, "drag": 0.22, "gravity": 0.05},
+			{"root": "J_Sec_R_Bust1", "end": "J_Sec_R_Bust2", "dir": SkeletonModifier3D.BONE_DIRECTION_FROM_PARENT, "stiffness": 0.55, "drag": 0.22, "gravity": 0.05},
+			{"root": "J_Sec_L_Glute1", "end": "J_Sec_L_Glute1", "dir": SkeletonModifier3D.BONE_DIRECTION_PLUS_Y, "stiffness": 0.8, "drag": 0.28, "gravity": 0.03},
+			{"root": "J_Sec_R_Glute1", "end": "J_Sec_R_Glute1", "dir": SkeletonModifier3D.BONE_DIRECTION_PLUS_Y, "stiffness": 0.8, "drag": 0.28, "gravity": 0.03},
+			{"root": "J_Sec_L_Thigh1", "end": "J_Sec_L_Thigh1", "dir": SkeletonModifier3D.BONE_DIRECTION_PLUS_Y, "stiffness": 0.9, "drag": 0.3, "gravity": 0.0},
+			{"root": "J_Sec_R_Thigh1", "end": "J_Sec_R_Thigh1", "dir": SkeletonModifier3D.BONE_DIRECTION_PLUS_Y, "stiffness": 0.9, "drag": 0.3, "gravity": 0.0},
+		]},
 ]
 
 # Bone roles -> base names to look for (after stripping "mixamorig_" and numeric suffixes).
@@ -40,6 +50,7 @@ const ROLES := {
 
 var suit := 0
 var color := Color.ORANGE
+var jiggle: SpringBoneSimulator3D       # the soft-body springs, on suits that have them
 var idle := false
 var model: Node3D
 var skeleton: Skeleton3D
@@ -151,7 +162,46 @@ func _build() -> void:
 	skeleton.add_child(ik)
 	ik.rig = self
 	ik.setup(skeleton, bones)
+	_add_jiggle(info)
 	stand()
+
+
+## Soft-body bones (bust, rear, thighs) on springs, after the IK so they react to how the body moves.
+## Only on a whole suit (not the torn halves).
+func _add_jiggle(info: Dictionary) -> void:
+	var chains: Array = info.get("jiggle", [])
+	if chains.is_empty() or variant != "":
+		return
+	var found := []
+	for c: Dictionary in chains:
+		var root := _bone_starting(c.root)
+		var end := _bone_starting(c.end)
+		if root >= 0 and end >= 0:
+			found.append([root, end, c])
+	if found.is_empty():
+		return
+	var sim := SpringBoneSimulator3D.new()
+	sim.name = "Jiggle"
+	sim.setting_count = found.size()
+	for i in found.size():
+		var c: Dictionary = found[i][2]
+		sim.set_root_bone(i, found[i][0])
+		sim.set_end_bone(i, found[i][1])
+		sim.set_extend_end_bone(i, true)
+		sim.set_end_bone_direction(i, c.dir)
+		sim.set_end_bone_length(i, 0.07)
+		sim.set_stiffness(i, c.stiffness)
+		sim.set_drag(i, c.drag)
+		sim.set_gravity(i, c.gravity)
+	skeleton.add_child(sim)
+	jiggle = sim
+
+
+func _bone_starting(prefix: String) -> int:
+	for i in skeleton.get_bone_count():
+		if skeleton.get_bone_name(i).begins_with(prefix):
+			return i
+	return -1
 
 
 func _recolor(info: Dictionary) -> void:

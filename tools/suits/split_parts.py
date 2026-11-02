@@ -24,7 +24,7 @@ def part_of(bone):
     bl = b.lower()
     if 'head' in bl or 'neck' in bl:
         return 'head'
-    if b == 'Hips' or b == 'Spine' or any(k in bl for k in ('upleg', 'leg', 'foot', 'toe')):
+    if b == 'Hips' or b == 'Spine' or any(k in bl for k in ('upleg', 'leg', 'foot', 'toe', 'glute', 'thigh')):
         return 'lower'
     return 'upper'
 

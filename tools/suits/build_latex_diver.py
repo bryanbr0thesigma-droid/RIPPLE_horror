@@ -81,7 +81,7 @@ print('left hand', tuple(round(x, 2) for x in bone('LeftHand')), 'head', tuple(r
 #     thighs), each moved only through the bones that already hold it. A vertex moves by the
 #     weighted sum of its bones' moves, so every change blends out along the artist's own skin
 #     weights and nothing else (face, arms, hair) is touched.
-BUST, WAIST, HIPS, REAR, THIGH = 1.6, 0.86, 1.25, 1.65, 1.4
+BUST, WAIST, HIPS, REAR, THIGH = 1.45, 0.86, 1.25, 1.65, 1.4
 
 
 def smooth(e0, e1, x):
@@ -152,6 +152,75 @@ for o in body:
         with bpy.context.temp_override(object=o, active_object=o):
             bpy.ops.mesh.customdata_custom_splitnormals_clear()
     print('fuller', o.name, moved)
+
+# 2c. Jiggle bones for the rear (the bust already has VRoid's own, J_Sec_*_Bust1/2): one per side,
+#     parented to the hips, holding the round of each cheek with a soft falloff. The game springs
+#     them and the bust bones (SpringBoneSimulator3D, see "jiggle" in suit_rig.gd).
+rear = [o for o in body if any(m and ('Body_00_SKIN' in m.name or 'Onepiece' in m.name) for m in o.data.materials)]
+rear_pts = [o.matrix_world @ v.co for o in rear for v in o.data.vertices]
+behind = [p for p in rear_pts if hips_c.z - 0.15 < p.z < hips_c.z and 0.04 < abs(p.x) < 0.16 and p.y > hips_c.y]
+rear_y = max(p.y for p in behind)
+GLUTE = {}
+for side, sgn in (('L', 1), ('R', -1)):
+    GLUTE[side] = Vector((sgn * 0.09, (hips_c.y + rear_y) / 2, hips_c.z - 0.07))
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.mode_set(mode='EDIT')
+for side, c in GLUTE.items():
+    b = arm.data.edit_bones.new('J_Sec_%s_Glute1' % side)
+    b.head = arm.matrix_world.inverted() @ c
+    b.tail = arm.matrix_world.inverted() @ (c + Vector((0, 0.08, 0)))
+    b.parent = arm.data.edit_bones['Hips']
+    b.use_deform = True
+bpy.ops.object.mode_set(mode='OBJECT')
+for o in rear:
+    vgs = {side: o.vertex_groups.new(name='J_Sec_%s_Glute1' % side) for side in GLUTE}
+    for v in o.data.vertices:
+        p = o.matrix_world @ v.co
+        for side, c in GLUTE.items():
+            d2 = ((p.x - c.x) / 0.08) ** 2 + ((p.z - c.z) / 0.1) ** 2
+            w = 0.75 * math.exp(-d2) * smooth(hips_c.y, hips_c.y + 0.06, p.y)
+            if w < 0.02:
+                continue
+            for g in v.groups:
+                g.weight *= (1 - w)
+            vgs[side].add([v.index], w, 'REPLACE')
+# Thigh jiggle: a bone from the middle of each thigh pointing out and back, holding the flesh of the
+# upper thigh (most on the outer and back side), so each step bounces it against the leg.
+THIGHS = {}
+for side, full in (('L', 'Left'), ('R', 'Right')):
+    a, b = bone(full + 'UpLeg'), bone(full + 'Leg')
+    THIGHS[side] = (a, b)
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.mode_set(mode='EDIT')
+for side, (a, b) in THIGHS.items():
+    d = b - a
+    eb = arm.data.edit_bones.new('J_Sec_%s_Thigh1' % side)
+    out = Vector((1 if side == 'L' else -1, 0.5, 0)).normalized()     # outward and back, level
+    eb.head = arm.matrix_world.inverted() @ (a + d * 0.4)
+    eb.tail = arm.matrix_world.inverted() @ (a + d * 0.4 + out * 0.08)
+    eb.parent = arm.data.edit_bones[('Left' if side == 'L' else 'Right') + 'UpLeg']
+    eb.use_deform = True
+bpy.ops.object.mode_set(mode='OBJECT')
+for o in rear:
+    vgs = {side: o.vertex_groups.new(name='J_Sec_%s_Thigh1' % side) for side in THIGHS}
+    for v in o.data.vertices:
+        p = o.matrix_world @ v.co
+        for side, (a, b) in THIGHS.items():
+            d = b - a
+            L = d.length
+            u = d.normalized()
+            t = (p - a).dot(u) / L
+            off = p - (a + u * (p - a).dot(u))
+            if off.length > 0.2 or not (0.0 < t < 0.9) or (p.x > 0) != (side == 'L'):
+                continue
+            outer = 0.6 + 0.4 * max(0.0, off.normalized().dot(Vector((1 if side == 'L' else -1, 0.6, 0)).normalized()))
+            w = 0.5 * math.exp(-((t - 0.42) / 0.2) ** 2) * outer
+            if w < 0.02:
+                continue
+            for g in v.groups:
+                g.weight *= (1 - w)
+            vgs[side].add([v.index], w, 'REPLACE')
+print('rear jiggle bones at', {k: tuple(round(x, 3) for x in c) for k, c in GLUTE.items()})
 
 # 3. Materials: latex body, shiny top.
 latex = bpy.data.materials.new('Latex_suit')
