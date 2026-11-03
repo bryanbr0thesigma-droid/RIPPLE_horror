@@ -381,7 +381,8 @@ def claw_point(box):
     return box[0] + (box[2] - box[0]) * 0.14, box[1] + (box[3] - box[1]) * 0.36
 
 
-STANDBY_FLASHES = [(0.7, 1), (1.5, 2), (2.35, 3)]   # (seconds into the stand-by card, picture), two frames each
+STANDBY_FLASHES = [(0.6, 1), (1.45, 2), (2.3, 3)]   # (seconds into the stand-by card, picture)
+FLASH = 0.23                                        # long enough to see what it is, then gone
 
 
 def demo(c, t, sc):
@@ -395,8 +396,8 @@ def demo(c, t, sc):
     if standby <= t < after:
         u = t - standby
         for at, pic in STANDBY_FLASHES:
-            if at <= u < at + 0.067:
-                kill_frame(c, pic, 0.25)
+            if at <= u < at + FLASH:
+                kill_frame(c, pic, 0.1 + (u - at))
                 return
         stand_by(c, u)
         return
@@ -548,11 +549,9 @@ def bars(c, t, sc):
 
 
 def leader(c, t, sc):
+    """The countdown: 3, 2, 1, then the program."""
     c.rect(0, 0, W, H, fill=(120, 120, 116))
-    n = 3 - int(t)
-    if n < 2:
-        c.rect(0, 0, W, H, fill=BLACK)
-        return
+    n = max(1, 3 - int(t))
     f = t % 1.0
     c.pie(320, 240, 330, -90, -90 + 360 * f, (150, 150, 146))
     c.line([(0, 240), (W, 240)], (40, 40, 40), 2)
