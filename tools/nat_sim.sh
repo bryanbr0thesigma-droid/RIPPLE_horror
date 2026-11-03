@@ -42,7 +42,11 @@ up)
 			iptables -P FORWARD DROP
 			iptables -A FORWARD -i $r-h -o $r-i -j ACCEPT
 			iptables -A FORWARD -i $r-i -o $r-h -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-			iptables -t nat -A POSTROUTING -o $r-i -j MASQUERADE $rnd"
+			iptables -t nat -A POSTROUTING -o $r-i -j MASQUERADE $rnd
+			# Like a real home router, unasked-for packets from outside are dropped silently. (Left
+			# to the router itself they'd claim the outside port, and the router would then pick a
+			# different port for the reply: a strict router by accident.)
+			iptables -A INPUT -i $r-i -m conntrack --ctstate NEW -j DROP"
 		ip netns exec $h sh -c "
 			ip link set lo up
 			ip addr add 192.168.1.2/24 dev $h-r && ip link set $h-r up

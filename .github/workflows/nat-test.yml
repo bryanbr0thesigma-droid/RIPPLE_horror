@@ -35,7 +35,7 @@ jobs:
           sudo sh tools/nat_sim.sh up ${{ matrix.home1 }} ${{ matrix.home2 }}
           sudo ip netns exec inet python3 tools/mqtt_ws_broker.py 8899 203.0.113.10 > broker.log 2>&1 &
           sudo ip netns exec inet turnserver -n --no-cli --log-file=stdout -L 203.0.113.10 --relay-ip=203.0.113.10 \
-            --external-ip=203.0.113.10 --listening-port=3478 -a -u ripple:ripple -r ripple --no-tls --no-dtls -f > turn.log 2>&1 &
+            --external-ip=203.0.113.10 --listening-port=3478 -a -u ripple:ripple -r ripple --no-tls --no-dtls -f -V > turn.log 2>&1 &
           sleep 2
       - name: Host in home 1, join from home 2
         run: |
@@ -56,7 +56,8 @@ jobs:
           echo "RESULT: $result"
           echo "--- host"; grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]|\[RIPPLE\]" ../host.log
           echo "--- joiner"; grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]|\[RIPPLE\]" ../client.log
-          echo "--- turn (last lines)"; tail -5 ../turn.log
+          echo "--- turn (problems)"; grep -iE "error|denied|forbidden|403|refus|unreach|permission" ../turn.log | sort | uniq -c | head -12
+          echo "--- joiner errors"; grep -iE "error|webrtc|ice" ../client.log | grep -v OpenXR | sort | uniq -c | head -8
           echo "--- UDP flows on the pretend internet (packets, from > to)"
           awk '/ IP /{print $3, ">", $5}' ../tcpdump.txt | sed 's/:$//' | sort | uniq -c | sort -rn | head -25
           echo "--- router 1 NAT"; sudo ip netns exec r1 iptables -t nat -L POSTROUTING -v -n
