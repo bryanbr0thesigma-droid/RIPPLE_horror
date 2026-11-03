@@ -39,6 +39,7 @@ jobs:
           sleep 2
       - name: Host in home 1, join from home 2
         run: |
+          set +e +o pipefail
           ice="--ice=stun:203.0.113.10:3478"
           [ "${{ matrix.relay }}" = "true" ] && ice="--ice=stun:203.0.113.10:3478,turn:203.0.113.10:3478 --ice-user=ripple --ice-pass=ripple"
           sig="--signal=ws://203.0.113.10:8899/mqtt"
@@ -51,4 +52,7 @@ jobs:
           if grep -q "connected to the host" ../client.log; then result="CONNECTED"; else result="COULD NOT CONNECT"; fi
           echo "### ${{ matrix.home1 }} + ${{ matrix.home2 }}${{ matrix.relay && ' + relay' || '' }}: $result" >> "$GITHUB_STEP_SUMMARY"
           echo "RESULT: $result"
-          grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]" ../host.log ../client.log || true
+          echo "--- host"; grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]|\[RIPPLE\]" ../host.log
+          echo "--- joiner"; grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]|\[RIPPLE\]" ../client.log
+          echo "--- turn (last lines)"; tail -5 ../turn.log
+          true
