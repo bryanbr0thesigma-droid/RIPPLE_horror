@@ -1,4 +1,4 @@
-# Builds "Water Safety and You", the F.A.L.C.O.N. orientation tape about the Wader.
+# Builds "Water Safety and You", the F.A.L.C.O.N. orientation tape about the Wader (about 3 minutes).
 #   python3 tape.py <voice_dir> <out_dir> [--stills 12.5,40] [--no-video] [--no-audio] [--size 960x720]
 # voice_dir holds Microsoft Sam's lines from fetch_voice.py. Writes out_dir/falcon_tape.mp4 (and .srt).
 import argparse, bisect, math, multiprocessing as mp, os, subprocess, sys
@@ -52,89 +52,46 @@ class Scene:
         return self.m[spec] + off
 
 
-def card(n, name, key):
-    return Scene(f"card{n}", S.section_card(n, name), [P(0.45), L(key, 1.0)], sfx=[(0.0, "chime_section", 0.55)])
-
-
 def timeline():
     return [
-        Scene("vcr", S.vcr, [P(3.2)], static=[(0, 0.6, 1.0), (2.75, 0.45, 1.0)]),
-        Scene("warning", S.warning, [P(1.0), L("warn1", 0.7), L("warn2", 1.6), L("warn3", 1.5)]),
-        Scene("logo", S.logo, [P(2.9), L("pres", 1.3)], beds=[(0, "corp")], sfx=[(0.25, "chime_logo", 0.7)]),
-        Scene("title", S.title, [P(0.7), L("title", 0.9), L("sub", 2.4)], beds=[(0, "corp")],
-              glitch=[("e:sub+1.6", 0.25, 0.45)]),
-        card(1, "THE POOLROOMS", "s1"),
-        Scene("poolrooms", S.poolrooms, [P(0.5), L("pr1", 0.5), L("pr2", 0.7), L("pr3", 0.5), L("pr4", 2.4), L("pr5", 2.8)],
+        Scene("vcr", S.vcr, [P(3.2)], static=[(0, 0.6, 1.0), (2.75, 0.45, 1.0)],
+              sfx=[(0, "static:0.6", 0.5), (2.75, "static:0.45", 0.5)]),
+        Scene("warning", S.warning, [P(1.0), L("warn1", 0.7), L("warn2", 1.6), L("warn3", 1.4)]),
+        Scene("logo", S.logo, [P(2.9), L("pres", 1.2)], beds=[(0, "corp")]),
+        Scene("title", S.title, [P(0.6), L("title", 2.2)], beds=[(0, "corp")], glitch=[("e:title+1.5", 0.25, 0.45)]),
+        Scene("poolrooms", S.poolrooms, [P(0.4), L("pr1", 0.8), L("pr3", 0.5), L("pr4", 2.4), L("pr5", 2.8)],
               beds=[(0, "corp+halls"), ("pr4", "halls"), ("pr4+2.6", "eerie")],
-              sfx=[*[(f"pr4+{0.4 + k * 0.35:.2f}", "relay", 0.35) for k in range(8)],
-                   ("pr5+0.85", "buzz:0.08", 0.4), ("pr5+1.02", "buzz:0.22", 0.4), ("pr5+1.0", "click_close", 0.9)],
-              glitch=[("pr5+1.0", 0.25, 0.3)]),
-        card(2, "IDENTIFICATION", "s2"),
-        Scene("ident", S.ident, [P(0.6), L("id1", 0.8), L("id2", 0.6), L("id3", 0.6), L("id4", 1.6)],
-              beds=[(0, "corp"), ("id1", "eerie")],
-              sfx=[("e:id4+0.25", "subliminal", 0.4)], glitch=[("e:id4+0.2", 0.2, 0.7)]),
-        Scene("dry", S.dry, [P(0.4), L("id5", 1.8)], beds=[(0, "corp")], sfx=[(0.3, "wade:3.2", 0.25)]),
-        card(3, "HOW IT HEARS", "s3"),
-        Scene("hear", S.hear, [P(0.4), L("hr1", 0.5), L("hr2", 0.5), L("hr3", 1.4)], beds=[(0, "corp")],
-              sfx=[(0.0, "wade:12", 0.22)]),
-        Scene("noise", S.noise_chart, [P(0.3), L("hr4", 0.9), L("hr5", 0.9), L("hr6", 0.9), L("hr7", 1.4)], beds=[(0, "corp")],
-              sfx=[("hr5+0.2", "wade:2.0", 0.18), ("hr6+0.2", "wadefast:2.0", 0.45), ("hr7+0.2", "hands:2.0", 0.35)]),
-        Scene("investigate", S.investigate, [P(0.4), L("hr8", 2.0)], beds=[(0, "corp")],
-              sfx=[(0.8, "plop", 1.5), (1.4, "wade:3.0", 0.25)]),
-        card(4, "FALLING IN", "s4"),
-        Scene("fall", S.fall, [P(0.3), L("fa1", 1.5), L("fa2", 2.4)], beds=[(0, "corp"), ("e:fa2-1.3", "eerie")],
-              sfx=[("fa1+2.0", "splash_big", 1.2), ("e:fa2-1.3", "charge_onset", 0.45)],
-              glitch=[("e:fa2-1.3", 0.25, 0.35)]),
-        Scene("speed", S.speed, [P(0.3), L("fa3", 1.6)], beds=[(0, "eerie")]),
-        Scene("climb", S.climb_out, [P(0.3), L("fa4", 0.6), L("fa5", 2.6)], beds=[(0, "corp"), ("fa5+1.0", "eerie")],
-              sfx=[("fa4+0.6", "wade:1.4", 0.35)]),
-        card(5, "STILLNESS PROTOCOL", "s5"),
-        Scene("search", S.still_search, [P(0.3), L("st1", 0.6), L("st2", 3.0)], beds=[(0, "eerie")],
-              sfx=[("st2", "wade:2.6", 0.25), ("st2+2.6", "close:5.0", 0.35)]),
-        Scene("dontmove", S.dont_move, [P(0.3), L("st3", 1.4)], beds=[(0, "eerie")]),
-        Scene("odds", S.odds, [P(0.3), L("st4", 1.2), L("st5", 2.6)], beds=[(0, "corp"), ("st5-0.3", "none")],
-              sfx=[("st5", "boom", 0.5), ("e:st5+0.15", "stutter", 1.0), ("e:st5+1.35", "subliminal", 0.4)],
+              sfx=[("pr5+1.0", "click_close", 0.7)], glitch=[("pr5+1.0", 0.25, 0.3)]),
+        Scene("wader", S.the_wader, [P(0.5), L("id1", 0.6), L("eyes", 1.4)], beds=[(0, "eerie")],
+              sfx=[("e:eyes+0.25", "subliminal", 0.6)], glitch=[("e:eyes+0.2", 0.2, 0.7)]),
+        Scene("hearing", S.hearing, [P(0.3), L("hr1", 0.5), L("slow", 1.6)], beds=[(0, "corp")],
+              sfx=[(0.0, "wade:11", 0.35)]),
+        Scene("dry", S.dry_ground, [P(0.3), L("dry", 1.6)], beds=[(0, "corp")], sfx=[(0.2, "wade:3.0", 0.35)]),
+        Scene("falling", S.falling, [P(0.3), L("fa2", 1.2), L("out", 1.6)],
+              beds=[(0, "corp"), ("e:fa2-1.3", "eerie"), ("out", "corp")],
+              sfx=[("fa2+1.3", "splash_big", 0.8), ("e:fa2-1.3", "charge_onset", 0.6)], glitch=[("e:fa2-1.3", 0.25, 0.35)]),
+        Scene("stillness", S.stillness, [P(0.3), L("st1", 0.5), L("feel", 3.2), L("st4", 2.0), L("st5", 2.6)],
+              beds=[(0, "eerie"), ("st4", "corp"), ("st5-0.3", "none")],
+              sfx=[("feel", "wade:2.4", 0.35), ("feel+2.4", "close:3.2", 0.45), ("e:st5+0.15", "stutter", 1.0),
+                   ("e:st5+1.35", "subliminal", 0.6)],
               glitch=[("e:st5+0.15", 1.2, 0.35), ("e:st5+1.3", 0.2, 0.8)], freeze=[("e:st5+0.15", 1.1)]),
-        card(6, "WARNING SIGNS", "s6"),
-        Scene("wake", S.wake, [P(0.4), L("ws1", 1.2)], beds=[(0, "eerie")], sfx=[(0.0, "bubbles", 1.2)]),
-        Scene("signs", S.signs, [P(0.3), L("ws2", 0.2), M("snd_wander"), P(2.8), L("ws3", 0.2), M("snd_hunt"), P(3.0),
-                                 L("ws4", 0.2), M("snd_close"), P(3.0), L("ws5", 0.3), M("snd_charge"), P(4.9)],
-              sfx=[("snd_wander", "clip:wander", 1.2), ("snd_hunt", "clip:hunt", 1.1), ("snd_close", "clip:close", 1.1),
-                   ("snd_charge", "clip:charge", 0.5)], glitch=[("snd_charge+2.4", 0.3, 0.4)]),
-        Scene("waits", S.waits, [P(0.4), L("ws6", 2.0)], beds=[(0, "eerie")], sfx=[(0.0, "wade:6", 0.2)]),
-        card(7, "EQUIPMENT", "s7"),
-        Scene("decoy", S.decoy, [P(0.3), L("eq1", 1.6)], beds=[(0, "corp")],
-              sfx=[("eq1+0.8", "whoosh", 0.5), ("eq1+1.9", "splash_small", 0.7), ("eq1+2.3", "wade:1.7", 0.3)]),
-        Scene("lidar", S.lidar, [P(0.3), L("eq2", 0.6), L("eq3", 0.8), L("eq4", 1.8)], beds=[(0, "eerie")],
-              sfx=[("eq2+0.8", "whir", 0.35), ("eq4+0.2", "whir", 0.35), ("e:eq4-0.9", "buzz:0.13", 0.45),
-                   ("e:eq4-0.9", "click_close", 0.9)], glitch=[("e:eq4-0.95", 0.25, 0.6)]),
-        Scene("generator", S.generator_scene, [P(0.3), L("eq5", 0.7), L("eq6", 2.0)], beds=[(0, "corp")],
-              sfx=[("eq5+2.4", "pour:0.8", 0.35), ("eq5+4.9", "pour:0.8", 0.35), (gen_time, "gen_start", 0.45),
-                   ("eq6", "wade:5", 0.2)]),
-        card(8, "CASUALTY PROCEDURE", "s8"),
-        Scene("taken", S.taken, [P(0.3), L("ca1", 0.9), L("ca2", 1.0), L("ca3", 1.8)], beds=[(0, "drone")],
-              sfx=[("ca1+0.4", "screech_far", 0.35), ("ca1+0.7", "splash_big", 0.9), ("ca1+1.4", "chew", 0.28),
-                   ("ca2+1.5", "chew", 0.28), ("ca2+3.5", "chew", 0.25)]),
-        Scene("bag", S.bag_scene, [P(0.3), L("ca4", 1.2)], beds=[(0, "drone")]),
-        Scene("returning", S.returning, [P(0.3), L("ca5", 1.8)], beds=[(0, "drone")], sfx=[("ca5+1.2", "drips:6", 0.25)]),
-        Scene("ask", S.ask, [P(0.4), L("ca6", 2.4)], beds=[(0, "drone")], glitch=[("ca6", 0.18, 0.5)]),
+        Scene("clicking", S.clicking, [P(0.3), L("listen", 0.4), L("ws3", 0.2), M("snd_hunt"), P(3.0), L("scr", 0.2),
+                                       M("snd_charge"), P(4.9)],
+              sfx=[("snd_hunt", "clip:hunt", 0.8), ("snd_charge", "clip:charge", 0.75)], glitch=[("snd_charge+2.4", 0.3, 0.4)]),
+        Scene("taken", S.taken, [P(0.3), L("ca1", 0.9), L("ca2", 0.9), L("ca3", 1.8)], beds=[(0, "dark")],
+              sfx=[("ca1+0.4", "screech_far", 0.5), ("ca1+0.7", "splash_big", 0.7), ("ca1+1.4", "chew", 0.4),
+                   ("ca2+1.5", "chew", 0.4)]),
+        Scene("back", S.coming_back, [P(0.4), L("ret", 1.0), L("ca6", 2.2)], beds=[(0, "dark")],
+              sfx=[("ret+0.8", "drips:4", 0.35)], glitch=[("ca6", 0.18, 0.5)]),
         Scene("summary", S.summary, [P(0.5), L("rm0", 0.5), L("rm1", 0.6), L("rm2", 0.6), L("rm3", 0.9), L("rm4", 0.3)],
-              beds=[(0, "corp"), ("rm4", "none")],
-              sfx=[("rm1", "point:72", 0.5), ("rm2", "point:76", 0.5), ("rm3", "point:79", 0.5)]),
-        Scene("fallin", S.fall_in, [P(0.25), L("rm5", 2.2)], glitch=[(0, 0.35, 0.9)],
-              sfx=[(0.0, "static:0.3", 0.5), ("rm5", "boom", 0.6)]),
-        Scene("outro", S.outro, [P(0.5), L("end", 3.6)], beds=[(0, "corp")], sfx=[(0.2, "chime_logo", 0.6)]),
-        Scene("blank", S.blank, [P(2.4)], glitch=[(2.15, 0.25, 0.5)]),
-        Scene("stinger", S.stinger, [P(3.8), L("hear", 0.35), M("scare"), P(0.8), M("static"), P(1.5), M("stop"), P(1.6), P(0.9)],
-              beds=[(0, "none")],
-              sfx=[*[(0.5 + k / 15, "type", 0.7) for k in range(34) if "THE HUMAN BODY IS ABOUT 60% WATER."[k] != " "],
-                   ("scare", "screech", 0.6), ("static", "static:1.5", 0.55)],
+              beds=[(0, "corp"), ("rm4", "none")]),
+        Scene("fallin", S.fall_in, [P(0.25), L("rm5", 2.2)], glitch=[(0, 0.35, 0.9)], sfx=[(0.0, "static:0.3", 0.5)]),
+        Scene("outro", S.outro, [P(0.5), L("end", 3.4)], beds=[(0, "corp")]),
+        Scene("blank", S.blank, [P(2.2)], glitch=[(1.95, 0.25, 0.5)]),
+        Scene("stinger", S.stinger, [P(3.8), L("hear", 0.35), M("scare"), P(0.8), M("static"), P(1.5), M("stop"), P(1.6), P(0.8)],
+              beds=[(0, "none")], sfx=[("scare", "screech", 1.0), ("static", "static:1.5", 0.6)],
               glitch=[("scare", 0.8, 1.0)], static=[("static", 1.5, 1.0)]),
     ]
-
-
-def gen_time(sc):
-    return min(sc.m["eq5"] + 5.9, sc.m["eq6"] - 0.1)
 
 
 def layout(tl, durs):
@@ -172,22 +129,9 @@ def voice(voice_dir, key):
     return x
 
 
-def loop_to(x, n):
-    return np.tile(x, n // len(x) + 1)[:n]
-
-
 def creature_clips():
     hunt = A.game("creature_hunt")
-    close = A.game("creature_close")
-    charge = A.game("creature_charge")
-    n = int(2.6 * A.SR)
-    gate = np.zeros(n)
-    for a, b in ((0.15, 0.75), (1.55, 2.05)):
-        gate[int(a * A.SR):int(b * A.SR)] = 1
-    gate = np.convolve(gate, np.ones(400) / 400, "same")
-    wander = hunt[:n] * gate * 0.9 + loop_to(A.game("wade_loop"), n) * 0.25
-    return {"wander": wander, "hunt": hunt[int(3 * A.SR):int(5.8 * A.SR)],
-            "close": close[:int(2.8 * A.SR)], "charge": charge}
+    return {"hunt": hunt[int(3 * A.SR):int(5.8 * A.SR)], "charge": A.game("creature_charge")}
 
 
 def envelope(x, rate=100):
@@ -197,85 +141,55 @@ def envelope(x, rate=100):
     return e / (e.max() + 1e-9)
 
 
+def level(x, rms=0.12):
+    """Scale a sound so its loud parts sit at a fixed loudness (about the narration's)."""
+    loud = x[np.abs(x) > np.abs(x).max() * 0.05]
+    return x / (np.sqrt(np.mean(loud ** 2)) + 1e-9) * rms if len(loud) else x
+
+
 class Sfx:
     def __init__(self, clips):
         self.clips = clips
         self.cache = {}
+        self.static = A.asset("static.mp3")
 
     def get(self, name):
-        if name in self.cache:
-            return self.cache[name]
+        if name not in self.cache:
+            self.cache[name] = level(self.make(name))
+        return self.cache[name]
+
+    def make(self, name):
         base, _, arg = name.partition(":")
         g = A.game
-        if base == "chime_logo":
-            x = A.chime_logo()
-        elif base == "chime_section":
-            x = A.chime_section()
-        elif base == "point":
-            x = A.chime_point(int(arg))
-        elif base == "relay":
-            x = A.relay_click()
-        elif base == "buzz":
-            x = A.hum_buzz(float(arg))
-        elif base == "click_close":
-            x = g("creature_close")[int(0.4 * A.SR):int(1.2 * A.SR)] * A.env(int(0.8 * A.SR), 0.01, 0.2)
-        elif base == "subliminal":
-            x = A.static_burst(0.1) * 0.6
+        if base == "static":
+            n = int(float(arg) * A.SR)
+            return self.static[int(2 * A.SR):int(2 * A.SR) + n] * A.env(n, 0.005, 0.03)
+        if base == "click_close":
+            return g("creature_close")[int(0.4 * A.SR):int(1.2 * A.SR)] * A.env(int(0.8 * A.SR), 0.01, 0.2)
+        if base == "subliminal":
             s = g("kill_screech_3")[:int(0.16 * A.SR)]
-            x = np.concatenate([x, np.zeros(len(s) - len(x))]) + s if len(s) > len(x) else x
-        elif base in ("wade", "wadefast"):
-            w = g("wade_loop")
-            if base == "wadefast":
-                w = A.resample(w, 1.5)
+            return s + np.concatenate([self.static[:int(0.1 * A.SR)] * 0.5, np.zeros(len(s) - int(0.1 * A.SR))])
+        if base == "wade":
             n = int(float(arg) * A.SR)
-            x = loop_to(w, n) * A.env(n, 0.3, 0.4) * 2.5
-        elif base == "hands":
+            return A.loop_to(g("wade_loop"), n) * A.env(n, 0.3, 0.4)
+        if base == "close":
             n = int(float(arg) * A.SR)
-            x = loop_to(g("pour_loop"), n) * A.env(n, 0.1, 0.3) * 0.6 + loop_to(A.resample(g("wade_loop"), 2.0), n) * 0.4
-        elif base == "pour":
-            n = int(float(arg) * A.SR)
-            x = loop_to(g("pour_loop"), n) * A.env(n, 0.05, 0.2)
-        elif base == "close":
-            n = int(float(arg) * A.SR)
-            x = loop_to(g("creature_close"), n) * A.env(n, 0.3, 0.6)
-        elif base == "clip":
-            x = self.clips[arg]
-        elif base == "whir":
-            x = g("flashlight_whir")[:int(1.6 * A.SR)]
-            x = x * A.env(len(x), 0.05, 0.3)
-        elif base == "gen_start":
-            st, hum = g("generator_start"), g("generator_hum")
-            x = np.concatenate([st[:int(3.0 * A.SR)] * A.env(int(3.0 * A.SR), 0.01, 0.5),
-                                loop_to(hum, int(9 * A.SR)) * A.env(int(9 * A.SR), 0.5, 1.5)])
-        elif base == "bubbles":
-            rng = np.random.default_rng(9)
-            x = np.zeros(int(9 * A.SR))
-            p = A.resample(g("plop"), 2.2)
-            for k in range(26):
-                A.place(x, p, rng.uniform(0, 8.5), rng.uniform(0.1, 0.4))
-        elif base == "drips":
+            return A.loop_to(g("creature_close"), n) * A.env(n, 0.3, 0.6)
+        if base == "clip":
+            return self.clips[arg]
+        if base == "drips":
             x = np.zeros(int(float(arg) * A.SR))
             p = A.resample(g("plop"), 1.6)
             for k in range(int(float(arg) / 0.9)):
-                A.place(x, p, k * 0.9 + 0.1 * (k % 3), 0.5)
-        elif base == "screech_far":
-            x = A.filt(g("kill_screech_1"), None, 1500)
-        elif base == "chew":
-            x = A.filt(np.concatenate([g("feed_chew_1"), g("feed_chew_2")]), None, 1800)
-        elif base == "screech":
-            x = A.norm(g("kill_screech_3"), 1.0)
-        elif base == "static":
-            x = A.static_burst(float(arg))
-        elif base == "boom":
-            x = A.boom()
-        elif base == "whoosh":
-            x = A.whoosh()
-        elif base == "type":
-            x = A.typewriter()
-        else:
-            x = g(base)
-        self.cache[name] = x
-        return x
+                A.place(x, p, k * 0.9 + 0.1 * (k % 3))
+            return x
+        if base == "screech_far":
+            return A.filt(g("kill_screech_1"), None, 1500)
+        if base == "chew":
+            return A.filt(np.concatenate([g("feed_chew_1"), g("feed_chew_2")]), None, 1800)
+        if base == "screech":
+            return g("kill_screech_3")
+        return g(base)
 
 
 def build_audio(tl, total, voices, clips, out_wav):
@@ -303,7 +217,7 @@ def build_audio(tl, total, voices, clips, out_wav):
     # music beds, with crossfades
     rate = 100
     ctl_n = int((total + 1) * rate)
-    gains = {"corp": 0.6, "eerie": 0.5, "drone": 0.3, "halls": 0.9}
+    gains = {"corp": 0.22, "eerie": 0.3, "halls": 0.22, "dark": 0.3}
     ctl = {k: np.zeros(ctl_n) for k in gains}
     segs = []
     for sc in tl:
@@ -319,19 +233,17 @@ def build_audio(tl, total, voices, clips, out_wav):
                 ctl[b][int(t0 * rate):int(t1 * rate)] = 1
     k = np.ones(int(0.8 * rate)) / int(0.8 * rate)
     voice_env = np.convolve(np.abs(narr[:ctl_n * (A.SR // rate)]).reshape(ctl_n, -1).max(1) > 0.03, np.ones(60) / 60, "same")
-    duck = 1 - 0.35 * np.clip(voice_env * 1.5, 0, 1)
+    duck = 1 - 0.4 * np.clip(voice_env * 1.5, 0, 1)
     tt = np.arange(n) / A.SR
     ct = np.arange(ctl_n) / rate
     beds = np.zeros(n)
-    srcs = {"corp": lambda: A.corporate_bed(total + 1),
-            "eerie": lambda: loop_to(A.norm(A.game("music_under_surface"), 0.6), n),
-            "drone": lambda: A.drone(total + 1),
-            "halls": lambda: loop_to(A.norm(A.game("amb_halls"), 0.6), n)}
+    srcs = {"corp": lambda: A.asset("elevator_music.ogg"), "eerie": lambda: A.game("music_under_surface"),
+            "halls": lambda: A.game("amb_halls"), "dark": lambda: A.game("amb_dark")}
     for b, c in ctl.items():
         if c.any():
             g = np.convolve(c, k, "same") * gains[b] * duck
-            src = srcs[b]()[:n]
-            beds[:len(src)] += src * np.interp(tt[:len(src)], ct, g)
+            src = A.loop_to(level(srcs[b](), 1.0), n)
+            beds += src * np.interp(tt, ct, g)
     mix = narr + fx + beds
     # tape trouble: glitches dip the sound and add noise; static replaces it
     trouble = np.zeros(ctl_n)
@@ -346,9 +258,10 @@ def build_audio(tl, total, voices, clips, out_wav):
             trouble[a:a + int(d * rate)] = np.maximum(trouble[a:a + int(d * rate)], 0.85 * s)
             noise_amt[a:a + int(d * rate)] = np.maximum(noise_amt[a:a + int(d * rate)], 0.35 * s)
     mix *= 1 - np.interp(tt, ct, trouble)
-    mix += A.static_burst(total + 1, seed=31)[:n] * np.interp(tt, ct, noise_amt)
-    mix = A.tape(mix)
-    mix = mix / (np.abs(mix).max() + 1e-9) * 0.89
+    stat = A.loop_to(level(sfx.static, 0.12), n)
+    mix += stat * np.interp(tt, ct, noise_amt) * 3
+    mix = A.tape(mix, level(sfx.static, 0.12))
+    mix = 0.95 * np.tanh(mix / 0.95)                       # soft limit instead of normalizing to the scream
     A.save(out_wav, np.stack([mix, mix], 1))
 
 
@@ -399,7 +312,7 @@ def draw_frame(gt):
     c = gfx.Canvas()
     sc.draw(c, gt - sc.t0, sc)
     if 0.9 <= gt < 6.0:
-        S.osd(c, "PLAY")
+        S.osd(c, "PLAY \u25b6")
     return c.finish()
 
 

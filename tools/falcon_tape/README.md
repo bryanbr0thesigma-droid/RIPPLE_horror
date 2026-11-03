@@ -1,39 +1,38 @@
 # F.A.L.C.O.N. orientation tape
 
-"Water Safety and You": an analogue-horror training video about the Wader, made as a 1991 VHS
-tape from the Federal Agency for Liminal Classification & Occult Nature. It explains the game's
-rules in-world: the Wader hunts by sound in the water, dry ground is safe, falls are loud, going
-still gives you a 70% chance, what its clicking means, decoys, the lidar, generators and mineral
-water, and what to do when someone is taken. About 6 minutes, narrated by Microsoft Sam.
+"Water Safety and You": a 3-minute analogue-horror training video about the Wader, made as a 1991
+VHS tape from the Federal Agency for Liminal Classification & Occult Nature and narrated by
+Microsoft Sam. It teaches the game's core rules in-world: the Wader hunts by sound, dry ground is
+safe, falls are loud, going still gives you a 70% chance, what its clicking means, and what to do
+when someone is taken.
 
-The finished video is `media/falcon_tape.mp4` (960x720, 4:3, 6:14) with subtitles in
-`media/falcon_tape.srt`. That copy is squeezed to under 50 MB for the repo; building it yourself
-gives a sharper one (about 140 MB), better for uploading.
+The finished video is `media/falcon_tape.mp4` (960x720, 4:3) with subtitles in
+`media/falcon_tape.srt`.
 
-## How it's made
+## What's in it
 
-Everything is flat 2D, drawn in code the way a cheap 1990s training video was: title cards, a
-seal, safety-sign pictograms, and side cross-sections of the poolrooms. The Wader only appears as
-a silhouette cut from the game's own creature model. Then every frame is put through a VHS
-tape (`vhs.py`): soft luma with an edge halo, smeared colour, wobbling lines, head-switching
-noise, dropouts, and tracking glitches at chosen moments.
+- **The Wader:** silhouettes rendered from the game's own creature model (`silhouettes/`), the
+  only artwork made for the tape.
+- **Everything else is existing human-made work** (public domain or CC0, listed in
+  `assets/CREDITS.md`): ISO 7010 safety signs, road-sign stick figures and a falcon engraving from
+  Openclipart for the seal, CC0 static and elevator music from OpenGameArt, and the game's own
+  recordings (creature voice, splashes, wading, drips, room tone, music).
+- **Drawn by the scripts:** only text (in existing fonts), the simulated water of the side
+  cross-sections (the pool, deck and concrete), and the VHS tape effect (`vhs.py`).
+- **Narration:** Microsoft Sam (SAPI 4), a 1990s rule-based speech synthesizer.
 
-- `narration.py`: every line Sam reads (some spelled for Sam, like "lie-dar"), with subtitle text.
-- `fetch_voice.py`: downloads each line read by Microsoft Sam (SAPI 4) from tetyys.com's SAPI4
-  service, once per line.
-- `silhouettes.html`, `silhouettes.mjs`, `pack_silhouettes.py`: render the creature
-  (`game/assets/creature/creature.glb`) side-on as white-on-black cutouts with three.js in headless
-  Chromium, and pack them into `silhouettes/` (idle, search and screech, 12 frames a second).
-- `gfx.py`: the canvas, pictograms, seal, water, concrete hatching and silhouettes.
-- `scenes.py`: one draw function per scene.
-- `tape.py`: the timeline (scenes timed to the narration), the frame renderer, the sound mix and
-  the subtitles.
-- `sound.py`: filters, the synth bed, chimes, typewriter and the tape (hiss, hum, wow and flutter).
-- `vhs.py`: the tape look.
+## Files
 
-Sounds are the game's own (creature voice, splashes, wading, generator, music; see
-`game/CREDITS.md`) plus a few synthesized here. No generative AI was used: Sam is a 1990s
-rule-based speech synthesizer, and the pictures are drawn by the scripts.
+- `narration.py`: every line Sam reads, with subtitle text where it differs.
+- `fetch_voice.py`: downloads each line read by Microsoft Sam from tetyys.com's SAPI4 service.
+- `scenes.py`: one draw function per scene. `tape.py`: the timeline (scenes timed to the
+  narration), the frame renderer, the mix and the subtitles. `gfx.py`: canvas, water and the
+  pasted-in assets. `sound.py`: loading, filters and the tape wobble (no synthesis). `vhs.py`: the
+  tape look.
+- `assets/`: the downloaded signs, figures, falcon and sounds, with `CREDITS.md`.
+- `silhouettes.html`, `silhouettes.mjs`, `pack_silhouettes.py`: render the creature side-on with
+  three.js in headless Chromium and pack the frames. `render_svgs.mjs` and `pack_people.py` turn
+  the downloaded SVGs into PNGs.
 
 ## Build
 
@@ -45,11 +44,7 @@ python3 tape.py voice out
 ```
 
 `out/falcon_tape.mp4` and `out/falcon_tape.srt` come out after a few minutes. `--stills 12.5,40`
-writes single frames instead, for checking a scene. `--size 1440x1080` for a larger file.
-
-To redo the silhouettes (only if the creature changes): `npm install three@0.169.0 playwright`,
-copy `creature.glb` here, run `python3 -m http.server 8765` in this folder, then
-`node silhouettes.mjs frames` and `python3 pack_silhouettes.py frames`.
+writes single frames instead, for checking a scene.
 
 ## Notes
 
