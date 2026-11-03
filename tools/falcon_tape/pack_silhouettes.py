@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 
 SRC = sys.argv[1]
-SEQS = {"side_idle": 12, "search": 12, "screech": 12, "agent": 0}   # agent: the ending's person (the OZK suit)
+SEQS = {"side_idle": 12, "search": 12, "screech": 12}
 SCALE = 0.5
 index = {}
 for name, fps in SEQS.items():

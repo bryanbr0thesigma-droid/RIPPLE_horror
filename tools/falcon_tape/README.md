@@ -13,8 +13,8 @@ The finished video is `media/falcon_tape.mp4` (960x720, 4:3) with subtitles in
 
 ## What's in it
 
-- **The Wader:** silhouettes rendered from the game's own creature model (`silhouettes/`). The
-  demonstration's agent is rendered the same way from the game's anti-radiation suit (`agent`).
+- **The Wader:** silhouettes rendered from the game's own creature model (`silhouettes/`), the
+  only artwork made for the tape.
 - **Existing human-made work** (public domain or CC0, listed in `assets/CREDITS.md`): ISO 7010
   safety signs (rebuilt into the tape's own signs by `build_signs.py`, with water added), road-sign
   stick figures and a falcon engraving from Openclipart for the seal, CC0 static from OpenGameArt,

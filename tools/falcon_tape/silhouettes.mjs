@@ -1,6 +1,4 @@
-// Renders the creature's silhouettes for the tape with three.js in headless Chromium. With
-// MODEL=ozk.glb (the game's anti-radiation suit) it renders the ending's agent instead:
-//   MODEL=ozk.glb node silhouettes.mjs frames '[["agent_000",null,90,0,0,[0,0.87,0,0.95],{"LeftArm":[0,0,1.2],"RightArm":[0,0,-1.2]}]]'
+// Renders the creature's silhouettes for the tape with three.js in headless Chromium.
 // Needs: npm install three@0.169.0 playwright, and ../../game/assets/creature/creature.glb copied
 // next to silhouettes.html. Serve this folder on port 8765 (python3 -m http.server 8765), then:
 //   node silhouettes.mjs silhouettes

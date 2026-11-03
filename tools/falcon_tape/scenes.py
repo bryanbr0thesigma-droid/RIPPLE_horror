@@ -359,10 +359,10 @@ AGENT_H, WADER_H = 175, 219
 
 
 def agent(c, x, floor, h, frame=0, col=WHITE, rot=0, part=None):
-    """The ending's agent (a silhouette of the game's anti-radiation suit). part: 'top' or 'bottom'
-    half, cut at the waist. Returns the box it was drawn in."""
+    """The demonstration's agent: the tape's road-sign person, standing (frame 0) or taking a step
+    (frame 1: the flinch). part: 'top' or 'bottom' half, cut at the waist. Returns its box."""
     import gfx
-    m = gfx.sil_mask("agent", frame, int(h * S))
+    m = gfx._scaled(f"{gfx.ASSETS}/people/{'stand' if frame == 0 else 'walk'}.png", int(h * S), frame == 1)
     if part:
         cut = int(m.size[1] * 0.5)
         m = m.crop((0, 0, m.size[0], cut)) if part == "top" else m.crop((0, cut, m.size[0], m.size[1]))
