@@ -42,7 +42,7 @@ jobs:
             code=$(grep -o "Online room code: [A-Z0-9]*" ../host.log | head -1 | awk '{print $4}')
             [ -n "$code" ] && break; sleep 1
           done
-          echo "## Room code: ${code:-none (couldn't reach any matchmaking service)}" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Room code: ${code:-none - no matchmaking service reachable}" >> "$GITHUB_STEP_SUMMARY"
           echo "Open for $minutes minutes from $(date -u +%H:%M) UTC." >> "$GITHUB_STEP_SUMMARY"
           curl -s -o /dev/null -d "Test server up: room code ${code:-NONE}, open for $minutes min from $(date -u +%H:%M) UTC" "$STATUS"
           # Pass on joins, leaves and connection problems as they happen.
