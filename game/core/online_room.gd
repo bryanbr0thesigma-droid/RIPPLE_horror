@@ -24,10 +24,15 @@ const BROKERS := [
 ]
 const ALPHABET := "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # no I, O, 0 or 1: easy to read out
 const TOPIC := "rippledemo/v1/"
+# STUN finds each player's public address so the games can connect straight to each other. When
+# both networks are too strict for that, a TURN relay passes the game traffic between them instead
+# (WebRTC only falls back to it when a direct connection fails). The relay's login isn't kept in
+# the source: release builds write res://turn.cfg from repository secrets (see release-apk.yml).
 const ICE := {"iceServers": [
 	{"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
 	{"urls": ["stun:stun.cloudflare.com:3478"]},
 ]}
+const TURN_FILE := "res://turn.cfg"     # [turn] url, username, credential
 const BROKER_WAIT := 8.0        # seconds to reach a broker before trying the next
 const JOIN_WAIT := 30.0         # seconds for a joiner to get connected
 
@@ -58,7 +63,12 @@ var _closed := false
 ## for TURN), e.g. the simulated home networks in .github/workflows/nat-test.yml.
 static func ice_config() -> Dictionary:
 	if not Game.args.has("ice"):
-		return ICE
+		var cfg: Dictionary = ICE.duplicate(true)
+		var f := ConfigFile.new()
+		if f.load(TURN_FILE) == OK and str(f.get_value("turn", "username", "")) != "":
+			cfg.iceServers.append({"urls": [str(f.get_value("turn", "url", "turn:free.expressturn.com:3478"))],
+				"username": str(f.get_value("turn", "username")), "credential": str(f.get_value("turn", "credential", ""))})
+		return cfg
 	var servers := []
 	for url in str(Game.args.ice).split(","):
 		var s := {"urls": [url]}

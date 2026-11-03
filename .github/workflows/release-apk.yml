@@ -1,7 +1,8 @@
 # Builds the Quest APK from source and publishes it as a GitHub release, so anyone can download
 # the demo. The version comes from game/export_presets.cfg (version/name).
 #
-# Runs when this file or the version changes on a push, or by hand: Actions -> "Release demo APK" -> Run workflow.
+# Runs when game/export_presets.cfg (the version) changes on a push, or by hand: Actions -> "Release demo APK" -> Run workflow.
+# The TURN relay's login comes from the repository secrets TURN_USERNAME and TURN_CREDENTIAL.
 # If a release for the version already exists, its APK is replaced.
 #
 # Signing: if the repository has the secrets ANDROID_KEYSTORE_BASE64 (a keystore file, base64),
@@ -12,7 +13,7 @@ name: Release demo APK
 on:
   workflow_dispatch:
   push:
-    paths: ['.github/workflows/release-apk.yml', 'game/export_presets.cfg']
+    paths: ['game/export_presets.cfg']
 permissions:
   contents: write
 concurrency:
@@ -54,6 +55,18 @@ jobs:
           printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' \
             "$ANDROID_HOME" "$JAVA_HOME" > "$HOME/.config/godot/editor_settings-${GODOT_VERSION%.*}.tres"
 
+      - name: TURN relay login (repository secrets TURN_USERNAME, TURN_CREDENTIAL)
+        env:
+          TURN_URL: ${{ secrets.TURN_URL }}
+          TURN_USERNAME: ${{ secrets.TURN_USERNAME }}
+          TURN_CREDENTIAL: ${{ secrets.TURN_CREDENTIAL }}
+        run: |
+          if [ -n "$TURN_USERNAME" ]; then
+            printf '[turn]\nurl="%s"\nusername="%s"\ncredential="%s"\n' "${TURN_URL:-turn:free.expressturn.com:3478}" "$TURN_USERNAME" "$TURN_CREDENTIAL" > game/turn.cfg
+            echo "relay login added"
+          else
+            echo "::warning::No TURN secrets: this build has no relay for strict networks"
+          fi
       - name: Import the project
         run: |
           godot --headless --path game --import > import.log 2>&1 || true

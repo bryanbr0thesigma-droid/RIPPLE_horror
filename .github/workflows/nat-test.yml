@@ -1,6 +1,7 @@
 # Online co-op between two simulated home networks (tools/nat_sim.sh): the host in one home, the
-# joiner in another, each behind its own NAT router, with matchmaking, STUN and a TURN relay on a
-# pretend internet. Shows which router combinations connect directly, and that a relay fixes the rest.
+# joiner in another, each behind its own NAT router, with matchmaking and STUN on a pretend internet.
+# Shows which router combinations connect directly. The "relay" run links the pretend internet to
+# the real one and uses the game's own servers, so the real TURN relay has to rescue two strict homes.
 name: Two-homes NAT test
 on:
   workflow_dispatch:
@@ -30,18 +31,30 @@ jobs:
           sh tools/fetch_webrtc.sh
           sudo apt-get install -y -qq coturn python3-websockets tcpdump conntrack > /dev/null
           "$HOME/bin/godot" --headless --path game --import > import.log 2>&1 || true
+      - name: TURN relay login (repository secrets TURN_USERNAME, TURN_CREDENTIAL)
+        env:
+          TURN_URL: ${{ secrets.TURN_URL }}
+          TURN_USERNAME: ${{ secrets.TURN_USERNAME }}
+          TURN_CREDENTIAL: ${{ secrets.TURN_CREDENTIAL }}
+        run: |
+          if [ -n "$TURN_USERNAME" ]; then
+            printf '[turn]\nurl="%s"\nusername="%s"\ncredential="%s"\n' "${TURN_URL:-turn:free.expressturn.com:3478}" "$TURN_USERNAME" "$TURN_CREDENTIAL" > game/turn.cfg
+            echo "relay login added"
+          else
+            echo "::warning::No TURN secrets: this build has no relay for strict networks"
+          fi
       - name: Build the two homes and the pretend internet
         run: |
-          sudo sh tools/nat_sim.sh up ${{ matrix.home1 }} ${{ matrix.home2 }}
+          sudo sh tools/nat_sim.sh up ${{ matrix.home1 }} ${{ matrix.home2 }} ${{ matrix.relay && 'internet' || '' }}
           sudo ip netns exec inet python3 tools/mqtt_ws_broker.py 8899 203.0.113.10 > broker.log 2>&1 &
-          sudo ip netns exec inet turnserver -n --no-cli --log-file=stdout -L 203.0.113.10 --relay-ip=203.0.113.10 \
-            --external-ip=203.0.113.10 --listening-port=3478 -a -u ripple:ripple -r ripple --no-tls --no-dtls -f -V > turn.log 2>&1 &
+          sudo ip netns exec inet turnserver -n --no-cli --log-file=stdout -L 203.0.113.10 --listening-port=3478 \
+            --stun-only > turn.log 2>&1 &     # the pretend internet's STUN server
           sleep 2
       - name: Host in home 1, join from home 2
         run: |
           set +e +o pipefail
           ice="--ice=stun:203.0.113.10:3478"
-          [ "${{ matrix.relay }}" = "true" ] && ice="--ice=stun:203.0.113.10:3478,turn:203.0.113.10:3478 --ice-user=ripple --ice-pass=ripple"
+          [ "${{ matrix.relay }}" = "true" ] && ice=""     # the game's own STUN and TURN servers
           sig="--signal=ws://203.0.113.10:8899/mqtt"
           run_in() { ns=$1; shift; sudo ip netns exec "$ns" sudo -u "$USER" env "HOME=$HOME" "$HOME/bin/godot" "$@"; }
           # Watch the UDP crossing the pretend internet (for diagnosis).
@@ -56,7 +69,6 @@ jobs:
           echo "RESULT: $result"
           echo "--- host"; grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]|\[RIPPLE\]" ../host.log
           echo "--- joiner"; grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]|\[RIPPLE\]" ../client.log
-          echo "--- turn (problems)"; grep -iE "error|denied|forbidden|403|refus|unreach|permission" ../turn.log | sort | uniq -c | head -12
           echo "--- joiner errors"; grep -iE "error|webrtc|ice" ../client.log | grep -v OpenXR | sort | uniq -c | head -8
           echo "--- UDP flows on the pretend internet (packets, from > to)"
           awk '/ IP /{print $3, ">", $5}' ../tcpdump.txt | sed 's/:$//' | sort | uniq -c | sort -rn | head -25

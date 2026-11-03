@@ -9,7 +9,9 @@
 # Router kinds: "cone" is a normal home router (Linux MASQUERADE: keeps the same outside port per
 # inside port, lets in only replies from places it has sent to); "symmetric" is a strict one (a
 # new random outside port for every destination), like some mobile and work networks.
-#   sudo sh tools/nat_sim.sh up cone|symmetric cone|symmetric
+# With "internet" at the end, the pretend internet is also linked to the real one (through this
+# machine), so the homes can reach real services such as the game's TURN relay.
+#   sudo sh tools/nat_sim.sh up cone|symmetric cone|symmetric [internet]
 #   sudo sh tools/nat_sim.sh down
 set -e
 case "$1" in
@@ -54,6 +56,26 @@ up)
 		echo "home $n: $kind router"
 		n=$((n + 1))
 	done
+	if [ "$4" = internet ]; then
+		ip link add up-root type veth peer name up-inet
+		ip link set up-inet netns inet
+		ip addr add 10.99.0.1/30 dev up-root
+		ip link set up-root up
+		ip route add 203.0.113.0/24 via 10.99.0.2
+		ip netns exec inet sh -c "
+			ip addr add 10.99.0.2/30 dev up-inet && ip link set up-inet up
+			ip route add default via 10.99.0.1
+			sysctl -qw net.ipv4.ip_forward=1"
+		sysctl -qw net.ipv4.ip_forward=1
+		wan=$(ip route show default | awk '{print $5; exit}')
+		iptables -t nat -A POSTROUTING -s 203.0.113.0/24 -o "$wan" -j MASQUERADE
+		iptables -t nat -A POSTROUTING -s 10.99.0.0/30 -o "$wan" -j MASQUERADE
+		iptables -I FORWARD -i up-root -j ACCEPT
+		iptables -I FORWARD -o up-root -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+		for r in r1 r2; do ip netns exec $r ip route add default via 203.0.113.10; done
+		for h in h1 h2; do mkdir -p /etc/netns/$h && echo "nameserver 8.8.8.8" > /etc/netns/$h/resolv.conf; done
+		echo "linked to the real internet through $wan"
+	fi
 	;;
 down)
 	for ns in h1 h2 r1 r2 inet; do ip netns del $ns 2>/dev/null || true; done
