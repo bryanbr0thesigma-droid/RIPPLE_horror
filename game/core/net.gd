@@ -236,6 +236,7 @@ func _register(info: Dictionary) -> void:
 		return
 	var id := multiplayer.get_remote_sender_id()
 	players[id] = info
+	Game.notify("%s joined the game." % str(info.get("name", "A player")))
 	for pid in players:
 		if pid != 1:
 			rpc_id(pid, "_set_players", players)
@@ -253,6 +254,8 @@ func _on_peer_connected(_id: int) -> void:
 
 
 func _on_peer_disconnected(id: int) -> void:
+	if is_host() and players.has(id):
+		Game.notify("%s left." % str(players[id].get("name", "A player")))
 	players.erase(id)
 	ready_peers.erase(id)
 	if is_host():

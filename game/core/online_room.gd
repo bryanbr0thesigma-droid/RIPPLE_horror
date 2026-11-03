@@ -121,6 +121,7 @@ func poll(delta: float) -> void:
 		for id in _conns.keys():
 			var st: int = _conns[id].get_connection_state()
 			if st == WebRTCPeerConnection.STATE_FAILED or st == WebRTCPeerConnection.STATE_CLOSED:
+				print("[ONLINE] player %d found the room, but the direct connection failed" % id)
 				if rtc.has_peer(id):
 					rtc.remove_peer(id)
 				_conns.erase(id)
@@ -226,6 +227,7 @@ func _on_message(_topic: String, payload: String) -> void:
 				elif _conns.size() + 1 >= max_players:
 					_send_to_peer(id, {"t": "full"})
 				else:
+					print("[ONLINE] player %d is joining (found the room)" % id)
 					_new_conn(id).create_offer()
 			"answer":
 				if _conns.has(id):

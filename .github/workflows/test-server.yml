@@ -1,0 +1,53 @@
+# A test server: hosts an online game on a GitHub runner for a while, with the fixed room code
+# TESTX + the service digit (normally TESTX2), so anyone can check joining from their headset.
+# Status (the code, joins, connection failures) also goes to https://ntfy.sh/rippledemo-testserver-q7k2m
+# Start it again from Actions -> "Test server" -> Run workflow.
+name: Test server
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: How long to keep the game open (minutes)
+        default: '30'
+  push:
+    paths: ['.github/workflows/test-server.yml']
+concurrency:
+  group: test-server
+  cancel-in-progress: true
+env:
+  STATUS: https://ntfy.sh/rippledemo-testserver-q7k2m
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Godot, OpenXR vendors plugin and WebRTC
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+          mkdir -p "$HOME/bin" && unzip -q godot.zip && mv Godot_v4.7.2-stable_linux.x86_64 "$HOME/bin/godot" && echo "$HOME/bin" >> "$GITHUB_PATH"
+          curl -fsSL -o vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/5.1.0-stable/godotopenxrvendorsaddon.zip"
+          unzip -q vendors.zip -d vendors && cp -r vendors/asset/addons/godotopenxrvendors game/addons/
+          sh tools/fetch_webrtc.sh
+      - name: Import
+        run: godot --headless --path game --import > import.log 2>&1 || true
+      - name: Host an online game
+        run: |
+          minutes="${{ github.event.inputs.minutes || '30' }}"
+          cd game
+          (timeout "${minutes}m" godot --headless --path . -- --desktop --host-online --room=TESTX --name="Test server" > ../host.log 2>&1 || true) &
+          host_pid=$!
+          code=""
+          for i in $(seq 90); do
+            code=$(grep -o "Online room code: [A-Z0-9]*" ../host.log | head -1 | awk '{print $4}')
+            [ -n "$code" ] && break; sleep 1
+          done
+          echo "## Room code: ${code:-none (couldn't reach any matchmaking service)}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Open for $minutes minutes from $(date -u +%H:%M) UTC." >> "$GITHUB_STEP_SUMMARY"
+          curl -s -o /dev/null -d "Test server up: room code ${code:-NONE}, open for $minutes min from $(date -u +%H:%M) UTC" "$STATUS"
+          # Pass on joins, leaves and connection problems as they happen.
+          tail -n +1 -F ../host.log 2>/dev/null | grep --line-buffered -E "joined the game|left\.|\[ONLINE\]|matchmaking" | while read -r line; do
+            echo "$line"; curl -s -o /dev/null -d "$line" "$STATUS"
+          done &
+          wait $host_pid || true
+          curl -s -o /dev/null -d "Test server closed" "$STATUS"
