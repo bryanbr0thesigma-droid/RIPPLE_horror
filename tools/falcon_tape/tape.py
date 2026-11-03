@@ -32,7 +32,7 @@ class Scene:
         self.name, self.draw, self.beats = name, draw, beats
         self.beds = beds or []
         self.sfx = sfx or []
-        self.glitch = glitch or []
+        self.glitch = glitch or []          # (time, seconds, strength[, also dip the sound])
         self.static = static or []
         self.freeze = freeze or []
 
@@ -89,8 +89,8 @@ def timeline():
         Scene("outro", S.outro, [P(0.5), L("end", 3.4)], beds=[(0, "corp")]),
         Scene("blank", S.blank, [P(2.2)], glitch=[(1.95, 0.25, 0.5)]),
         Scene("stinger", S.stinger, [P(3.8), L("hear", 0.35), M("scare"), P(0.8), M("static"), P(1.5), M("stop"), P(1.6), P(0.8)],
-              beds=[(0, "none")], sfx=[("scare", "screech", 1.0), ("static", "static:1.5", 0.6)],
-              glitch=[("scare", 0.8, 1.0)], static=[("static", 1.5, 1.0)]),
+              beds=[(0, "none")], sfx=[("scare", "screech", 3.0), ("static", "static:1.5", 0.6)],
+              glitch=[("scare", 0.8, 1.0, False)], static=[("static", 1.5, 1.0)]),
     ]
 
 
@@ -249,7 +249,9 @@ def build_audio(tl, total, voices, clips, out_wav):
     trouble = np.zeros(ctl_n)
     noise_amt = np.zeros(ctl_n)
     for sc in tl:
-        for t, d, s in sc.glitch:
+        for t, d, s, *sound in sc.glitch:
+            if sound and not sound[0]:
+                continue                                    # a picture-only glitch
             a = int((sc.t0 + sc.at(t)) * rate)
             trouble[a:a + int(d * rate)] = np.maximum(trouble[a:a + int(d * rate)], 0.55 * s)
             noise_amt[a:a + int(d * rate)] = np.maximum(noise_amt[a:a + int(d * rate)], 0.12 * s)
@@ -261,7 +263,7 @@ def build_audio(tl, total, voices, clips, out_wav):
     stat = A.loop_to(level(sfx.static, 0.12), n)
     mix += stat * np.interp(tt, ct, noise_amt) * 3
     mix = A.tape(mix, level(sfx.static, 0.12))
-    mix = 0.95 * np.tanh(mix / 0.95)                       # soft limit instead of normalizing to the scream
+    mix = 0.95 * np.tanh(mix * 1.4 / 0.95)                 # louder, soft-limited (no normalizing to the scream)
     A.save(out_wav, np.stack([mix, mix], 1))
 
 
@@ -283,7 +285,7 @@ def setup(voice_dir):
     STARTS = [sc.t0 for sc in TL]
     EVENTS = {"glitch": [], "static": [], "freeze": []}
     for sc in TL:
-        for t, d, s in sc.glitch:
+        for t, d, s, *_ in sc.glitch:
             EVENTS["glitch"].append((sc.t0 + sc.at(t), d, s))
         for t, d, s in sc.static:
             EVENTS["static"].append((sc.t0 + sc.at(t), d, s))
