@@ -364,8 +364,10 @@ Everything else is coordination through the level.
   network: ENet with LAN discovery. Online (0.9): room codes. The players' games connect
   peer-to-peer with WebRTC (Godot's webrtc-native extension, public STUN servers), and
   find each other by passing the offers through free public MQTT brokers on topics named
-  after the code, so there is no server to run. No TURN relay yet, so two very strict
-  NATs can't connect; a TURN service would fix that if it becomes a problem.
+  after the code, so there is no server to run. When both networks are too strict
+  for a direct connection (tested with simulated home routers, `tools/nat_sim.sh`), the
+  game falls back to a TURN relay (ExpressTURN's free tier, 1 TB a month; its login is a
+  repository secret written into release builds).
 - **Voice chat:** Godot has no built-in voice chat, so this needs an addon or a custom
   setup with microphone capture. Still to be chosen.
 - **Host-authoritative creature:** the creature AI runs on the host. Each player's

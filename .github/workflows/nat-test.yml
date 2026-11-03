@@ -1,7 +1,8 @@
 # Online co-op between two simulated home networks (tools/nat_sim.sh): the host in one home, the
 # joiner in another, each behind its own NAT router, with matchmaking and STUN on a pretend internet.
 # Shows which router combinations connect directly. The "relay" run links the pretend internet to
-# the real one and uses the game's own servers, so the real TURN relay has to rescue two strict homes.
+# the real one and uses the game's own servers, so the real TURN relay has to rescue two strict homes
+# (it needs the repository secrets TURN_USERNAME and TURN_CREDENTIAL).
 name: Two-homes NAT test
 on:
   workflow_dispatch:

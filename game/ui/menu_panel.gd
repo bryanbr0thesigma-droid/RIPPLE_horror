@@ -350,7 +350,7 @@ Music made from "At the End of Hope" by Emma_MA and "Underwater Ambient Pad" by 
 
 [b]Code[/b]
 Godot Engine and Godot XR Tools (MIT)
-Online play: webrtc-native (MIT), with libdatachannel and libjuice by Paul-Louis Ageneau (MPL 2.0, source at github.com/paullouisageneau), usrsctp and libsrtp (BSD), Mbed TLS (Apache 2.0)"""
+Online play: relay by ExpressTURN; webrtc-native (MIT), with libdatachannel and libjuice by Paul-Louis Ageneau (MPL 2.0, source at github.com/paullouisageneau), usrsctp and libsrtp (BSD), Mbed TLS (Apache 2.0)"""
 
 
 func _build_credits(parent: Control) -> void:

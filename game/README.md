@@ -59,8 +59,10 @@ exports a build for the other (see below).
   The games connect straight to each other with WebRTC; free public message services (shiftr.io and
   ntfy.sh on the normal HTTPS port 443 first, then MQTT brokers on other ports) are only used
   to swap connection details for that code (`game/core/online_room.gd`). It works through most home
-  routers. If both players are on strict networks (some mobile hotspots, school or work Wi-Fi), the
-  direct connection can fail; then use one of the options below. To test without the internet, run
+  routers; when both players are on strict networks (some mobile hotspots, school or work Wi-Fi), the
+  game relays the traffic through a free TURN server (ExpressTURN) instead. Release builds get the
+  relay's login from the repository secrets `TURN_USERNAME` and `TURN_CREDENTIAL`; a local build
+  without `game/turn.cfg` simply has no relay. To test without the internet, run
   `python3 tools/mqtt_ws_broker.py 8899` and start both games with `--signal=ws://127.0.0.1:8899/mqtt`.
 - **Same Wi-Fi or network:** one of you presses **Host on this Wi-Fi**. The other sees "*name*'s game"
   under "Join a game on your network" and clicks it. If it doesn't appear, type the host's address
