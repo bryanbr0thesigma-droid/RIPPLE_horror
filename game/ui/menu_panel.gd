@@ -90,7 +90,7 @@ func _build_main(parent: Control) -> void:
 	p.add_child(_button("Credits", func(): show_page("credits"), 30))
 	p.add_child(_button("Quit", func(): get_tree().quit(), 30))
 	p.add_child(_spacer(10))
-	var hint := _label("Something lives in the water. It hunts by sound. Escape together.", 18, DIM)
+	var hint := _label("The Wader lives in the water. It hunts by sound. Escape together.", 18, DIM)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	p.add_child(hint)
 
@@ -319,7 +319,7 @@ func _build_settings(parent: Control) -> void:
 
 
 const CREDITS := """[b]Models[/b] (CC BY 4.0, changed for the game)
-The creature: "The Rake" by Sealife Fan 3
+The Wader (the creature): "The Rake" by Sealife Fan 3
 Anti-radiation suit: "Antiradiation suit - OZK" by sanyaork
 Diver: "Nanando diver" by Marco Lopez (its torch is the flashlight)
 Scuba diver: "Scuba Diver" by turelljc

@@ -252,7 +252,7 @@ func on_caught(kind := 0) -> void:
 		return
 	alive = false
 	in_water = false
-	Game.notify("It got you.")
+	Game.notify("The Wader got you.")
 	var carried: Array = Game.level.items_carried_by(Net.my_id())
 	rig.drop_all()
 	Game.level.request("bag_drop", [rig.feet_position(), carried])

@@ -120,7 +120,10 @@ hits.
 - **Only the holder sees the dots.** Everyone else relies on what the holder tells
   them.
 
-## The creature
+## The creature: the Wader
+
+The creature is called **the Wader**: a tall, pale thing that wades the pools upright and hunts
+by sound.
 
 Built from the ready-made [The Rake](https://sketchfab.com/3d-models/the-rake-92898b04b24e4315b0673fcfe307f64e)
 by Sealife Fan 3 (CC BY), reworked into RIPPLE's own "drowned" creature:

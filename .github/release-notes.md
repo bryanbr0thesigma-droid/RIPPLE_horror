@@ -1,4 +1,4 @@
-**RIPPLE** is a co-op VR horror game set in flooded poolrooms, for Meta Quest. This is a free demo build.
+**RIPPLE** is a co-op VR horror game set in flooded poolrooms, for Meta Quest. Something called the Wader lives in the water and hunts by sound. This is a free demo build.
 
 ### Install on a Quest
 1. In the Meta Horizon phone app, open your headset's settings and turn on **Developer mode** (needs a free Meta developer account).

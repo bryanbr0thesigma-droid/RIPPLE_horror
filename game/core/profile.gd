@@ -4,7 +4,7 @@ extends Node
 signal changed
 
 const PATH := "user://profile.cfg"
-const NAMES := ["Wader", "Lifeguard", "Snorkel", "Drip", "Echo", "Shallows", "Deep End", "Puddle",
+const NAMES := ["Lifeguard", "Snorkel", "Drip", "Echo", "Shallows", "Deep End", "Puddle",
 	"Tidewalker", "Splash", "Lane Six", "Undertow", "Chlorine", "Floatie", "Drain", "Ripple"]
 
 var player_name := ""
