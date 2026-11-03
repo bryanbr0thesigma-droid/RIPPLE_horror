@@ -43,102 +43,90 @@ This is The Wader.
 It has no eyes. It does not need them.
 
 12
-00:00:52,144 --> 00:00:58,300
-The Wader hunts by sound alone. Any disturbance of the water is heard almost instantly.
+00:00:52,144 --> 00:00:53,550
+It hunts by sound.
 
 13
-00:00:58,800 --> 00:01:01,554
-Wade slowly. Keep your hands still.
+00:00:57,050 --> 00:00:59,318
+If you fall in, it will hear you.
 
 14
-00:01:03,454 --> 00:01:06,912
-It cannot leave the water. Dry ground is safe.
-
-15
-00:01:08,812 --> 00:01:15,568
-The higher the fall, the louder the splash. The Wader will almost always hear it, and it will charge.
-
-16
-00:01:16,768 --> 00:01:19,610
+00:01:00,718 --> 00:01:03,561
 It is faster than you. Get out of the water.
 
-17
-00:01:21,510 --> 00:01:24,779
+15
+00:01:05,461 --> 00:01:08,920
+It cannot leave the water. Dry ground is safe.
+
+16
+00:01:10,820 --> 00:01:14,089
 If you cannot reach dry ground, stop moving.
 
-18
-00:01:25,279 --> 00:01:27,649
+17
+00:01:14,589 --> 00:01:16,958
 It will search for you by feel.
 
-19
-00:01:30,849 --> 00:01:35,786
-Personnel who remain perfectly still survive the search seventy percent of the time.
+18
+00:01:20,158 --> 00:01:23,507
+Most personnel who remain perfectly still survive.
 
-20
-00:01:37,786 --> 00:01:39,401
+19
+00:01:25,107 --> 00:01:26,722
 Remain perfectly still.
 
-21
-00:01:42,301 --> 00:01:43,880
+20
+00:01:29,622 --> 00:01:31,201
 Listen for its clicking.
 
+21
+00:01:34,401 --> 00:01:36,027
+If it screeches, move.
+
 22
-00:01:44,280 --> 00:01:47,897
-Steady clicking means it is hunting a sound. Freeze.
-
-23
-00:01:51,097 --> 00:01:55,124
-If the clicking becomes a screech, it is charging. Move.
-
-24
-00:02:00,524 --> 00:02:04,301
+00:01:41,427 --> 00:01:45,204
 If a member of your team is taken, do not attempt a rescue.
 
-25
-00:02:05,201 --> 00:02:11,239
-The Wader will feed for six to ten seconds. During this time, it ignores all sound.
+23
+00:01:46,204 --> 00:01:49,494
+It will be busy for a moment. Use this time.
 
-26
-00:02:12,139 --> 00:02:13,182
-Use this time.
-
-27
-00:02:15,382 --> 00:02:17,883
+24
+00:01:52,094 --> 00:01:54,596
 Taken personnel sometimes come back.
 
-28
-00:02:18,883 --> 00:02:20,735
+25
+00:01:55,596 --> 00:01:57,447
 Do not ask them about the water.
 
-29
-00:02:23,435 --> 00:02:24,060
+26
+00:02:00,147 --> 00:02:00,772
 Remember.
 
-30
-00:02:24,560 --> 00:02:25,474
+27
+00:02:01,272 --> 00:02:02,186
 Stay dry.
 
-31
-00:02:26,074 --> 00:02:27,042
+28
+00:02:02,786 --> 00:02:03,754
 Stay quiet.
 
-32
-00:02:27,642 --> 00:02:28,572
+29
+00:02:04,354 --> 00:02:05,284
 Stay still.
 
-33
-00:02:29,472 --> 00:02:30,707
+30
+00:02:06,184 --> 00:02:07,420
 And above all.
 
-34
-00:02:31,257 --> 00:02:32,357
+31
+00:02:07,970 --> 00:02:09,069
 Do not fall in.
 
-35
-00:02:35,057 --> 00:02:39,242
+32
+00:02:11,769 --> 00:02:15,955
 This concludes your orientation. Thank you for your service.
 
-36
-00:02:48,642 --> 00:02:52,898
+33
+00:02:25,355 --> 00:02:29,610
 It can hear yours.
 
