@@ -131,6 +131,8 @@ func _ready() -> void:
 	NoiseBus.ripple.connect(_on_ripple)
 	hud = preload("res://ui/hud.gd").new()
 	add_child(hud)
+	if Game.args.has("snapshot"):            # test server: pictures from its player's eyes
+		add_child(preload("res://core/server_eyes.gd").new())
 	_apply_all_state()
 	Net.level_loaded.call_deferred()
 
