@@ -28,7 +28,7 @@ jobs:
           curl -fsSL -o vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/5.1.0-stable/godotopenxrvendorsaddon.zip"
           unzip -q vendors.zip -d vendors && cp -r vendors/asset/addons/godotopenxrvendors game/addons/
           sh tools/fetch_webrtc.sh
-          sudo apt-get install -y -qq coturn python3-websockets > /dev/null
+          sudo apt-get install -y -qq coturn python3-websockets tcpdump conntrack > /dev/null
           "$HOME/bin/godot" --headless --path game --import > import.log 2>&1 || true
       - name: Build the two homes and the pretend internet
         run: |
@@ -44,6 +44,8 @@ jobs:
           [ "${{ matrix.relay }}" = "true" ] && ice="--ice=stun:203.0.113.10:3478,turn:203.0.113.10:3478 --ice-user=ripple --ice-pass=ripple"
           sig="--signal=ws://203.0.113.10:8899/mqtt"
           run_in() { ns=$1; shift; sudo ip netns exec "$ns" sudo -u "$USER" env "HOME=$HOME" "$HOME/bin/godot" "$@"; }
+          # Watch the UDP crossing the pretend internet (for diagnosis).
+          sudo ip netns exec inet timeout 70 tcpdump -lnni br0 udp > tcpdump.txt 2>&1 &
           cd game
           (run_in h1 --headless --path . -- --desktop --host-online --room=NATTT $sig $ice --autotest=net_host > ../host.log 2>&1; echo $? > ../host.exit) &
           sleep 6
@@ -55,4 +57,9 @@ jobs:
           echo "--- host"; grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]|\[RIPPLE\]" ../host.log
           echo "--- joiner"; grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]|\[RIPPLE\]" ../client.log
           echo "--- turn (last lines)"; tail -5 ../turn.log
+          echo "--- UDP flows on the pretend internet (packets, from > to)"
+          awk '/ IP /{print $3, ">", $5}' ../tcpdump.txt | sed 's/:$//' | sort | uniq -c | sort -rn | head -25
+          echo "--- router 1 NAT"; sudo ip netns exec r1 iptables -t nat -L POSTROUTING -v -n
+          echo "--- router 1 forward"; sudo ip netns exec r1 iptables -L FORWARD -v -n
+          echo "--- router 1 conntrack (udp)"; sudo ip netns exec r1 conntrack -L -p udp 2>/dev/null | head -12
           true
