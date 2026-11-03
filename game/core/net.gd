@@ -146,6 +146,7 @@ func join_online(code: String) -> Error:
 	leave(true)
 	_room = _new_room()
 	_room.failed.connect(func(reason: String):
+		print("[ONLINE] join failed: ", reason)
 		leave(true)
 		session_failed.emit(reason))
 	_room.join(code)
@@ -270,6 +271,7 @@ func _on_peer_disconnected(id: int) -> void:
 
 
 func _on_connected_to_server() -> void:
+	print("[ONLINE] connected to the host")
 	rpc_id(1, "_register", local_info)
 	session_started.emit()
 

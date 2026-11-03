@@ -1,0 +1,63 @@
+# A test client: joins someone's online game by room code from a GitHub runner, as a player named
+# "Claude", stays for a while, and can send pictures from its player's eyes (post "snap" to the
+# status address + "-cmd"). Status goes to https://ntfy.sh/rippledemo-testclient-w4n8p
+# Start it from Actions -> "Test client" -> Run workflow, with the room code.
+name: Test client
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: Room code to join
+        required: true
+      minutes:
+        description: How long to stay (minutes)
+        default: '15'
+concurrency:
+  group: test-client
+  cancel-in-progress: true
+env:
+  STATUS: https://ntfy.sh/rippledemo-testclient-w4n8p
+jobs:
+  join:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Godot, OpenXR vendors plugin and WebRTC
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+          mkdir -p "$HOME/bin" && unzip -q godot.zip && mv Godot_v4.7.2-stable_linux.x86_64 "$HOME/bin/godot" && echo "$HOME/bin" >> "$GITHUB_PATH"
+          curl -fsSL -o vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/5.1.0-stable/godotopenxrvendorsaddon.zip"
+          unzip -q vendors.zip -d vendors && cp -r vendors/asset/addons/godotopenxrvendors game/addons/
+          sh tools/fetch_webrtc.sh
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
+      - name: Import
+        run: godot --headless --path game --import > import.log 2>&1 || true
+      - name: Join the game
+        env:
+          CODE: ${{ github.event.inputs.code }}
+          MINUTES: ${{ github.event.inputs.minutes || '15' }}
+        run: |
+          cd game
+          snap="$GITHUB_WORKSPACE/view.jpg"
+          curl -s -o /dev/null -d "Test client starting: joining room $CODE" "$STATUS"
+          (timeout "${MINUTES}m" xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
+            --audio-driver Dummy --resolution 960x540 --max-fps 20 -- --desktop --join-code="$CODE" \
+            --name="Claude" --snapshot="$snap" > ../client.log 2>&1 || true) &
+          pid=$!
+          (set +e +o pipefail; tail -n +1 -F ../client.log 2>/dev/null | grep --line-buffered -E "\[ONLINE\]|\[RIPPLE\]|\[SNAP\]" | while read -r line; do
+            echo "$line"; curl -s -o /dev/null -d "$line" "$STATUS"
+          done) &
+          (set +e +o pipefail; seen=""; while kill -0 $pid 2>/dev/null; do
+            ids=$(curl -s "$STATUS-cmd/json?poll=1&since=30s" | grep '"message":"snap"' | grep -o '"id":"[^"]*"' || true)
+            for id in $ids; do
+              case "$seen" in *"$id"*) continue;; esac
+              seen="$seen $id"; rm -f "$snap"; touch "$snap.req"
+              for i in $(seq 20); do [ -f "$snap" ] && break; sleep 0.5; done
+              sleep 1
+              [ -f "$snap" ] && curl -s -o /dev/null -T "$snap" -H "Filename: view.jpg" "$STATUS"
+            done
+            sleep 3
+          done) &
+          wait $pid || true
+          curl -s -o /dev/null -d "Test client left" "$STATUS"
