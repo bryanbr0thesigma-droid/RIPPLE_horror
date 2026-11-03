@@ -77,7 +77,7 @@ var gen_noise_timer := 0.0
 var spawn_points: Array[Vector3] = [Vector3(2.5, 0.05, 4.5), Vector3(5.5, 0.05, 4.5), Vector3(2.5, 0.05, 6.5), Vector3(5.5, 0.05, 6.5)]
 var lock_point := Vector3(15.88, 0.95, -4.54)
 var funnel_point := Vector3(10.5, 1.15, -44.4)
-var distiller_slot := Vector3(18.6, 0.98, -9.1)
+var distiller_slot := Vector3(18.5, 0.68, -8.85)   # on top of the distiller machine
 var charger_point := Vector3(23.15, 1.0, -6.6)
 var lever_point := Vector3(17.05, 1.2, -33.0)
 var creature_spawn := Vector3(8.0, FLOOR, -38.0)
@@ -255,10 +255,16 @@ func _build_staff_room() -> void:
 	staff_leaf.add_child(staff_door)
 	var lock := G.block(15.86, 15.9, 0.9, 1.0, -4.6, -4.48, G.mat_rail, 0, $Props)
 	lock.name = "Lock"
-	# Table, shelf, distiller, charger.
-	G.block(20.0, 22.0, 0.0, 0.85, -2.6, -1.4, G.mat_metal, LevelGeometry.L_WORLD, $Props)
-	G.block(22.8, 23.6, 0.0, 0.9, -7.4, -5.8, G.mat_metal, LevelGeometry.L_WORLD, $Props)
-	G.block(18.1, 19.1, 0.0, 0.9, -9.6, -8.6, G.mat_metal, LevelGeometry.L_WORLD, $Props)
+	# The table (Round 24: "Old Metal Table" by berkgedik, CC BY) and the lidar charger's stand (Round
+	# 24: Poly Haven's tool cart, CC0). Each keeps an invisible box for standing things on.
+	_hidden_block(20.06, 21.94, 0.0, 0.85, -2.47, -1.53)
+	_prop("res://assets/props/staff_desk.glb", Vector3(21.0, 0.0, -2.0), 90.0)
+	_hidden_block(22.85, 23.55, 0.0, 0.9, -7.19, -6.01)
+	_prop("res://assets/props/tool_cart.glb", Vector3(23.2, 0.0, -6.6), 90.0)
+	# The distiller machine, where the canteen goes (Round 24: "Machinery device" by maxpsr, CC BY,
+	# the same artist as the tanks behind it). The canteen sits on top of it.
+	_hidden_block(17.85, 19.15, 0.0, 0.6, -9.95, -8.25)
+	_prop("res://assets/props/distiller_machine.glb", Vector3(18.5, 0.0, -9.1), 90.0)
 	# The distiller itself: rusted tanks along the back wall, piped to the stand where the canteen
 	# goes (approved in Round 22: "Rusted liquid storages" by maxpsr, CC BY).
 	var tanks: Node3D = preload("res://assets/props/distiller.glb").instantiate()
@@ -273,7 +279,7 @@ func _build_staff_room() -> void:
 	tcs.position = Vector3(0, 0.625, 0)
 	tank_body.add_child(tcs)
 	tanks.add_child(tank_body)
-	_add_prop_label("DISTILLER\nset a canteen here", Vector3(18.6, 1.35, -8.58))
+	_add_prop_label("DISTILLER\nset a canteen here", Vector3(18.5, 1.1, -8.2))
 	_add_prop_label("LIDAR CHARGER\nneeds power", Vector3(23.15, 1.35, -5.78))
 	distiller_audio = _loop_audio(preload("res://assets/audio/distiller_loop.ogg"), Vector3(18.6, 1.0, -9.1), -10.0)
 
@@ -440,6 +446,22 @@ func _build_exit() -> void:
 	exit_doors.position = Vector3(43.92, 0.0, -36.0)
 	$Props.add_child(exit_doors)
 	G.plaque("EXIT\nYou made it. Wait here for the others.", Vector3(43.85, 2.7, -36), -90, 0.004)
+
+
+## A box you can stand things on, without its grey look (a model shows instead).
+func _hidden_block(x0: float, x1: float, y0: float, y1: float, z0: float, z1: float) -> void:
+	var b := G.block(x0, x1, y0, y1, z0, z1, G.mat_metal, LevelGeometry.L_WORLD, $Props)
+	for c in b.get_children():
+		if c is MeshInstance3D:
+			c.visible = false
+
+
+func _prop(path: String, pos: Vector3, yaw_deg: float) -> Node3D:
+	var n: Node3D = load(path).instantiate()
+	n.position = pos
+	n.rotation.y = deg_to_rad(yaw_deg)
+	$Props.add_child(n)
+	return n
 
 
 func _add_prop_label(text: String, pos: Vector3, yaw := 0.0) -> void:

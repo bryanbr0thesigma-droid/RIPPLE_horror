@@ -147,6 +147,12 @@ G = os.path.join(GAME, 'assets', 'gore')
 # --- Round 22 ------------------------------------------------------------------------------------
 LATER = [
     ('Distiller', f'{DL}/distiller/model.glb', f'{P}/distiller.glb', 1.25, 'z', 'bottom', 8000),   # rusted tanks
+    # --- Round 24: staff room table and the lidar charger's stand (the table height is kept, so
+    # the items on it don't move) ---
+    ('Desk', f'{DL}/desk_metal/model.glb', f'{P}/staff_desk.glb', 0.85, 'z', 'bottom'),            # old metal desk
+    ('ToolCart', f'{PH}/tool_cart/tool_cart_1k.gltf', f'{P}/tool_cart.glb', 0.9, 'z', 'bottom', 8000),
+    # Round 24: the distiller machine the canteen goes on, in front of the tanks
+    ('Machinery', f'{DL}/machinery/model.glb', f'{P}/distiller_machine.glb', 1.7, 'max', 'bottom', 12000),
 ]
 if ONLY:                       # just these, then stop
     for args in LATER:

@@ -334,7 +334,8 @@ Cover lever: "Old lever" by gunnarcorrea
 Scanner: "Geiger counter" by DenisKorablyov
 Bottles: "Dusty Beer Bottle" by GameDevNick, "Whiskey and Wine Low-Poly Bottles" by Helyeouka
 Pool ladder: "CC0 - Pool Ladder 3" by plaggy
-Distiller: "Rusted liquid storages" by maxpsr
+Distiller: "Rusted liquid storages" and "Machinery device" by maxpsr
+Staff room desk: "Old Metal Table (Low Poly)" by berkgedik
 Spine: "Human Spine" by b_bear
 Heart and lungs: "Realistic Human Heart", "Realistic Human Lungs" by neshallads
 Liver: "Human liver and gallbladder" by ElliotSS
@@ -343,7 +344,7 @@ Stomach: "digestive system" by 7D_Production
 All on sketchfab.com. creativecommons.org/licenses/by/4.0
 
 [b]CC0[/b] (free to use, credited anyway)
-Props and textures: Poly Haven (Wet Floor Sign, Industrial Wall Lamp, Modular Pipes, Plastic Monobloc Chair, Plastic Thermos by PierreB3D, Brown Leather) and ambientCG (tiles)
+Props and textures: Poly Haven (Wet Floor Sign, Industrial Wall Lamp, Modular Pipes, Plastic Monobloc Chair, Plastic Thermos by PierreB3D, Tool Cart by Savva Zakharov, Brown Leather) and ambientCG (tiles)
 Hands: Godot XR Tools, by DigitalN8m4r3
 Sounds: Freesound users Fupicat, Moss___6, Zrte, DatBloxyBirb, DangAdv64, batchku, Kinoton, kyles, craigsmith, courter, nomadas, Sclolex
 Music made from "At the End of Hope" by Emma_MA and "Underwater Ambient Pad" by isaiah658 (OpenGameArt)

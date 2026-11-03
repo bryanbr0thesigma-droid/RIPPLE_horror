@@ -53,6 +53,9 @@ approved.
 | [Human kidney (Lowpoly example 9k)](https://sketchfab.com/3d-models/2417146cf20a49b5960c79d554d20650) | Same. In the game (0.4). | Sketchfab | linejung | CC BY 4.0 |
 | [digestive system](https://sketchfab.com/3d-models/f78ce703805f49d3b732e37be5b93188) | The stomach, same. In the game (0.4). | Sketchfab | 7D_Production | CC BY 4.0 |
 | [Rusted liquid storages](https://sketchfab.com/3d-models/1d79acb10553424eb1dfda079af880cd) | The distiller, along the staff room's back wall. In the game (0.5). | Sketchfab | maxpsr | CC BY 4.0 |
+| [Machinery device](https://sketchfab.com/3d-models/560748f914fd4209aa8437242fbfd3b8) | The distiller machine the canteen goes on, in front of the tanks (shrunk to 1.7 m, simplified). In the game (0.9.4). | Sketchfab | maxpsr | CC BY 4.0 |
+| [Old Metal Table (Low Poly)](https://sketchfab.com/3d-models/92a14c8d231b4812bc7b97d03da6ddd9) | The staff room table. In the game (0.9.4). | Sketchfab | berkgedik | CC BY 4.0 |
+| [Tool Cart](https://polyhaven.com/a/tool_cart) | The stand under the lidar charger. In the game (0.9.4). | Poly Haven | Savva Zakharov | CC0 |
 | [Plastic Thermos](https://polyhaven.com/a/plastic_thermos) | The canteen. In the game (0.4). | Poly Haven | PierreB3D | CC0 |
 
 ## Maybe
