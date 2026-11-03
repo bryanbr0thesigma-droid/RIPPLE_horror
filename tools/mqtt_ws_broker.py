@@ -1,6 +1,6 @@
 # A minimal MQTT 3.1.1 broker over WebSocket, for testing online co-op without the internet:
 # CONNECT, SUBSCRIBE, PUBLISH (QoS 0, exact topic match), PINGREQ, DISCONNECT. Needs `websockets`.
-#   python3 tools/mqtt_ws_broker.py 8899
+#   python3 tools/mqtt_ws_broker.py 8899 [bind address, default 127.0.0.1]
 #   then start the games with --signal=ws://127.0.0.1:8899/mqtt
 import asyncio
 import sys
@@ -64,11 +64,11 @@ async def handler(ws):
         subs.pop(ws, None)
 
 
-async def main(port):
-    async with websockets.serve(handler, '127.0.0.1', port, subprotocols=['mqtt']):
+async def main(port, host):
+    async with websockets.serve(handler, host, port, subprotocols=['mqtt']):
         print('mqtt-over-websocket broker on', port, flush=True)
         await asyncio.Future()
 
 
 if __name__ == '__main__':
-    asyncio.run(main(int(sys.argv[1]) if len(sys.argv) > 1 else 8899))
+    asyncio.run(main(int(sys.argv[1]) if len(sys.argv) > 1 else 8899, sys.argv[2] if len(sys.argv) > 2 else '127.0.0.1'))

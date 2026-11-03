@@ -54,6 +54,21 @@ var _connected_t := -1.0
 var _closed := false
 
 
+## The STUN (and TURN relay) servers. Tests can swap them: --ice=url,url (+ --ice-user, --ice-pass
+## for TURN), e.g. the simulated home networks in .github/workflows/nat-test.yml.
+static func ice_config() -> Dictionary:
+	if not Game.args.has("ice"):
+		return ICE
+	var servers := []
+	for url in str(Game.args.ice).split(","):
+		var s := {"urls": [url]}
+		if url.begins_with("turn"):
+			s.username = str(Game.args.get("ice-user", ""))
+			s.credential = str(Game.args.get("ice-pass", ""))
+		servers.append(s)
+	return {"iceServers": servers}
+
+
 ## Host a room. `forced_room` (5 characters) is for tests.
 func host(players_max: int, forced_room := "") -> void:
 	is_host = true
@@ -253,7 +268,7 @@ func _on_message(_topic: String, payload: String) -> void:
 
 func _new_conn(id: int) -> WebRTCPeerConnection:
 	var pc := WebRTCPeerConnection.new()
-	pc.initialize(ICE)
+	pc.initialize(ice_config())
 	pc.session_description_created.connect(func(type: String, sdp: String):
 		pc.set_local_description(type, sdp)
 		if is_host:

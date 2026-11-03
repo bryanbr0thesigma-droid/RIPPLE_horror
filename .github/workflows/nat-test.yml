@@ -1,0 +1,54 @@
+# Online co-op between two simulated home networks (tools/nat_sim.sh): the host in one home, the
+# joiner in another, each behind its own NAT router, with matchmaking, STUN and a TURN relay on a
+# pretend internet. Shows which router combinations connect directly, and that a relay fixes the rest.
+name: Two-homes NAT test
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/nat-test.yml', 'tools/nat_sim.sh', 'game/core/online_room.gd']
+jobs:
+  nat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {home1: cone, home2: cone, relay: false}
+          - {home1: cone, home2: symmetric, relay: false}
+          - {home1: symmetric, home2: symmetric, relay: false}
+          - {home1: symmetric, home2: symmetric, relay: true}
+    name: ${{ matrix.home1 }} + ${{ matrix.home2 }}${{ matrix.relay && ' + relay' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Godot, OpenXR vendors plugin, WebRTC, coturn
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+          mkdir -p "$HOME/bin" && unzip -q godot.zip && mv Godot_v4.7.2-stable_linux.x86_64 "$HOME/bin/godot"
+          curl -fsSL -o vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/5.1.0-stable/godotopenxrvendorsaddon.zip"
+          unzip -q vendors.zip -d vendors && cp -r vendors/asset/addons/godotopenxrvendors game/addons/
+          sh tools/fetch_webrtc.sh
+          sudo apt-get install -y -qq coturn python3-websockets > /dev/null
+          "$HOME/bin/godot" --headless --path game --import > import.log 2>&1 || true
+      - name: Build the two homes and the pretend internet
+        run: |
+          sudo sh tools/nat_sim.sh up ${{ matrix.home1 }} ${{ matrix.home2 }}
+          sudo ip netns exec inet python3 tools/mqtt_ws_broker.py 8899 203.0.113.10 > broker.log 2>&1 &
+          sudo ip netns exec inet turnserver -n --no-cli --log-file=stdout -L 203.0.113.10 --relay-ip=203.0.113.10 \
+            --external-ip=203.0.113.10 --listening-port=3478 -a -u ripple:ripple -r ripple --no-tls --no-dtls -f > turn.log 2>&1 &
+          sleep 2
+      - name: Host in home 1, join from home 2
+        run: |
+          ice="--ice=stun:203.0.113.10:3478"
+          [ "${{ matrix.relay }}" = "true" ] && ice="--ice=stun:203.0.113.10:3478,turn:203.0.113.10:3478 --ice-user=ripple --ice-pass=ripple"
+          sig="--signal=ws://203.0.113.10:8899/mqtt"
+          run_in() { ns=$1; shift; sudo ip netns exec "$ns" sudo -u "$USER" env "HOME=$HOME" "$HOME/bin/godot" "$@"; }
+          cd game
+          (run_in h1 --headless --path . -- --desktop --host-online --room=NATTT $sig $ice --autotest=net_host > ../host.log 2>&1; echo $? > ../host.exit) &
+          sleep 6
+          run_in h2 --headless --path . -- --desktop --join-code=NATTT2 $sig $ice --autotest=net_client > ../client.log 2>&1; echo $? > ../client.exit
+          wait
+          if grep -q "connected to the host" ../client.log; then result="CONNECTED"; else result="COULD NOT CONNECT"; fi
+          echo "### ${{ matrix.home1 }} + ${{ matrix.home2 }}${{ matrix.relay && ' + relay' || '' }}: $result" >> "$GITHUB_STEP_SUMMARY"
+          echo "RESULT: $result"
+          grep -hE "^PASS|^FAIL|AUTOTEST done|\[ONLINE\]" ../host.log ../client.log || true
