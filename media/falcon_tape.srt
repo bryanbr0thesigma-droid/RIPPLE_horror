@@ -1,132 +1,132 @@
 1
-00:00:04,200 --> 00:00:08,264
+00:00:09,800 --> 00:00:13,864
 This program is intended for authorized F.A.L.C.O.N. personnel only.
 
 2
-00:00:08,964 --> 00:00:13,111
+00:00:14,564 --> 00:00:18,711
 If you are not authorized personnel, please stop the tape now.
 
 3
-00:00:14,711 --> 00:00:15,424
+00:00:20,311 --> 00:00:21,024
 Thank you.
 
 4
-00:00:19,724 --> 00:00:24,941
+00:00:25,324 --> 00:00:30,541
 The Federal Agency for Liminal Classification & Occult Nature presents
 
 5
-00:00:26,741 --> 00:00:28,515
+00:00:32,341 --> 00:00:34,115
 WATER SAFETY AND YOU
 
 6
-00:00:31,115 --> 00:00:34,325
+00:00:38,715 --> 00:00:41,925
 Congratulations on your assignment to the poolrooms.
 
 7
-00:00:35,125 --> 00:00:36,641
+00:00:42,725 --> 00:00:44,241
 The lights are always on.
 
 8
-00:00:37,141 --> 00:00:38,895
+00:00:44,741 --> 00:00:46,495
 Except where they are not.
 
 9
-00:00:41,295 --> 00:00:42,726
+00:00:48,895 --> 00:00:50,326
 You are not alone here.
 
 10
-00:00:46,026 --> 00:00:46,971
+00:00:55,626 --> 00:00:56,571
 This is The Wader.
 
 11
-00:00:47,571 --> 00:00:50,444
+00:00:57,171 --> 00:01:00,044
 It has no eyes. It does not need them.
 
 12
-00:00:52,144 --> 00:00:53,550
+00:01:01,744 --> 00:01:03,150
 It hunts by sound.
 
 13
-00:00:57,050 --> 00:00:59,318
+00:01:10,750 --> 00:01:13,018
 If you fall in, it will hear you.
 
 14
-00:01:00,718 --> 00:01:03,561
+00:01:13,318 --> 00:01:16,161
 It is faster than you. Get out of the water.
 
 15
-00:01:05,461 --> 00:01:08,920
+00:01:18,061 --> 00:01:21,520
 It cannot leave the water. Dry ground is safe.
 
 16
-00:01:10,820 --> 00:01:14,089
+00:01:25,420 --> 00:01:28,689
 If you cannot reach dry ground, stop moving.
 
 17
-00:01:14,589 --> 00:01:16,958
+00:01:29,189 --> 00:01:31,558
 It will search for you by feel.
 
 18
-00:01:20,158 --> 00:01:23,507
-Most personnel who remain perfectly still survive.
+00:01:34,758 --> 00:01:38,373
+Most personnel who remain perfectly still are not found.
 
 19
-00:01:25,107 --> 00:01:26,722
+00:01:40,173 --> 00:01:41,787
 Remain perfectly still.
 
 20
-00:01:29,622 --> 00:01:31,201
+00:01:46,687 --> 00:01:48,266
 Listen for its clicking.
 
 21
-00:01:34,401 --> 00:01:36,027
+00:01:51,466 --> 00:01:53,092
 If it screeches, move.
 
 22
-00:01:41,427 --> 00:01:45,204
+00:02:00,492 --> 00:02:04,269
 If a member of your team is taken, do not attempt a rescue.
 
 23
-00:01:46,204 --> 00:01:49,494
+00:02:05,469 --> 00:02:08,759
 It will be busy for a moment. Use this time.
 
 24
-00:01:52,094 --> 00:01:54,596
+00:02:11,359 --> 00:02:13,861
 Taken personnel sometimes come back.
 
 25
-00:01:55,596 --> 00:01:57,447
+00:02:14,861 --> 00:02:16,712
 Do not ask them about the water.
 
 26
-00:02:00,147 --> 00:02:00,772
+00:02:19,412 --> 00:02:20,037
 Remember.
 
 27
-00:02:01,272 --> 00:02:02,186
+00:02:20,537 --> 00:02:21,451
 Stay dry.
 
 28
-00:02:02,786 --> 00:02:03,754
+00:02:22,051 --> 00:02:23,019
 Stay quiet.
 
 29
-00:02:04,354 --> 00:02:05,284
+00:02:23,619 --> 00:02:24,550
 Stay still.
 
 30
-00:02:06,184 --> 00:02:07,420
+00:02:25,450 --> 00:02:26,685
 And above all.
 
 31
-00:02:07,970 --> 00:02:09,069
+00:02:27,235 --> 00:02:28,335
 Do not fall in.
 
 32
-00:02:11,769 --> 00:02:15,955
+00:02:31,035 --> 00:02:35,220
 This concludes your orientation. Thank you for your service.
 
 33
-00:02:25,355 --> 00:02:29,610
+00:02:44,620 --> 00:02:48,875
 It can hear yours.
 
