@@ -1,0 +1,272 @@
+1
+00:00:04,200 --> 00:00:08,264
+This program is intended for authorized F.A.L.C.O.N. personnel only.
+
+2
+00:00:08,964 --> 00:00:13,111
+If you are not authorized personnel, please stop the tape now.
+
+3
+00:00:14,711 --> 00:00:15,424
+Thank you.
+
+4
+00:00:19,824 --> 00:00:25,041
+The Federal Agency for Liminal Classification & Occult Nature presents
+
+5
+00:00:27,041 --> 00:00:28,815
+WATER SAFETY AND YOU
+
+6
+00:00:29,715 --> 00:00:33,413
+A field guide to Liminal Entity L-7: The Wader.
+
+7
+00:00:36,263 --> 00:00:38,524
+Section one. The poolrooms.
+
+8
+00:00:40,024 --> 00:00:43,233
+Congratulations on your assignment to the poolrooms.
+
+9
+00:00:43,733 --> 00:00:49,228
+The poolrooms are an endless network of tiled halls, filled with warm, still water.
+
+10
+00:00:49,928 --> 00:00:51,443
+The lights are always on.
+
+11
+00:00:51,943 --> 00:00:53,698
+Except where they are not.
+
+12
+00:00:56,098 --> 00:00:57,528
+You are not alone here.
+
+13
+00:01:00,778 --> 00:01:03,424
+Section two. Identification.
+
+14
+00:01:05,024 --> 00:01:05,969
+This is The Wader.
+
+15
+00:01:06,769 --> 00:01:10,748
+It stands one and a quarter times the height of an average agent.
+
+16
+00:01:11,348 --> 00:01:16,187
+It has long arms. It has a very wide jaw. It has no eyes.
+
+17
+00:01:16,786 --> 00:01:18,123
+It does not need them.
+
+18
+00:01:20,123 --> 00:01:25,547
+The Wader lives in the water, and it cannot leave the water. Dry ground is safe.
+
+19
+00:01:27,797 --> 00:01:30,262
+Section three. How it hears.
+
+20
+00:01:31,662 --> 00:01:37,818
+The Wader hunts by sound alone. Any disturbance of the water is heard almost instantly.
+
+21
+00:01:38,318 --> 00:01:45,542
+Every sound you make in the water spreads outward as ripples. The ripples show you exactly what The Wader hears.
+
+22
+00:01:46,042 --> 00:01:47,146
+Learn to read them.
+
+23
+00:01:48,846 --> 00:01:50,622
+Standing still is silent.
+
+24
+00:01:51,522 --> 00:01:53,607
+Wading slowly is very quiet.
+
+25
+00:01:54,507 --> 00:01:56,126
+Wading quickly is loud.
+
+26
+00:01:57,026 --> 00:01:59,595
+Moving your hands through the water is loud.
+
+27
+00:02:01,395 --> 00:02:04,935
+Small sounds will make it come, and investigate.
+
+28
+00:02:07,385 --> 00:02:09,548
+Section four. Falling in.
+
+29
+00:02:10,848 --> 00:02:13,528
+Most personnel losses begin with a fall.
+
+30
+00:02:15,028 --> 00:02:21,783
+The higher the fall, the louder the splash. The Wader will almost always hear it, and it will charge.
+
+31
+00:02:24,483 --> 00:02:27,900
+It is faster than you. Do not try to outrun it.
+
+32
+00:02:29,800 --> 00:02:35,326
+Do not stay where you landed. Climb out of the water. Climb all the way out.
+
+33
+00:02:35,926 --> 00:02:40,676
+Holding on to a ladder, with your feet over the water, is not dry ground.
+
+34
+00:02:43,726 --> 00:02:46,712
+Section five. The stillness protocol.
+
+35
+00:02:48,012 --> 00:02:51,281
+If you cannot reach dry ground, stop moving.
+
+36
+00:02:51,881 --> 00:03:00,745
+When you are still, The Wader only knows roughly where you are. It will search the area by feel, sweeping its long arm through the water.
+
+37
+00:03:04,045 --> 00:03:09,382
+Do not move your head. Do not move your body. Do not move your hands.
+
+38
+00:03:11,082 --> 00:03:16,019
+Personnel who remain perfectly still survive the search seventy percent of the time.
+
+39
+00:03:17,219 --> 00:03:18,834
+Remain perfectly still.
+
+40
+00:03:21,884 --> 00:03:24,501
+Section six. Warning signs.
+
+41
+00:03:25,901 --> 00:03:34,718
+The Wader always gives itself away. Watch the water for its wake, and for its back breaking the surface. Listen for its clicking.
+
+42
+00:03:36,218 --> 00:03:38,697
+Scattered clicking means it is wandering.
+
+43
+00:03:41,697 --> 00:03:45,315
+Steady clicking means it is hunting a sound. Freeze.
+
+44
+00:03:48,515 --> 00:03:51,412
+Rattling clicks and teeth mean it is very close.
+
+45
+00:03:54,612 --> 00:04:00,697
+If the clicking speeds up into a screech, it is charging. Get off that spot. Now.
+
+46
+00:04:06,297 --> 00:04:11,681
+After you climb out, it will wait nearby. Do not go back in right away.
+
+47
+00:04:14,131 --> 00:04:16,413
+Section seven. Equipment.
+
+48
+00:04:17,713 --> 00:04:23,263
+Bottles may be thrown to create a distraction. The Wader will go to the nearest sound.
+
+49
+00:04:25,163 --> 00:04:29,578
+In unlit sectors, use the lidar scanner. It sees through the water.
+
+50
+00:04:30,178 --> 00:04:33,861
+The Wader appears in red. Your team appears in yellow.
+
+51
+00:04:34,661 --> 00:04:40,480
+Each scan is a snapshot. It shows where The Wader was. Not where it is.
+
+52
+00:04:42,580 --> 00:04:50,964
+Generators restore power. Each generator requires two canteens of mineral water. Mineral water glows a soft teal.
+
+53
+00:04:51,664 --> 00:04:56,414
+A running generator hums. The hum will cover the sound of your movements.
+
+54
+00:04:58,864 --> 00:05:01,794
+Section eight. Casualty procedure.
+
+55
+00:05:03,094 --> 00:05:06,871
+If a member of your team is taken, do not attempt a rescue.
+
+56
+00:05:07,771 --> 00:05:13,809
+The Wader will feed for six to ten seconds. During this time, it ignores all sound.
+
+57
+00:05:14,809 --> 00:05:15,852
+Use this time.
+
+58
+00:05:17,952 --> 00:05:23,124
+Their equipment will float where they were taken. Recover it when it is safe.
+
+59
+00:05:24,624 --> 00:05:31,993
+Taken personnel have been observed returning when the team reaches a dry room. F.A.L.C.O.N. has no explanation for this.
+
+60
+00:05:34,193 --> 00:05:36,045
+Do not ask them about the water.
+
+61
+00:05:38,945 --> 00:05:39,570
+Remember.
+
+62
+00:05:40,070 --> 00:05:40,983
+Stay dry.
+
+63
+00:05:41,583 --> 00:05:42,552
+Stay quiet.
+
+64
+00:05:43,152 --> 00:05:44,082
+Stay still.
+
+65
+00:05:44,982 --> 00:05:46,217
+And above all.
+
+66
+00:05:46,767 --> 00:05:47,867
+Do not fall in.
+
+67
+00:05:50,567 --> 00:05:54,752
+This concludes your orientation. Thank you for your service.
+
+68
+00:06:04,552 --> 00:06:08,807
+It can hear yours.
+

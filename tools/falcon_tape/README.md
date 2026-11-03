@@ -6,8 +6,9 @@ rules in-world: the Wader hunts by sound in the water, dry ground is safe, falls
 still gives you a 70% chance, what its clicking means, decoys, the lidar, generators and mineral
 water, and what to do when someone is taken. About 6 minutes, narrated by Microsoft Sam.
 
-The finished video is `media/falcon_tape.mp4` (960x720, 4:3) with subtitles in
-`media/falcon_tape.srt`.
+The finished video is `media/falcon_tape.mp4` (960x720, 4:3, 6:14) with subtitles in
+`media/falcon_tape.srt`. That copy is squeezed to under 50 MB for the repo; building it yourself
+gives a sharper one (about 140 MB), better for uploading.
 
 ## How it's made
 
