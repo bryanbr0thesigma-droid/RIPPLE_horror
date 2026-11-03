@@ -25,7 +25,7 @@ LINES = {
     # Stillness
     "st1":   "If you cannot reach dry ground, stop moving.",
     "feel":  "It will search for you by feel.",
-    "most":  "Most personnel who remain perfectly still survive.",
+    "found": "Most personnel who remain perfectly still are not found.",
     "st5":   "Remain perfectly still.",
     # Its clicking
     "listen": "Listen for its clicking.",

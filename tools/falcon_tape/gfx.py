@@ -88,6 +88,9 @@ class Canvas:
     def circle(self, cx, cy, r, fill=None, outline=None, width=1):
         self.d.ellipse([(cx - r) * S, (cy - r) * S, (cx + r) * S, (cy + r) * S], fill=fill, outline=outline, width=int(width * S))
 
+    def pie(self, cx, cy, r, a0, a1, fill):
+        self.d.pieslice([(cx - r) * S, (cy - r) * S, (cx + r) * S, (cy + r) * S], a0, a1, fill=fill)
+
     def arc(self, cx, cy, r, a0, a1, fill, width=2):
         self.d.arc([(cx - r) * S, (cy - r) * S, (cx + r) * S, (cy + r) * S], a0, a1, fill=fill, width=int(width * S))
 
@@ -150,10 +153,11 @@ def caption(c, s, y=58, size=22, fill=WHITE, box=(8, 12, 40), border=None):
 
 
 def bug(c, title):
-    """The small lower-left label shown through the program."""
+    """The small labels shown through the program: the section, lower left; the tape, lower right."""
     c.rect(0, 440, 40 + tw(title, 12), 462, fill=(10, 16, 50))
     c.rect(0, 440, 6, 462, fill=RED)
     c.text(16, 451, title, 12, WHITE, "sans", "lm", 0)
+    c.text(624, 451, "F.A.L.C.O.N.  \u00b7  07-W", 11, (170, 176, 196), "sans", "rm", 0, track=1)
 
 
 # ---------------------------------------------------------------- simulated water

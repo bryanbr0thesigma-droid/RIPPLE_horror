@@ -69,3 +69,16 @@ def logo_jingle():
         place(out, bell(mtof(m), 3.5, 0.6), k * 0.16)
     place(out, pad([mtof(m) for m in (53, 57, 60, 64)], 3.0, 0.5), 0.6)
     return norm(reverb(out, 1.6, 0.3), 0.8)
+
+
+def section_chime():
+    out = np.zeros(int(2.5 * SR))
+    place(out, bell(mtof(81), 2.0, 0.7, ratio=2.0), 0.0)
+    place(out, bell(mtof(76), 2.0, 0.7, ratio=2.0), 0.28)
+    return norm(reverb(out, 1.0, 0.25), 0.6)
+
+
+def test_tone(dur):
+    """The 1 kHz line-up tone that plays over the colour bars."""
+    n = int(dur * SR)
+    return np.sin(2 * np.pi * 1000 * np.arange(n) / SR) * env(n, 0.005, 0.01) * 0.5

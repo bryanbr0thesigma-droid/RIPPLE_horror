@@ -183,7 +183,7 @@ def falling(c, t, sc):
     c.rect(110, 116, 156, 122, fill=(220, 220, 210))
     hatch(c, 110, fy, W, H)
     if True:
-        tf = m["fall"] + 0.3
+        tf = m["drop"] + 0.2
         tl = tf + 0.8
         if t < tf:
             person(c, "stand", 142, 116, 100)
@@ -215,7 +215,7 @@ def falling(c, t, sc):
 # ---------------------------------------------------------------- stillness
 def stillness(c, t, sc):
     m, e = sc.m, sc.e
-    if t < m["most"]:
+    if t < m["found"]:
         dx, sy, fy = 60, 296, 370
         pool(c, dx, 286, fy)
         person(c, "stand", 260, fy, 175)
@@ -235,8 +235,8 @@ def stillness(c, t, sc):
         bug(c, "STILLNESS")
     elif t < m["st5"]:
         c.rect(0, 0, W, H, fill=NAVY)
-        if t >= m["most"] + 0.3:
-            c.text(320, 240, "MOST SURVIVE.", 44, WHITE, "sans", "mm", 3, track=4)
+        if t >= m["found"] + 0.3:
+            c.text(320, 240, "MOST ARE NOT FOUND.", 40, WHITE, "sans", "mm", 3, track=3)
         bug(c, "STILLNESS")
     else:
         c.rect(0, 0, W, H, fill=BLACK)
@@ -281,16 +281,20 @@ DARK = (8, 12, 40)
 def taken(c, t, sc):
     m = sc.m
     dx, dy, sy, fy = 200, 290, 302, 372
+    out0 = m["ca1"] + 0.5                       # the lights go out for a moment
+    out1 = out0 + 0.7
+    gone = t >= out1
+    if out0 <= t < out1:
+        c.rect(0, 0, W, H, fill=BLACK)
+        if out0 + 0.3 <= t < out0 + 0.37:
+            kill_scene(c, 2, 0.15)
+        return
     pool(c, dx, dy, fy, bg=DARK)
-    ts = m["ca1"] + 0.4
-    if t < ts:
+    if not gone:
         person(c, "woman", 420, fy, 150)
-    elif t < ts + 0.45:
-        person(c, "woman", 420, fy + (t - ts) * 80, 150, RED)
-    if t >= ts + 0.3:
-        wader(c, 450, fy, 200, t, name="search")
-    ev = [(420, ts + 0.3, 1.4)] if t >= ts + 0.3 else []
-    ev += [(400, ts + 0.5 + k * 0.7, 0.3) for k in range(int(max(0, t - ts) / 0.7))]
+    else:
+        wader(c, 440, fy, 200, 0.0, name="search")
+    ev = [(420, out1 - 0.1, 0.8)] if gone else []
     water(c, dx, W, sy, fy, t, bumps=surface_bumps(ev, t))
     if t < m["busy"] + 1.6:
         person(c, "stand", 130, dy, 120)
@@ -298,12 +302,13 @@ def taken(c, t, sc):
         u = ramp(t - m["busy"], 1.6, 1.4)
         if u < 1:
             person(c, "run", 130 - 150 * u, dy, 110)
-    if m["ca1"] + 1.0 <= t < m["busy"]:
+    if out1 + 0.3 <= t < m["busy"]:
         sign(c, "rescue", 560, 110, 90)
         caption(c, "DO NOT ATTEMPT A RESCUE", 58, 20)
     elif t >= m["busy"] + 1.4:
         caption(c, "USE THIS TIME.", 58, 26)
-    bug(c, "CASUALTIES")
+    c.fade_to(BLACK, 0.5 if (not gone and int(t * 9) % 4 == 0 and t > m["ca1"]) else 0)
+    bug(c, "MISSING PERSONNEL")
 
 
 def coming_back(c, t, sc):
@@ -356,16 +361,128 @@ def blank(c, t, sc):
     c.rect(0, 0, W, H, fill=BLACK)
 
 
+KILL_CUTS = [  # (start, length, picture) after the "kill" mark; None is static
+    (0.00, 0.22, 0), (0.22, 0.10, None), (0.32, 0.26, 1), (0.58, 0.08, None), (0.66, 0.42, 2),
+    (1.08, 0.10, None), (1.18, 0.36, 2), (1.54, 0.14, None), (1.68, 0.55, 3)]
+
+
 def stinger(c, t, sc):
     m = sc.m
     c.rect(0, 0, W, H, fill=BLACK)
-    if t < m["scare"]:
+    if t < m["kill"]:
         s = "THE HUMAN BODY IS ABOUT 60% WATER."
         c.text(320, 240, typed(s, t - 0.5, 15), 20, RED if t >= m["hear"] + 0.3 else WHITE, "mono", "mm", 0)
     elif t < m["static"]:
-        if int(t * 15) % 2 == 0:
-            c.rect(0, 0, W, H, fill=(150, 0, 0))
-        sil(c, "screech", 8 + int((t - m["scare"]) * 12), 330, 478, 470, BLACK)
+        u = t - m["kill"]
+        for a, d, pic in KILL_CUTS:
+            if a <= u < a + d and pic is not None:
+                kill_scene(c, pic, u - a + (0.36 if (pic == 2 and a > 1) else 0))
     elif m["stop"] <= t < m["stop"] + 1.6:
         c.rect(0, 0, W, H, fill=VCR_BLUE)
-        osd(c, "STOP ■")
+        osd(c, "STOP \u25a0")
+
+
+_blood = None
+
+
+def kill_scene(c, phase, u):
+    """The Wader taking someone, in red light: 0 lunge, 1 lifted, 2 torn apart, 3 after."""
+    global _blood
+    import numpy as np
+    if _blood is None:
+        _blood = np.random.default_rng(13).random((46, 3))
+    bg = (150, 16, 18)                          # lit from behind in red: everything else is a silhouette
+    c.rect(0, 0, W, H, fill=bg)
+    back_wall(c, bg)
+    sy, fy = 300, 380
+    c.rect(0, fy, W, H, fill=(20, 4, 6))
+    victim = (236, 222, 206)
+    bumps = []
+    if phase == 0:
+        person(c, "stand", 280, fy, 150, victim)
+        x = 560 - 200 * min(1, u * 5)
+        sil(c, "side_idle", 3, x, fy, 210, BLACK)
+        for k in range(5):
+            yy = fy - 30 - k * 26
+            c.line([(x + 50, yy), (x + 50 + 90 * (1 - min(1, u * 5)) + 20, yy)], (200, 180, 170), 2)
+        bumps = [(x - 60, 10, 16)]
+    else:
+        frame = {1: 11, 2: 13, 3: 16}[phase]
+        box = sil(c, "screech" if phase < 3 else "search", frame if phase < 3 else 20, 380, fy, 280 if phase < 3 else 200, BLACK)
+        cx, cy = box[0] + (box[2] - box[0]) * 0.16, box[1] + (box[3] - box[1]) * 0.38
+        if phase == 1:
+            person(c, "stand", cx + 10, cy + 70, 140, victim, rot=-80)
+        elif phase == 2:
+            d = 16 + u * 80
+            top, bottom = halves("stand", 140)
+            for im, dx, dy, rot in ((top, -d, -d * 0.5, -70 - u * 60), (bottom, d * 0.7, d * 0.4, 85 + u * 50)):
+                r = im.rotate(rot, resample=Image.BICUBIC, expand=True)
+                c.paste_mask(r, cx + dx - r.size[0] / S / 2, cy + dy - r.size[1] / S / 2, victim)
+            for i in range(46):
+                vx = (_blood[i, 0] - 0.5) * 320
+                vy = -(60 + _blood[i, 1] * 260)
+                px, py = cx + vx * u, cy + vy * u + 600 * u * u
+                if py < sy + 6:
+                    c.circle(px, py, 2 + _blood[i, 2] * 4, fill=(150, 0, 0))
+        else:
+            bumps = [(300, 6, 14), (440, 5, 12)]
+    water(c, 0, W, sy, fy, u, col=(14, 6, 10), alpha=0.86, bumps=bumps)
+    if phase >= 2:
+        lay, dr = c.layer()
+        r = 60 + (u * 120 if phase == 2 else 150)
+        dr.ellipse([(380 - r) * S, (sy + 4) * S, (380 + r) * S, (fy + 20) * S], fill=(120, 0, 0, 150))
+        lay.paste((0, 0, 0, 0), (0, 0, W * S, int((sy + 3) * S)))
+        c.overlay(lay)
+    if int(u * 30) % 5 == 0:
+        c.fade_to(BLACK, 0.45)                 # the light stutters
+
+
+def halves(kind, h):
+    """The figure cut in two at the waist (masks, at canvas scale)."""
+    from gfx import _scaled, ASSETS
+    m = _scaled(f"{ASSETS}/people/{kind}.png", int(h * S))
+    cut = int(m.size[1] * 0.5)
+    return m.crop((0, 0, m.size[0], cut)), m.crop((0, cut, m.size[0], m.size[1]))
+
+
+# ---------------------------------------------------------------- tape furniture
+def bars(c, t, sc):
+    cols = [(191, 191, 191), (191, 191, 0), (0, 191, 191), (0, 191, 0), (191, 0, 191), (191, 0, 0), (0, 0, 191)]
+    w = W / 7
+    for i, col in enumerate(cols):
+        c.rect(i * w, 0, (i + 1) * w + 1, 320, fill=col)
+    for i, col in enumerate([(0, 0, 191), (19, 19, 19), (191, 0, 191), (19, 19, 19), (0, 191, 191), (19, 19, 19), (191, 191, 191)]):
+        c.rect(i * w, 320, (i + 1) * w + 1, 360, fill=col)
+    for x0, x1, col in ((0, 114, (0, 33, 76)), (114, 228, (255, 255, 255)), (228, 342, (50, 0, 106)), (342, 640, (19, 19, 19))):
+        c.rect(x0, 360, x1, 480, fill=col)
+    c.rect(220, 140, 420, 180, fill=(10, 10, 10))
+    c.text(320, 160, "F.A.L.C.O.N.  07-W", 16, WHITE, "sans", "mm", 0, track=2)
+
+
+def leader(c, t, sc):
+    c.rect(0, 0, W, H, fill=(120, 120, 116))
+    n = 3 - int(t)
+    if n < 2:
+        c.rect(0, 0, W, H, fill=BLACK)
+        return
+    f = t % 1.0
+    c.pie(320, 240, 330, -90, -90 + 360 * f, (150, 150, 146))
+    c.line([(0, 240), (W, 240)], (40, 40, 40), 2)
+    c.line([(320, 0), (320, H)], (40, 40, 40), 2)
+    c.circle(320, 240, 150, outline=WHITE, width=5)
+    c.circle(320, 240, 130, outline=WHITE, width=3)
+    c.text(320, 248, str(n), 170, (20, 20, 20), "sans", "mm", 0)
+
+
+def section_card(n, name):
+    def draw(c, t, sc):
+        c.rect(0, 0, W, H, fill=NAVY)
+        a = ease(ramp(t, 0.0, 0.3))
+        c.circle(150, 240, 52 * a, fill=GOLD)
+        if a > 0.85:
+            c.text(150, 244, str(n), 60, NAVY, "sans", "mm", 0)
+        if t > 0.15:
+            c.text(222, 210, f"SECTION {n}", 18, GOLD, "sans", "lm", 0, track=3)
+            c.text(222, 250, name, 34, WHITE, "sans", "lm", 2)
+        c.rect(222, 276, 222 + tw(name, 34) * ease(ramp(t, 0.25, 0.5)), 282, fill=RED)
+    return draw
