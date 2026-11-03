@@ -71,6 +71,8 @@ class Canvas:
 
     # --- primitives (coordinates in 640x480 units) ---
     def rect(self, x0, y0, x1, y1, fill=None, outline=None, width=1):
+        if x1 * S - 1 < x0 * S or y1 * S - 1 < y0 * S:
+            return
         self.d.rectangle([x0 * S, y0 * S, x1 * S - 1, y1 * S - 1], fill=fill, outline=outline, width=int(width * S))
 
     def line(self, pts, fill, width=2, round_caps=True):
