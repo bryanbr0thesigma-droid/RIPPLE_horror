@@ -1,19 +1,20 @@
 # F.A.L.C.O.N. orientation tape
 
-"Water Safety and You": a 3-minute analogue-horror training video about the Wader, made as a 1991
+"Water Safety and You": a 4-minute analogue-horror training video about the Wader, made as a 1991
 VHS tape from the Federal Agency for Liminal Classification & Occult Nature and narrated by
 Microsoft Sam. It hints at the game's rules in-world without giving too much away: the Wader hunts
 by sound, dry ground is safe, don't fall in, stand still, listen for it, and don't go in after
-someone who's taken. The tape never says what happens to them; only a few single-frame flashes
-do, until the program ends and something else is on the tape.
+someone who's taken, then a cheerful knowledge check. The tape never says what happens to them;
+only a few single-frame flashes do, until after the end of the program, when an unlisted appendix
+plays: a demonstration of the stillness protocol that goes wrong.
 
 The finished video is `media/falcon_tape.mp4` (960x720, 4:3) with subtitles in
 `media/falcon_tape.srt`.
 
 ## What's in it
 
-- **The Wader:** silhouettes rendered from the game's own creature model (`silhouettes/`), the
-  only artwork made for the tape.
+- **The Wader:** silhouettes rendered from the game's own creature model (`silhouettes/`). The
+  appendix's agent is rendered the same way from the game's anti-radiation suit (`agent`).
 - **Existing human-made work** (public domain or CC0, listed in `assets/CREDITS.md`): ISO 7010
   safety signs (rebuilt into the tape's own signs by `build_signs.py`, with water added), road-sign
   stick figures and a falcon engraving from Openclipart for the seal, CC0 static from OpenGameArt,

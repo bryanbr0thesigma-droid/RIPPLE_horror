@@ -25,4 +25,6 @@ and screeches, splashes, wading, drips, the room tone and the "Under the surface
 from CC0 recordings. The game's synthesized sounds (clank, door, flashlight) are not used.
 
 The Wader's silhouettes (`../silhouettes/`) are rendered from the game's creature model (The Rake by
-Sealife Fan 3, CC BY 4.0, reworked for RIPPLE).
+Sealife Fan 3, CC BY 4.0, reworked for RIPPLE). The appendix's agent is rendered from the game's
+anti-radiation suit ([Antiradiation suit - OZK](https://sketchfab.com/3d-models/antiradiation-suit-ozk-2e815542505d48d8be91e9f7dbebfd0a)
+by sanyaork, CC BY 4.0).

@@ -82,3 +82,11 @@ def test_tone(dur):
     """The 1 kHz line-up tone that plays over the colour bars."""
     n = int(dur * SR)
     return np.sin(2 * np.pi * 1000 * np.arange(n) / SR) * env(n, 0.005, 0.01) * 0.5
+
+
+def ding():
+    """The quiz's right-answer ding."""
+    out = np.zeros(int(1.6 * SR))
+    place(out, bell(mtof(84), 1.4, 0.7, ratio=2.0), 0.0)
+    place(out, bell(mtof(88), 1.4, 0.6, ratio=2.0), 0.09)
+    return norm(reverb(out, 0.8, 0.2), 0.5)

@@ -66,7 +66,8 @@ def timeline():
         Scene("logo", S.logo, [P(2.9), L("pres", 1.2)], beds=[(0, "corp")], sfx=[(0.25, "jingle", 0.6)]),
         Scene("title", S.title, [P(0.6), L("title", 2.2)], beds=[(0, "corp")], glitch=[("e:title+1.5", 0.25, 0.45)]),
         card(1, "THE POOLROOMS"),
-        Scene("poolrooms", S.poolrooms, [P(0.4), L("pr1", 0.8), L("pr3", 0.5), L("pr4", 2.4), L("pr5", 2.8)],
+        Scene("poolrooms", S.poolrooms, [P(0.4), L("pr1", 0.6), L("endless", 0.6), L("drink", 0.9), L("pr3", 0.5),
+                                         L("pr4", 2.4), L("pr5", 2.8)],
               beds=[(0, "corp+halls"), ("pr4", "halls"), ("pr4+2.6", "eerie")],
               sfx=[("pr5+1.0", "click_close", 0.7)], glitch=[("pr5+1.0", 0.25, 0.3)]),
         card(2, "THE WADER"),
@@ -93,19 +94,29 @@ def timeline():
               sfx=[("ca1+0.8", "subliminal", 0.35)], glitch=[("ca1+0.75", 0.15, 0.6)]),
         Scene("back", S.coming_back, [P(0.4), L("ret", 1.0), L("ca6", 2.2)], beds=[(0, "dark")],
               sfx=[("ret+0.8", "drips:4", 0.35)], glitch=[("ca6", 0.18, 0.5)]),
+        card(7, "KNOWLEDGE CHECK"),
+        Scene("quiz1", S.quiz("q1", "ac"), [P(0.4), L("q0", 0.8), L("q1", 2.4), L("ac", 1.4)], beds=[(0, "corp")],
+              sfx=[("ac", "ding", 0.5)]),
+        Scene("quiz2", S.quiz("q2", "ab"), [P(0.3), L("q2", 2.4), L("ab", 1.4)], beds=[(0, "corp")], sfx=[("ab", "ding", 0.5)]),
+        Scene("quiz3", S.quiz("q3", "ac"), [P(0.3), L("q3", 2.4), L("ac", 0.6), L("nowait", 1.6), L("done", 2.0)],
+              beds=[(0, "corp")], sfx=[("ac", "ding", 0.5), ("done", "chime", 0.45)], glitch=[("nowait+0.2", 0.2, 0.4)]),
         Scene("summary", S.summary, [P(0.5), L("rm0", 0.5), L("rm1", 0.6), L("rm2", 0.6), L("rm3", 0.9), L("rm4", 0.3)],
               beds=[(0, "corp"), ("rm4", "none")]),
         Scene("fallin", S.fall_in, [P(0.25), L("rm5", 2.2)], glitch=[(0, 0.35, 0.9)], sfx=[(0.0, "static:0.3", 0.5)]),
         Scene("outro", S.outro, [P(0.5), L("end", 3.4)], beds=[(0, "corp")], sfx=[(0.2, "jingle", 0.5)]),
         Scene("blank", S.blank, [P(2.2)], glitch=[(1.95, 0.25, 0.5)]),
-        Scene("stinger", S.stinger, [P(3.8), L("hear", 0.4), M("kill"), P(2.4), M("static"), P(1.4), M("stop"), P(1.6), P(0.8)],
-              beds=[(0, "none")],
-              sfx=[("kill", "charge_onset", 0.7), ("kill+0.3", "kill_screech_5", 2.2), ("kill+0.66", "kill_tear", 1.2),
-                   ("kill+0.7", "kill_crack_2", 1.0), ("kill+0.75", "kill_spine", 0.9), ("kill+1.7", "splash_big", 0.7),
-                   *[(f"kill+{a:.2f}", f"static:{d:.2f}", 0.45) for a, d, p in S.KILL_CUTS if p is None],
-                   ("static", "static:1.4", 0.6)],
-              glitch=[("kill", 2.4, 0.45, False)],
-              static=[*[(f"kill+{a:.2f}", d, 1.0, False) for a, d, p in S.KILL_CUTS if p is None], ("static", 1.4, 1.0)]),
+        Scene("appendix", S.section_card("?", "DEMONSTRATION", "APPENDIX"), [P(2.6)], beds=[(0, "corp_slow")],
+              glitch=[(0, 0.3, 0.7)]),
+        Scene("demo", S.demo, [P(0.5), M("walk"), P(7.0), M("flinch"), P(0.9), M("dark"), P(0.4), M("kill"), P(2.92),
+                               M("after"), P(3.2)],
+              beds=[(0, "corp_slow"), ("flinch", "none"), ("after", "dark")],
+              sfx=[("walk", "wade:3.6", 0.35), ("walk+0.4", "clip:hunt", 0.6), ("walk+3.6", "close:3.4", 0.5),
+                   ("flinch", "splash_small", 0.25), ("kill", "kill_screech_5", 2.0), ("kill+0.69", "kill_tear", 1.2),
+                   ("kill+0.72", "kill_crack_2", 1.0), ("kill+0.78", "kill_spine", 0.9), ("kill+1.55", "splash_big", 0.8),
+                   ("kill+2.0", "chew", 0.4), ("after+0.4", "drips:2.8", 0.3)],
+              glitch=[("kill", 2.92, 0.4, False)]),
+        Scene("stinger", S.stinger, [P(3.8), L("hear", 0.6), M("static"), P(1.4), M("stop"), P(1.6), P(0.8)],
+              beds=[(0, "none")], sfx=[("static", "static:1.4", 0.6)], static=[("static", 1.4, 1.0)]),
     ]
 
 
@@ -213,6 +224,8 @@ class Sfx:
             return music.test_tone(float(arg))
         if base == "pop":
             return music.test_tone(0.04)
+        if base == "ding":
+            return music.ding()
         return g(base)
 
 
@@ -241,7 +254,7 @@ def build_audio(tl, total, voices, clips, out_wav):
     # music beds, with crossfades
     rate = 100
     ctl_n = int((total + 1) * rate)
-    gains = {"corp": 0.09, "eerie": 0.08, "halls": 0.05, "dark": 0.08}     # under Sam
+    gains = {"corp": 0.09, "corp_slow": 0.1, "eerie": 0.08, "halls": 0.05, "dark": 0.08}     # under Sam
     ctl = {k: np.zeros(ctl_n) for k in gains}
     segs = []
     for sc in tl:
@@ -261,7 +274,9 @@ def build_audio(tl, total, voices, clips, out_wav):
     tt = np.arange(n) / A.SR
     ct = np.arange(ctl_n) / rate
     beds = np.zeros(n)
-    srcs = {"corp": lambda: music.corporate_bed(total + 1), "eerie": lambda: A.game("music_under_surface"),
+    srcs = {"corp": lambda: music.corporate_bed(total + 1),
+            "corp_slow": lambda: A.filt(A.resample(music.corporate_bed(total * 0.75 + 2), 0.75), None, 2500),
+            "eerie": lambda: A.game("music_under_surface"),
             "halls": lambda: A.game("amb_halls"), "dark": lambda: A.game("amb_dark")}
     for b, c in ctl.items():
         if c.any():

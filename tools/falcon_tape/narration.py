@@ -11,6 +11,8 @@ LINES = {
     "title": "Water safety, and you.",
     # The poolrooms
     "pr1":   "Congratulations on your assignment to the poolrooms.",
+    "endless": "The poolrooms have no known end.",
+    "drink": "The water is always warm. Do not drink it.",
     "pr3":   "The lights are always on.",
     "pr4":   "Except where they are not.",
     "pr5":   "You are not alone here.",
@@ -35,6 +37,15 @@ LINES = {
     "busy":  "It will be busy for a moment. Use this time.",
     "ret":   "Taken personnel sometimes come back.",
     "ca6":   "Do not ask them about the water.",
+    # Knowledge check
+    "q0":    "Let us review what you have learned.",
+    "q1":    "Question one. You have fallen into the water. What do you do?",
+    "q2":    "Question two. You hear clicking nearby. What do you do?",
+    "q3":    "Question three. A member of your team has been taken. What do you do?",
+    "ac":    "The correct answer is C.",
+    "ab":    "The correct answer is B.",
+    "nowait": "Do not wait for them.",
+    "done":  "Well done.",
     # Summary
     "rm0":   "Remember.",
     "rm1":   "Stay dry.",

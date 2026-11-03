@@ -1,4 +1,6 @@
-// Renders the creature's silhouettes for the tape with three.js in headless Chromium.
+// Renders the creature's silhouettes for the tape with three.js in headless Chromium. With
+// MODEL=ozk.glb (the game's anti-radiation suit) it renders the ending's agent instead:
+//   MODEL=ozk.glb node silhouettes.mjs frames '[["agent_000",null,90,0,0,[0,0.87,0,0.95],{"LeftArm":[0,0,1.2],"RightArm":[0,0,-1.2]}]]'
 // Needs: npm install three@0.169.0 playwright, and ../../game/assets/creature/creature.glb copied
 // next to silhouettes.html. Serve this folder on port 8765 (python3 -m http.server 8765), then:
 //   node silhouettes.mjs silhouettes
@@ -11,7 +13,7 @@ const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--ena
 const page = await browser.newPage();
 page.on('console', m => console.log('page:', m.text()));
 page.on('pageerror', e => console.log('error:', e.message));
-await page.goto('http://127.0.0.1:8765/silhouettes.html');
+await page.goto('http://127.0.0.1:8765/silhouettes.html' + (process.env.MODEL ? '?model=' + process.env.MODEL : ''));
 await page.waitForFunction(() => window.ready, null, { timeout: 120000 });
 const dur = await page.evaluate(() => window.durations);
 console.log(dur);
@@ -23,11 +25,11 @@ const shots = process.argv[3] ? JSON.parse(process.argv[3]) : [
   ['search', 'search', 90, 12, 0, F],
   ['screech', 'screech', 90, 12, 0, [0, 0.27, 0.05, 0.46]],
 ];
-for (const [name, clip, yaw, fps, t0, frame] of shots) {
-  const n = fps ? Math.max(1, Math.round(dur[clip] * fps)) : 1;
+for (const [name, clip, yaw, fps, t0, frame, pose] of shots) {
+  const n = fps && dur[clip] ? Math.max(1, Math.round(dur[clip] * fps)) : 1;
   for (let i = 0; i < n; i++) {
     const t = fps ? i / fps : t0;
-    const r = await page.evaluate(([c, t, y, f]) => window.shot(c, t, y, f), [clip, t, yaw, frame || null]);
+    const r = await page.evaluate(([c, t, y, f, p]) => window.shot(c, t, y, f, p), [clip, t, yaw, frame || null, pose || null]);
     fs.writeFileSync(`${out}/${name}_${String(i).padStart(3, '0')}.png`, Buffer.from(r.png.split(',')[1], 'base64'));
     if (i === 0) console.log(name, n, r.box.map(v => v.toFixed(2)).join(' '));
   }

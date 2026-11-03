@@ -2,6 +2,7 @@
 # started, and the scene (sc.m: when each narration line or mark starts, sc.e: when each line
 # ends, sc.dur). Diagrams are side cross-sections with simulated water.
 import math
+from PIL import Image
 from gfx import *
 
 ENVS = {}  # loudness envelopes of the creature clips (100 per second), filled in by tape.py
@@ -361,88 +362,209 @@ def blank(c, t, sc):
     c.rect(0, 0, W, H, fill=BLACK)
 
 
-KILL_CUTS = [  # (start, length, picture) after the "kill" mark; None is static
-    (0.00, 0.22, 0), (0.22, 0.10, None), (0.32, 0.26, 1), (0.58, 0.08, None), (0.66, 0.42, 2),
-    (1.08, 0.10, None), (1.18, 0.36, 2), (1.54, 0.14, None), (1.68, 0.55, 3)]
+# ---------------------------------------------------------------- knowledge check
+QUIZ = {
+    "q1": (["YOU HAVE FALLEN INTO THE WATER.", "WHAT DO YOU DO?"],
+           ["CALL FOR HELP", "STAY WHERE YOU LANDED", "GET OUT OF THE WATER"], 2),
+    "q2": (["YOU HEAR CLICKING NEARBY.", "WHAT DO YOU DO?"],
+           ["RUN", "REMAIN PERFECTLY STILL", "LOOK FOR IT"], 1),
+    "q3": (["A MEMBER OF YOUR TEAM HAS BEEN TAKEN.", "WHAT DO YOU DO?"],
+           ["SEARCH FOR THEM", "WAIT FOR THEM", "KEEP MOVING"], 2),
+}
+
+
+def quiz(q, answer):
+    def draw(c, t, sc):
+        m = sc.m
+        c.rect(0, 0, W, H, fill=NAVY)
+        c.text(320, 40, "KNOWLEDGE CHECK", 16, GOLD, "sans", "mm", 2, track=4)
+        if q == "q1" and t < m["q1"]:
+            c.text(320, 240, "LET US REVIEW WHAT YOU HAVE LEARNED.", 22, WHITE, "sans", "mm", 2, track=1)
+            bug(c, "KNOWLEDGE CHECK")
+            return
+        rows, opts, right = QUIZ[q]
+        c.text(320, 76, f"QUESTION {q[1]}", 14, GREY, "sans", "mm", 0, track=3)
+        c.lines(320, 118, rows, 22, WHITE, 1.35)
+        shown = t >= m[answer]
+        for i, o in enumerate(opts):
+            y = 222 + i * 62
+            ok = shown and i == right
+            dim = shown and i != right
+            box = (40, 150, 70) if ok else (22, 36, 104)
+            if q == "q3" and i == 1 and "nowait" in m and m["nowait"] <= t < m["nowait"] + 1.6 and int(t * 14) % 3 == 0:
+                box = (150, 20, 24)                     # it flickers
+            c.rect(120, y - 24, 520, y + 24, fill=mix(box, NAVY, 0.5 if dim else 0), outline=mix(WHITE, NAVY, 0.6 if dim else 0.2), width=2)
+            c.text(146, y, "ABC"[i], 22, mix(GOLD, NAVY, 0.6 if dim else 0), "sans", "mm", 0)
+            c.text(176, y, o, 19, mix(WHITE, NAVY, 0.6 if dim else 0), "sans", "lm", 0)
+            if ok:
+                c.text(500, y, "CORRECT", 13, WHITE, "sans", "rm", 0, track=2)
+        if "done" in m and t >= m["done"]:
+            c.rect(0, 0, W, H, fill=NAVY)
+            c.text(320, 220, "WELL DONE.", 44, WHITE, "sans", "mm", 3, track=4)
+            c.text(320, 274, "3 / 3", 26, GOLD, "sans", "mm", 2, track=4)
+        bug(c, "KNOWLEDGE CHECK")
+    return draw
+
+
+# ---------------------------------------------------------------- the appendix: a demonstration
+AX, SY, FY = 300, 300, 372        # where the agent stands; water surface; pool floor
+AGENT_H, WADER_H = 175, 219
+
+
+def agent(c, x, floor, h, frame=0, col=WHITE, rot=0, part=None):
+    """The ending's agent (a silhouette of the game's anti-radiation suit). part: 'top' or 'bottom'
+    half, cut at the waist. Returns the box it was drawn in."""
+    import gfx
+    m = gfx.sil_mask("agent", frame, int(h * S))
+    if part:
+        cut = int(m.size[1] * 0.5)
+        m = m.crop((0, 0, m.size[0], cut)) if part == "top" else m.crop((0, cut, m.size[0], m.size[1]))
+    if rot:
+        m = m.rotate(rot, resample=Image.BICUBIC, expand=True)
+    w, hh = m.size[0] / S, m.size[1] / S
+    if part or rot:
+        c.paste_mask(m, x - w / 2, floor - hh / 2, col)          # (x, floor) is the centre
+        return (x - w / 2, floor - hh / 2, x + w / 2, floor + hh / 2)
+    c.paste_mask(m, x - w / 2, floor - hh, col)
+    return (x - w / 2, floor - hh, x + w / 2, floor)
+
+
+def claw_point(box):
+    """Where the screeching Wader's claws are (they reach forward, to the left)."""
+    return box[0] + (box[2] - box[0]) * 0.14, box[1] + (box[3] - box[1]) * 0.36
+
+
+def demo(c, t, sc):
+    m = sc.m
+    flinch, dark, cuts_end = m["flinch"], m["dark"], m["after"]
+    if dark <= t < cuts_end:
+        u = t - m["kill"]
+        if t < m["kill"]:
+            c.rect(0, 0, W, H, fill=BLACK)
+            return
+        for a, d, pic in KILL_CUTS:
+            if a <= u < a + d:
+                if pic is None:
+                    c.rect(0, 0, W, H, fill=BLACK)
+                else:
+                    kill_frame(c, pic, u - a)
+                return
+        c.rect(0, 0, W, H, fill=BLACK)
+        return
+    after = t >= cuts_end
+    pool(c, 120, 290, FY)
+    ev = []
+    if not after:
+        agent(c, AX, FY, AGENT_H, 1 if t >= flinch else 0)
+        a = t - m["walk"]
+        if 0 <= a < 3.6:
+            x = 720 - 260 * ease(ramp(a, 0, 3.6))
+            wader(c, x, FY + bob(a), WADER_H, t)
+            ev += steps(x - 20, a, 1.6, 0.45)
+        elif a >= 3.6:
+            frozen = t >= flinch
+            wader(c, 455, FY, WADER_H, t if not frozen else flinch, name="search")
+            if not frozen:
+                ev.append((380 + 25 * math.sin(t * 2.4), t - 0.05, 0.35))
+        if t >= flinch:
+            ev.append((AX - 18, flinch, 0.6))
+    else:
+        wader(c, 430, FY, WADER_H, 0.0)
+    water(c, 120, W, SY, FY, t, col=(150, 40, 50) if after else CYAN, bumps=surface_bumps(ev, t, 50, 1.4))
+    caption(c, "END OF DEMONSTRATION" if after else "DEMONSTRATION: STILLNESS PROTOCOL", 58, 20)
+    if not after and t >= m["walk"]:
+        if t < flinch:
+            c.rect(452, 96, 616, 124, fill=(10, 40, 20), outline=GREEN, width=2)
+            c.text(534, 110, "SUBJECT: STILL", 13, GREEN, "sans", "mm", 0, track=1)
+        elif int(t * 6) % 2 == 0:
+            c.rect(452, 96, 616, 124, fill=(60, 8, 10), outline=RED, width=2)
+            c.text(534, 110, "MOVEMENT DETECTED", 13, RED, "sans", "mm", 0, track=1)
+    bug(c, "APPENDIX")
+
+
+KILL_CUTS = [  # (start, length, picture) after the "kill" mark; None is black
+    (0.00, 0.26, 0), (0.26, 0.07, None), (0.33, 0.30, 1), (0.63, 0.06, None), (0.69, 0.55, 2),
+    (1.24, 0.08, None), (1.32, 0.50, 3), (1.82, 0.10, None), (1.92, 1.00, 4)]
+
+_blood = None
+
+
+def kill_frame(c, phase, u):
+    """The demonstration going wrong, in red light: 0 it's behind them, 1 lifted, 2 torn apart,
+    3 falling into the water, 4 after."""
+    global _blood
+    import numpy as np
+    if _blood is None:
+        _blood = np.random.default_rng(13).random((70, 4))
+    red = (120, 14, 16)
+    c.rect(0, 0, W, H, fill=red)
+    back_wall(c, red)
+    c.rect(0, 290, 120, H, fill=(70, 36, 40))
+    c.rect(120, FY, W, H, fill=(34, 8, 10))
+    pale = (238, 224, 208)
+    blood = (110, 0, 4)
+    wx = AX + 70
+    bumps, cloud = [], 0
+    if phase == 0:
+        agent(c, AX, FY, AGENT_H, 1, pale)
+        sil(c, "screech", 12, wx, FY, WADER_H * 1.22, BLACK)
+    else:
+        box = sil(c, "screech" if phase < 4 else "search", {1: 13, 2: 14, 3: 15, 4: 22}[phase], wx if phase < 4 else wx - 20,
+                  FY, WADER_H * (1.22 if phase < 4 else 0.73), BLACK)
+        cx, cy = claw_point(box)
+        if phase == 1:
+            agent(c, cx - 10, cy + 6, AGENT_H, 0, pale, rot=-82)
+        elif phase in (2, 3):
+            if phase == 2:
+                d, fall = 14 + u * 70, 0
+            else:
+                d, fall = 14 + 0.55 * 70 + u * 40, u
+            ty = cy - d * 0.45 + 900 * (fall ** 2) * 0.45
+            by = cy + d * 0.35 + 900 * (fall ** 2) * 0.45
+            ty, by = min(ty, SY - 4), min(by, SY - 4)
+            agent(c, cx - d, ty, AGENT_H, 0, pale, rot=-82 - 50 * u, part="top")
+            agent(c, cx + d * 0.7, by, AGENT_H, 0, pale, rot=-82 + 70 * u, part="bottom")
+            tt = u if phase == 2 else 0.55 + u
+            for i in range(70):
+                vx = (_blood[i, 0] - 0.5) * 360
+                vy = -(40 + _blood[i, 1] * 300)
+                px, py = cx + vx * tt, cy + vy * tt + 640 * tt * tt
+                if py < SY + 4:
+                    r = 1.5 + _blood[i, 2] * 4
+                    c.circle(px, py, r, fill=blood)
+                    if _blood[i, 3] > 0.6:
+                        c.line([(px, py), (px - vx * 0.03, py - (vy + 1280 * tt) * 0.03)], blood, r * 1.2)
+            cloud = 0.4 + tt * 0.8
+            if phase == 3 and fall > 0.3:
+                bumps = [(cx - d, 10, 14), (cx + d * 0.7, 10, 14)]
+        else:
+            cloud = 1.6
+            bumps = [(wx - 60, 4, 12)]
+    water(c, 120, W, SY, FY, u, col=(30, 8, 12), alpha=0.82, bumps=bumps)
+    if cloud:
+        lay, dr = c.layer()
+        r = 50 + cloud * 110
+        dr.ellipse([(wx - 10 - r) * S, (SY + 6) * S, (wx - 10 + r) * S, (FY + 24) * S], fill=(130, 0, 4, 170))
+        lay.paste((0, 0, 0, 0), (0, 0, W * S, int((SY + 4) * S)))
+        c.overlay(lay)
+    if int(u * 30) % 6 == 0:
+        c.fade_to(BLACK, 0.4)                    # the light stutters
 
 
 def stinger(c, t, sc):
     m = sc.m
     c.rect(0, 0, W, H, fill=BLACK)
-    if t < m["kill"]:
+    if t < m["static"]:
         s = "THE HUMAN BODY IS ABOUT 60% WATER."
         c.text(320, 240, typed(s, t - 0.5, 15), 20, RED if t >= m["hear"] + 0.3 else WHITE, "mono", "mm", 0)
-    elif t < m["static"]:
-        u = t - m["kill"]
-        for a, d, pic in KILL_CUTS:
-            if a <= u < a + d and pic is not None:
-                kill_scene(c, pic, u - a + (0.36 if (pic == 2 and a > 1) else 0))
     elif m["stop"] <= t < m["stop"] + 1.6:
         c.rect(0, 0, W, H, fill=VCR_BLUE)
-        osd(c, "STOP \u25a0")
-
-
-_blood = None
+        osd(c, "STOP ■")
 
 
 def kill_scene(c, phase, u):
-    """The Wader taking someone, in red light: 0 lunge, 1 lifted, 2 torn apart, 3 after."""
-    global _blood
-    import numpy as np
-    if _blood is None:
-        _blood = np.random.default_rng(13).random((46, 3))
-    bg = (150, 16, 18)                          # lit from behind in red: everything else is a silhouette
-    c.rect(0, 0, W, H, fill=bg)
-    back_wall(c, bg)
-    sy, fy = 300, 380
-    c.rect(0, fy, W, H, fill=(20, 4, 6))
-    victim = (236, 222, 206)
-    bumps = []
-    if phase == 0:
-        person(c, "stand", 280, fy, 150, victim)
-        x = 560 - 200 * min(1, u * 5)
-        sil(c, "side_idle", 3, x, fy, 210, BLACK)
-        for k in range(5):
-            yy = fy - 30 - k * 26
-            c.line([(x + 50, yy), (x + 50 + 90 * (1 - min(1, u * 5)) + 20, yy)], (200, 180, 170), 2)
-        bumps = [(x - 60, 10, 16)]
-    else:
-        frame = {1: 11, 2: 13, 3: 16}[phase]
-        box = sil(c, "screech" if phase < 3 else "search", frame if phase < 3 else 20, 380, fy, 280 if phase < 3 else 200, BLACK)
-        cx, cy = box[0] + (box[2] - box[0]) * 0.16, box[1] + (box[3] - box[1]) * 0.38
-        if phase == 1:
-            person(c, "stand", cx + 10, cy + 70, 140, victim, rot=-80)
-        elif phase == 2:
-            d = 16 + u * 80
-            top, bottom = halves("stand", 140)
-            for im, dx, dy, rot in ((top, -d, -d * 0.5, -70 - u * 60), (bottom, d * 0.7, d * 0.4, 85 + u * 50)):
-                r = im.rotate(rot, resample=Image.BICUBIC, expand=True)
-                c.paste_mask(r, cx + dx - r.size[0] / S / 2, cy + dy - r.size[1] / S / 2, victim)
-            for i in range(46):
-                vx = (_blood[i, 0] - 0.5) * 320
-                vy = -(60 + _blood[i, 1] * 260)
-                px, py = cx + vx * u, cy + vy * u + 600 * u * u
-                if py < sy + 6:
-                    c.circle(px, py, 2 + _blood[i, 2] * 4, fill=(150, 0, 0))
-        else:
-            bumps = [(300, 6, 14), (440, 5, 12)]
-    water(c, 0, W, sy, fy, u, col=(14, 6, 10), alpha=0.86, bumps=bumps)
-    if phase >= 2:
-        lay, dr = c.layer()
-        r = 60 + (u * 120 if phase == 2 else 150)
-        dr.ellipse([(380 - r) * S, (sy + 4) * S, (380 + r) * S, (fy + 20) * S], fill=(120, 0, 0, 150))
-        lay.paste((0, 0, 0, 0), (0, 0, W * S, int((sy + 3) * S)))
-        c.overlay(lay)
-    if int(u * 30) % 5 == 0:
-        c.fade_to(BLACK, 0.45)                 # the light stutters
-
-
-def halves(kind, h):
-    """The figure cut in two at the waist (masks, at canvas scale)."""
-    from gfx import _scaled, ASSETS
-    m = _scaled(f"{ASSETS}/people/{kind}.png", int(h * S))
-    cut = int(m.size[1] * 0.5)
-    return m.crop((0, 0, m.size[0], cut)), m.crop((0, cut, m.size[0], m.size[1]))
+    """The single-frame flash in the program (the tear)."""
+    kill_frame(c, 2, u)
 
 
 # ---------------------------------------------------------------- tape furniture
@@ -474,7 +596,7 @@ def leader(c, t, sc):
     c.text(320, 248, str(n), 170, (20, 20, 20), "sans", "mm", 0)
 
 
-def section_card(n, name):
+def section_card(n, name, label=None):
     def draw(c, t, sc):
         c.rect(0, 0, W, H, fill=NAVY)
         a = ease(ramp(t, 0.0, 0.3))
@@ -482,7 +604,7 @@ def section_card(n, name):
         if a > 0.85:
             c.text(150, 244, str(n), 60, NAVY, "sans", "mm", 0)
         if t > 0.15:
-            c.text(222, 210, f"SECTION {n}", 18, GOLD, "sans", "lm", 0, track=3)
+            c.text(222, 210, label or f"SECTION {n}", 18, GOLD, "sans", "lm", 0, track=3)
             c.text(222, 250, name, 34, WHITE, "sans", "lm", 2)
         c.rect(222, 276, 222 + tw(name, 34) * ease(ramp(t, 0.25, 0.5)), 282, fill=RED)
     return draw
