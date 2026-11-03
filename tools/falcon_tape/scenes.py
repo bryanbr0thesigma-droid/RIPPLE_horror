@@ -215,22 +215,13 @@ def falling(c, t, sc):
 
 # ---------------------------------------------------------------- stillness
 def stillness(c, t, sc):
+    """Before the demonstration: stop moving. After it: most are not found; the stutter."""
     m, e = sc.m, sc.e
-    if t < m["found"]:
+    if "st1" in m:
         dx, sy, fy = 60, 296, 370
         pool(c, dx, 286, fy)
         person(c, "stand", 260, fy, 175)
-        a = t - m["feel"]
-        ev = []
-        if a >= 0:
-            if a < 2.4:
-                x = 700 - 260 * ease(ramp(a, 0, 2.4))
-                wader(c, x, fy + bob(a), 219, t)
-                ev = steps(x - 20, a, 1.6, 0.4)
-            else:
-                wader(c, 430, fy, 219, t, name="search")
-                ev = [(330 + 30 * math.sin(a * 2.2), a - 0.05, 0.35)]
-        water(c, dx, W, sy, fy, t, bumps=surface_bumps(ev, a, 40, 0.6))
+        water(c, dx, W, sy, fy, t)
         sign(c, "still", 560, 110, 96)
         caption(c, "STOP MOVING.", 58, 28, WHITE, border=RED)
         bug(c, "STILLNESS")
@@ -362,51 +353,7 @@ def blank(c, t, sc):
     c.rect(0, 0, W, H, fill=BLACK)
 
 
-# ---------------------------------------------------------------- knowledge check
-QUIZ = {
-    "q1": (["YOU HAVE FALLEN INTO THE WATER.", "WHAT DO YOU DO?"],
-           ["CALL FOR HELP", "STAY WHERE YOU LANDED", "GET OUT OF THE WATER"], 2),
-    "q2": (["YOU HEAR CLICKING NEARBY.", "WHAT DO YOU DO?"],
-           ["RUN", "REMAIN PERFECTLY STILL", "LOOK FOR IT"], 1),
-    "q3": (["A MEMBER OF YOUR TEAM HAS BEEN TAKEN.", "WHAT DO YOU DO?"],
-           ["SEARCH FOR THEM", "WAIT FOR THEM", "KEEP MOVING"], 2),
-}
-
-
-def quiz(q, answer):
-    def draw(c, t, sc):
-        m = sc.m
-        c.rect(0, 0, W, H, fill=NAVY)
-        c.text(320, 40, "KNOWLEDGE CHECK", 16, GOLD, "sans", "mm", 2, track=4)
-        if q == "q1" and t < m["q1"]:
-            c.text(320, 240, "LET US REVIEW WHAT YOU HAVE LEARNED.", 22, WHITE, "sans", "mm", 2, track=1)
-            bug(c, "KNOWLEDGE CHECK")
-            return
-        rows, opts, right = QUIZ[q]
-        c.text(320, 76, f"QUESTION {q[1]}", 14, GREY, "sans", "mm", 0, track=3)
-        c.lines(320, 118, rows, 22, WHITE, 1.35)
-        shown = t >= m[answer]
-        for i, o in enumerate(opts):
-            y = 222 + i * 62
-            ok = shown and i == right
-            dim = shown and i != right
-            box = (40, 150, 70) if ok else (22, 36, 104)
-            if q == "q3" and i == 1 and "nowait" in m and m["nowait"] <= t < m["nowait"] + 1.6 and int(t * 14) % 3 == 0:
-                box = (150, 20, 24)                     # it flickers
-            c.rect(120, y - 24, 520, y + 24, fill=mix(box, NAVY, 0.5 if dim else 0), outline=mix(WHITE, NAVY, 0.6 if dim else 0.2), width=2)
-            c.text(146, y, "ABC"[i], 22, mix(GOLD, NAVY, 0.6 if dim else 0), "sans", "mm", 0)
-            c.text(176, y, o, 19, mix(WHITE, NAVY, 0.6 if dim else 0), "sans", "lm", 0)
-            if ok:
-                c.text(500, y, "CORRECT", 13, WHITE, "sans", "rm", 0, track=2)
-        if "done" in m and t >= m["done"]:
-            c.rect(0, 0, W, H, fill=NAVY)
-            c.text(320, 220, "WELL DONE.", 44, WHITE, "sans", "mm", 3, track=4)
-            c.text(320, 274, "3 / 3", 26, GOLD, "sans", "mm", 2, track=4)
-        bug(c, "KNOWLEDGE CHECK")
-    return draw
-
-
-# ---------------------------------------------------------------- the appendix: a demonstration
+# ---------------------------------------------------------------- the demonstration (section 4)
 AX, SY, FY = 300, 300, 372        # where the agent stands; water surface; pool floor
 AGENT_H, WADER_H = 175, 219
 
@@ -434,52 +381,65 @@ def claw_point(box):
     return box[0] + (box[2] - box[0]) * 0.14, box[1] + (box[3] - box[1]) * 0.36
 
 
+STANDBY_FLASHES = [(0.7, 1), (1.5, 2), (2.35, 3)]   # (seconds into the stand-by card, picture), two frames each
+
+
 def demo(c, t, sc):
+    """The stillness protocol demonstrated: the agent flinches, the lights die, and the tape cuts
+    to a stand-by card while it happens. Only single frames get through."""
     m = sc.m
-    flinch, dark, cuts_end = m["flinch"], m["dark"], m["after"]
-    if dark <= t < cuts_end:
-        u = t - m["kill"]
-        if t < m["kill"]:
-            c.rect(0, 0, W, H, fill=BLACK)
-            return
-        for a, d, pic in KILL_CUTS:
-            if a <= u < a + d:
-                if pic is None:
-                    c.rect(0, 0, W, H, fill=BLACK)
-                else:
-                    kill_frame(c, pic, u - a)
-                return
+    flinch, dark, standby, after = m["flinch"], m["dark"], m["standby"], m["after"]
+    if dark <= t < standby:
         c.rect(0, 0, W, H, fill=BLACK)
         return
-    after = t >= cuts_end
+    if standby <= t < after:
+        u = t - standby
+        for at, pic in STANDBY_FLASHES:
+            if at <= u < at + 0.067:
+                kill_frame(c, pic, 0.25)
+                return
+        stand_by(c, u)
+        return
+    gone = t >= after
     pool(c, 120, 290, FY)
     ev = []
-    if not after:
+    if not gone:
         agent(c, AX, FY, AGENT_H, 1 if t >= flinch else 0)
         a = t - m["walk"]
-        if 0 <= a < 3.6:
-            x = 720 - 260 * ease(ramp(a, 0, 3.6))
+        if 0 <= a < 3.0:
+            x = 720 - 265 * ease(ramp(a, 0, 3.0))
             wader(c, x, FY + bob(a), WADER_H, t)
             ev += steps(x - 20, a, 1.6, 0.45)
-        elif a >= 3.6:
+        elif a >= 3.0:
             frozen = t >= flinch
-            wader(c, 455, FY, WADER_H, t if not frozen else flinch, name="search")
+            wader(c, 455, FY, WADER_H, flinch if frozen else t, name="search")
             if not frozen:
                 ev.append((380 + 25 * math.sin(t * 2.4), t - 0.05, 0.35))
         if t >= flinch:
             ev.append((AX - 18, flinch, 0.6))
     else:
         wader(c, 430, FY, WADER_H, 0.0)
-    water(c, 120, W, SY, FY, t, col=(150, 40, 50) if after else CYAN, bumps=surface_bumps(ev, t, 50, 1.4))
-    caption(c, "END OF DEMONSTRATION" if after else "DEMONSTRATION: STILLNESS PROTOCOL", 58, 20)
-    if not after and t >= m["walk"]:
+        ev.append((AX, after - 0.4, 0.5))
+    water(c, 120, W, SY, FY, t, bumps=surface_bumps(ev, t, 50, 1.4))
+    caption(c, "END OF DEMONSTRATION" if gone else "DEMONSTRATION: STILLNESS PROTOCOL", 58, 20)
+    if not gone:
         if t < flinch:
-            c.rect(452, 96, 616, 124, fill=(10, 40, 20), outline=GREEN, width=2)
-            c.text(534, 110, "SUBJECT: STILL", 13, GREEN, "sans", "mm", 0, track=1)
+            c.rect(424, 96, 620, 124, fill=(10, 40, 20), outline=GREEN, width=2)
+            c.text(522, 110, "SUBJECT: STILL", 13, GREEN, "sans", "mm", 0, track=1)
         elif int(t * 6) % 2 == 0:
-            c.rect(452, 96, 616, 124, fill=(60, 8, 10), outline=RED, width=2)
-            c.text(534, 110, "MOVEMENT DETECTED", 13, RED, "sans", "mm", 0, track=1)
-    bug(c, "APPENDIX")
+            c.rect(424, 96, 620, 124, fill=(60, 8, 10), outline=RED, width=2)
+            c.text(522, 110, "MOVEMENT DETECTED", 13, RED, "sans", "mm", 0, track=1)
+    bug(c, "STILLNESS")
+
+
+def stand_by(c, u):
+    c.rect(0, 0, W, H, fill=NAVY)
+    seal(c, 320, 150, 78)
+    c.text(320, 286, "PLEASE STAND BY", 40, WHITE, "sans", "mm", 3, track=4)
+    c.text(320, 330, "A PORTION OF THIS DEMONSTRATION HAS BEEN REMOVED.", 13, GREY, "sans", "mm", 0, track=1)
+    sw = 230
+    c.rect(320 - sw, 356, 320 + sw, 359, fill=RED)
+    c.rect(320 - sw, 362, 320 + sw, 364, fill=GOLD)
 
 
 KILL_CUTS = [  # (start, length, picture) after the "kill" mark; None is black
@@ -552,14 +512,20 @@ def kill_frame(c, phase, u):
 
 
 def stinger(c, t, sc):
+    """After the end of the program: the card, the line, then what the stand-by card covered."""
     m = sc.m
     c.rect(0, 0, W, H, fill=BLACK)
-    if t < m["static"]:
+    if t < m["kill"]:
         s = "THE HUMAN BODY IS ABOUT 60% WATER."
         c.text(320, 240, typed(s, t - 0.5, 15), 20, RED if t >= m["hear"] + 0.3 else WHITE, "mono", "mm", 0)
+    elif t < m["static"]:
+        u = t - m["kill"]
+        for a, d, pic in KILL_CUTS:
+            if a <= u < a + d and pic is not None:
+                kill_frame(c, pic, u - a)
     elif m["stop"] <= t < m["stop"] + 1.6:
         c.rect(0, 0, W, H, fill=VCR_BLUE)
-        osd(c, "STOP ■")
+        osd(c, "STOP \u25a0")
 
 
 def kill_scene(c, phase, u):
