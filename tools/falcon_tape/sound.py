@@ -1,5 +1,5 @@
-# Sound for the tape. Nothing is synthesized: everything comes from recordings (the game's own,
-# the CC0 files in assets/sound) and Microsoft Sam, and is only cut, filtered and mixed here.
+# Sound for the tape: loading, filters, reverb and the tape wobble. The sounds are recordings (the
+# game's own and the CC0 static in assets/sound) and Microsoft Sam; the music is in music.py.
 import math, os, subprocess
 import numpy as np
 

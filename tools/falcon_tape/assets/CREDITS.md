@@ -6,16 +6,19 @@ Uploads from before 2022 were preferred, to stay clear of AI-made work.
 | File | What it's for | Source | Author | License |
 |---|---|---|---|---|
 | `signs/ISO_7010_W001` | General warning (the opening warning card) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_W001.svg) | Maxxl2, after ISO 7010 | Public domain |
-| `signs/ISO_7010_W008` | Drop (fall): falling in | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_W008.svg) | Maxxl2, after ISO 7010 | Public domain |
-| `signs/ISO_7010_P001` | General prohibition: do not attempt a rescue | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_P001.svg) | after ISO 7010 | Public domain |
-| `signs/ISO_7010_P004` | No thoroughfare: stop moving | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_P004.svg) | after ISO 7010 | Public domain |
-| `signs/ISO_7010_P010` | Do not touch: keep your hands still | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_P010.svg) | after ISO 7010 | Public domain |
-| `signs/ISO_7010_E001` | Emergency exit: get out of the water | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_E001.svg) | MaxxL, after ISO 7010 | Public domain |
+| `signs/ISO_7010_W008` | Drop (fall): falling in, and the falling figure | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_W008.svg) | Maxxl2, after ISO 7010 | Public domain |
+| `signs/ISO_7010_P001` | The prohibition disc, ring and slash | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_P001.svg) | after ISO 7010 | Public domain |
+| `signs/ISO_7010_P004` | The walking figure (stop moving) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_P004.svg) | after ISO 7010 | Public domain |
 | `signs/ISO_7010_M001` | General mandatory action: remember | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_M001.svg) | after ISO 7010 | Public domain |
 | `falcon_121135` | The falcon in the F.A.L.C.O.N. seal | [Openclipart 121135, "peregrine falcon"](https://openclipart.org/detail/121135/peregrine-falcon) (2011) | papapishu | Public domain (CC0) |
 | `people/*` (from `oc_241042.svg`) | The people in the diagrams | [Openclipart 241042, "Template of road signs (stickmen)"](https://openclipart.org/detail/241042) (2016) | rones | Public domain (CC0) |
-| `sound/elevator_music.ogg` | The training-video music | [OpenGameArt, "Elevator Music"](https://opengameart.org/content/elevator-music) (2017) | pro-sensory | CC0 |
 | `sound/static.mp3` | Static and tape noise | [OpenGameArt, "Static"](https://opengameart.org/content/static) (2014) | xhunterko | CC0 |
+
+`made/` holds the tape's own signs, put together from those ISO signs by `../build_signs.py`
+(water added; the "stop moving" and "don't go in" signs reuse the walking and falling figures
+inside the prohibition ring; the warning triangle holds the Wader's silhouette).
+
+The music (the training-video bed and the logo jingle) is synthesized by `../music.py`.
 
 Also used, from the game itself (`game/assets/audio`, see `game/CREDITS.md`): the creature's voice
 and screeches, splashes, wading, drips, the room tone and the "Under the surface" music, all mixed

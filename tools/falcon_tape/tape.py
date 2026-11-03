@@ -6,7 +6,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import gfx, scenes as S, sound as A
+import gfx, music, scenes as S, sound as A
 from narration import LINES, SUBS
 from vhs import vhs
 
@@ -57,36 +57,35 @@ def timeline():
         Scene("vcr", S.vcr, [P(3.2)], static=[(0, 0.6, 1.0), (2.75, 0.45, 1.0)],
               sfx=[(0, "static:0.6", 0.5), (2.75, "static:0.45", 0.5)]),
         Scene("warning", S.warning, [P(1.0), L("warn1", 0.7), L("warn2", 1.6), L("warn3", 1.4)]),
-        Scene("logo", S.logo, [P(2.9), L("pres", 1.2)], beds=[(0, "corp")]),
+        Scene("logo", S.logo, [P(2.9), L("pres", 1.2)], beds=[(0, "corp")], sfx=[(0.25, "jingle", 0.6)]),
         Scene("title", S.title, [P(0.6), L("title", 2.2)], beds=[(0, "corp")], glitch=[("e:title+1.5", 0.25, 0.45)]),
         Scene("poolrooms", S.poolrooms, [P(0.4), L("pr1", 0.8), L("pr3", 0.5), L("pr4", 2.4), L("pr5", 2.8)],
               beds=[(0, "corp+halls"), ("pr4", "halls"), ("pr4+2.6", "eerie")],
               sfx=[("pr5+1.0", "click_close", 0.7)], glitch=[("pr5+1.0", 0.25, 0.3)]),
         Scene("wader", S.the_wader, [P(0.5), L("id1", 0.6), L("eyes", 1.4)], beds=[(0, "eerie")],
               sfx=[("e:eyes+0.25", "subliminal", 0.6)], glitch=[("e:eyes+0.2", 0.2, 0.7)]),
-        Scene("hearing", S.hearing, [P(0.3), L("hr1", 0.5), L("slow", 1.6)], beds=[(0, "corp")],
-              sfx=[(0.0, "wade:11", 0.35)]),
+        Scene("hearing", S.hearing, [P(0.3), L("sound", 3.2)], beds=[(0, "corp")], sfx=[(0.0, "wade:6", 0.35)]),
+        Scene("falling", S.falling, [P(0.3), L("fall", 1.4), L("out", 1.6)],
+              beds=[(0, "corp"), ("e:fall+0.1", "eerie")],
+              sfx=[("fall+1.1", "splash_big", 0.8), ("e:fall+0.1", "charge_onset", 0.6)], glitch=[("e:fall+0.1", 0.25, 0.35)]),
         Scene("dry", S.dry_ground, [P(0.3), L("dry", 1.6)], beds=[(0, "corp")], sfx=[(0.2, "wade:3.0", 0.35)]),
-        Scene("falling", S.falling, [P(0.3), L("fa2", 1.2), L("out", 1.6)],
-              beds=[(0, "corp"), ("e:fa2-1.3", "eerie"), ("out", "corp")],
-              sfx=[("fa2+1.3", "splash_big", 0.8), ("e:fa2-1.3", "charge_onset", 0.6)], glitch=[("e:fa2-1.3", 0.25, 0.35)]),
-        Scene("stillness", S.stillness, [P(0.3), L("st1", 0.5), L("feel", 3.2), L("st4", 2.0), L("st5", 2.6)],
-              beds=[(0, "eerie"), ("st4", "corp"), ("st5-0.3", "none")],
+        Scene("stillness", S.stillness, [P(0.3), L("st1", 0.5), L("feel", 3.2), L("most", 1.6), L("st5", 2.6)],
+              beds=[(0, "eerie"), ("st5-0.3", "none")],
               sfx=[("feel", "wade:2.4", 0.35), ("feel+2.4", "close:3.2", 0.45), ("e:st5+0.15", "stutter", 1.0),
                    ("e:st5+1.35", "subliminal", 0.6)],
               glitch=[("e:st5+0.15", 1.2, 0.35), ("e:st5+1.3", 0.2, 0.8)], freeze=[("e:st5+0.15", 1.1)]),
-        Scene("clicking", S.clicking, [P(0.3), L("listen", 0.4), L("ws3", 0.2), M("snd_hunt"), P(3.0), L("scr", 0.2),
+        Scene("clicking", S.clicking, [P(0.3), L("listen", 0.2), M("snd_hunt"), P(3.0), L("scr", 0.2),
                                        M("snd_charge"), P(4.9)],
               sfx=[("snd_hunt", "clip:hunt", 0.8), ("snd_charge", "clip:charge", 0.75)], glitch=[("snd_charge+2.4", 0.3, 0.4)]),
-        Scene("taken", S.taken, [P(0.3), L("ca1", 0.9), L("ca2", 0.9), L("ca3", 1.8)], beds=[(0, "dark")],
+        Scene("taken", S.taken, [P(0.3), L("ca1", 1.0), L("busy", 2.2)], beds=[(0, "dark")],
               sfx=[("ca1+0.4", "screech_far", 0.5), ("ca1+0.7", "splash_big", 0.7), ("ca1+1.4", "chew", 0.4),
-                   ("ca2+1.5", "chew", 0.4)]),
+                   ("busy+0.5", "chew", 0.4)]),
         Scene("back", S.coming_back, [P(0.4), L("ret", 1.0), L("ca6", 2.2)], beds=[(0, "dark")],
               sfx=[("ret+0.8", "drips:4", 0.35)], glitch=[("ca6", 0.18, 0.5)]),
         Scene("summary", S.summary, [P(0.5), L("rm0", 0.5), L("rm1", 0.6), L("rm2", 0.6), L("rm3", 0.9), L("rm4", 0.3)],
               beds=[(0, "corp"), ("rm4", "none")]),
         Scene("fallin", S.fall_in, [P(0.25), L("rm5", 2.2)], glitch=[(0, 0.35, 0.9)], sfx=[(0.0, "static:0.3", 0.5)]),
-        Scene("outro", S.outro, [P(0.5), L("end", 3.4)], beds=[(0, "corp")]),
+        Scene("outro", S.outro, [P(0.5), L("end", 3.4)], beds=[(0, "corp")], sfx=[(0.2, "jingle", 0.5)]),
         Scene("blank", S.blank, [P(2.2)], glitch=[(1.95, 0.25, 0.5)]),
         Scene("stinger", S.stinger, [P(3.8), L("hear", 0.35), M("scare"), P(0.8), M("static"), P(1.5), M("stop"), P(1.6), P(0.8)],
               beds=[(0, "none")], sfx=[("scare", "screech", 3.0), ("static", "static:1.5", 0.6)],
@@ -189,6 +188,8 @@ class Sfx:
             return A.filt(np.concatenate([g("feed_chew_1"), g("feed_chew_2")]), None, 1800)
         if base == "screech":
             return g("kill_screech_3")
+        if base == "jingle":
+            return music.logo_jingle()
         return g(base)
 
 
@@ -217,7 +218,7 @@ def build_audio(tl, total, voices, clips, out_wav):
     # music beds, with crossfades
     rate = 100
     ctl_n = int((total + 1) * rate)
-    gains = {"corp": 0.22, "eerie": 0.3, "halls": 0.22, "dark": 0.3}
+    gains = {"corp": 0.06, "eerie": 0.07, "halls": 0.05, "dark": 0.08}     # about 10 dB under Sam
     ctl = {k: np.zeros(ctl_n) for k in gains}
     segs = []
     for sc in tl:
@@ -237,7 +238,7 @@ def build_audio(tl, total, voices, clips, out_wav):
     tt = np.arange(n) / A.SR
     ct = np.arange(ctl_n) / rate
     beds = np.zeros(n)
-    srcs = {"corp": lambda: A.asset("elevator_music.ogg"), "eerie": lambda: A.game("music_under_surface"),
+    srcs = {"corp": lambda: music.corporate_bed(total + 1), "eerie": lambda: A.game("music_under_surface"),
             "halls": lambda: A.game("amb_halls"), "dark": lambda: A.game("amb_dark")}
     for b, c in ctl.items():
         if c.any():

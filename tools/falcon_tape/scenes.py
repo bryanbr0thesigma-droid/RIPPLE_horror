@@ -134,7 +134,7 @@ def the_wader(c, t, sc):
     if t >= m["id1"]:
         caption(c, "L-7  “THE WADER”", 58, 22, GOLD)
     if t >= m["eyes"]:
-        c.text(430, 160, "NO EYES", 18, RED, "sans", "mm", 2, track=2)
+        sign(c, "wader", 560, 120, 96)
     bug(c, "THE WADER")
     if e["eyes"] + 0.25 <= t < e["eyes"] + 0.32:
         flash(c)
@@ -154,11 +154,8 @@ def hearing(c, t, sc):
     hatch(c, dx, fy, W, H)
     deck(c, 0, dx, 296)
     if t > (520 - 160) / 95:
-        q = "!" if t >= m["hr1"] + 3.0 else "?"
-        c.text(500, 130, q, 40, RED if q == "!" else GOLD, "sans", "mm", 3)
-    if t >= m["slow"]:
-        sign(c, "P010", 90, 130, 84)
-        caption(c, "WADE SLOWLY.  KEEP YOUR HANDS STILL.", 58, 20)
+        late = t >= sc.dur - 1.2
+        c.text(500, 130, "!" if late else "?", 40, RED if late else GOLD, "sans", "mm", 3)
     bug(c, "THE WADER")
 
 
@@ -185,8 +182,8 @@ def falling(c, t, sc):
     hatch(c, 40, 120, 110, H)
     c.rect(110, 116, 156, 122, fill=(220, 220, 210))
     hatch(c, 110, fy, W, H)
-    if t < m["out"]:
-        tf = m["fa2"] + 0.5
+    if True:
+        tf = m["fall"] + 0.3
         tl = tf + 0.8
         if t < tf:
             person(c, "stand", 142, 116, 100)
@@ -195,7 +192,7 @@ def falling(c, t, sc):
             person(c, "stand", 142 + 80 * u, 116 + (fy - 116) * u * u, 100, rot=-100 * u)
         else:
             person(c, "stand", 222, fy, 100)
-        tc = e["fa2"] - 1.3
+        tc = e["fall"] + 0.1
         if t >= tc:
             u = ease(ramp(t, tc, 0.7))
             x = 720 - 400 * u
@@ -208,20 +205,17 @@ def falling(c, t, sc):
         if tl <= t < tl + 0.5:
             bumps.append((222, 22 * (1 - (t - tl) * 2), 14))
         water(c, 110, W, sy, fy, t, bumps=bumps)
-        sign(c, "W008", 560, 96, 100)
-        if t >= m["fa2"] + 1.6:
-            c.text(560, 168, "FALLS ARE LOUD", 14, GOLD, "sans", "mm", 2)
-    else:
-        c.rect(0, 0, W, H, fill=NAVY)
-        sign(c, "E001", 320, 210, 170)
-        caption(c, "GET OUT OF THE WATER", 370, 24)
+        if t < m["out"]:
+            sign(c, "fall", 560, 96, 100)
+        else:
+            caption(c, "GET OUT OF THE WATER", 58, 22)
     bug(c, "FALLING IN")
 
 
 # ---------------------------------------------------------------- stillness
 def stillness(c, t, sc):
     m, e = sc.m, sc.e
-    if t < m["st4"]:
+    if t < m["most"]:
         dx, sy, fy = 60, 296, 370
         pool(c, dx, 286, fy)
         person(c, "stand", 260, fy, 175)
@@ -236,17 +230,13 @@ def stillness(c, t, sc):
                 wader(c, 430, fy, 219, t, name="search")
                 ev = [(330 + 30 * math.sin(a * 2.2), a - 0.05, 0.35)]
         water(c, dx, W, sy, fy, t, bumps=surface_bumps(ev, a, 40, 0.6))
-        sign(c, "P004", 560, 110, 96)
+        sign(c, "still", 560, 110, 96)
         caption(c, "STOP MOVING.", 58, 28, WHITE, border=RED)
         bug(c, "STILLNESS")
     elif t < m["st5"]:
         c.rect(0, 0, W, H, fill=NAVY)
-        if t >= m["st4"] + 1.0:
-            c.text(320, 190, "70%", 60, GREEN, "sans", "mm", 3)
-            c.text(320, 236, "SURVIVE THE SEARCH", 17, WHITE, "sans", "mm", 2, track=2)
-        if t >= m["st4"] + 2.6:
-            c.text(320, 310, "30%", 60, RED, "sans", "mm", 3)
-            c.text(320, 356, "ARE FOUND ANYWAY", 17, WHITE, "sans", "mm", 2, track=2)
+        if t >= m["most"] + 0.3:
+            c.text(320, 240, "MOST SURVIVE.", 44, WHITE, "sans", "mm", 3, track=4)
         bug(c, "STILLNESS")
     else:
         c.rect(0, 0, W, H, fill=BLACK)
@@ -263,11 +253,9 @@ def clicking(c, t, sc):
     m = sc.m
     c.rect(0, 0, W, H, fill=NAVY)
     if t >= m["scr"]:
-        head, col, todo, clip, t0 = "SCREECH", RED, "MOVE", "charge", m["snd_charge"]
-    elif t >= m["ws3"]:
-        head, col, todo, clip, t0 = "STEADY CLICKING", GOLD, "FREEZE", "hunt", m["snd_hunt"]
+        head, col, todo, clip, t0 = "IF IT SCREECHES", RED, "MOVE", "charge", m["snd_charge"]
     else:
-        head, col, todo, clip, t0 = "LISTEN FOR CLICKING", WHITE, "", None, 0
+        head, col, todo, clip, t0 = "LISTEN", WHITE, "", "hunt", m["snd_hunt"]
     c.text(320, 96, head, 30, col, "sans", "mm", 3, track=3)
     bx0, by0, bx1, by1 = 70, 140, 570, 330
     c.rect(bx0, by0, bx1, by1, fill=(4, 10, 6), outline=GREY_D, width=2)
@@ -304,19 +292,16 @@ def taken(c, t, sc):
     ev = [(420, ts + 0.3, 1.4)] if t >= ts + 0.3 else []
     ev += [(400, ts + 0.5 + k * 0.7, 0.3) for k in range(int(max(0, t - ts) / 0.7))]
     water(c, dx, W, sy, fy, t, bumps=surface_bumps(ev, t))
-    if t < m["ca3"]:
+    if t < m["busy"] + 1.6:
         person(c, "stand", 130, dy, 120)
     else:
-        u = ramp(t - m["ca3"], 0.3, 1.4)
+        u = ramp(t - m["busy"], 1.6, 1.4)
         if u < 1:
-            person(c, "run", 130 - 120 * u, dy, 110)
-        sign(c, "E001", 60, 150, 64)
-    if m["ca1"] + 1.0 <= t < m["ca2"]:
-        sign(c, "P001", 560, 110, 90)
+            person(c, "run", 130 - 150 * u, dy, 110)
+    if m["ca1"] + 1.0 <= t < m["busy"]:
+        sign(c, "rescue", 560, 110, 90)
         caption(c, "DO NOT ATTEMPT A RESCUE", 58, 20)
-    elif m["ca2"] <= t < m["ca3"]:
-        caption(c, "IT FEEDS FOR 6–10 SECONDS", 58, 22)
-    elif t >= m["ca3"]:
+    elif t >= m["busy"] + 1.4:
         caption(c, "USE THIS TIME.", 58, 26)
     bug(c, "CASUALTIES")
 

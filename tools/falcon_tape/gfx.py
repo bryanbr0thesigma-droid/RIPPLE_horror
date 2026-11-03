@@ -285,9 +285,9 @@ def _scaled(path, hpx, flip=False, rot=0):
     return im
 
 
-def sign(c, code, x, y, h, alpha=1.0):
-    """An ISO 7010 safety sign centred at (x, y), h tall."""
-    im = _scaled(f"{ASSETS}/signs/ISO_7010_{code}.png", int(h * S))
+def sign(c, name, x, y, h, alpha=1.0):
+    """One of the tape's safety signs (assets/made/, built from ISO 7010 signs) centred at (x, y)."""
+    im = _scaled(f"{ASSETS}/made/sign_{name}.png", int(h * S))
     c.paste_rgba(im, x - im.size[0] / S / 2, y - im.size[1] / S / 2, alpha)
 
 

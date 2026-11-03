@@ -12,6 +12,10 @@ for (let i = 0; i < pairs.length; i += 2) {
     <div id="w" style="display:inline-block;line-height:0">${svg}</div></body></html>`);
   await page.evaluate((h) => {
     const s = document.querySelector('svg');
+    if (!s.getAttribute('viewBox')) {
+      // without a viewBox, a new size would only grow the canvas, not the drawing
+      s.setAttribute('viewBox', `0 0 ${parseFloat(s.getAttribute('width'))} ${parseFloat(s.getAttribute('height'))}`);
+    }
     const vb = s.viewBox.baseVal;
     const ratio = vb && vb.width ? vb.width / vb.height : (s.width.baseVal.value / s.height.baseVal.value);
     s.setAttribute('height', h); s.setAttribute('width', Math.round(h * ratio));

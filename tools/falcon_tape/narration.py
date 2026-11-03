@@ -17,25 +17,22 @@ LINES = {
     # The Wader
     "id1":   "This is The Wader.",
     "eyes":  "It has no eyes. It does not need them.",
-    "hr1":   "The Wader hunts by sound alone. Any disturbance of the water is heard almost instantly.",
-    "slow":  "Wade slowly. Keep your hands still.",
-    "dry":   "It cannot leave the water. Dry ground is safe.",
+    "sound": "It hunts by sound.",
     # Falling in
-    "fa2":   "The higher the fall, the louder the splash. The Wader will almost always hear it, and it will charge.",
+    "fall":  "If you fall in, it will hear you.",
     "out":   "It is faster than you. Get out of the water.",
+    "dry":   "It cannot leave the water. Dry ground is safe.",
     # Stillness
     "st1":   "If you cannot reach dry ground, stop moving.",
     "feel":  "It will search for you by feel.",
-    "st4":   "Personnel who remain perfectly still survive the search seventy percent of the time.",
+    "most":  "Most personnel who remain perfectly still survive.",
     "st5":   "Remain perfectly still.",
     # Its clicking
     "listen": "Listen for its clicking.",
-    "ws3":   "Steady clicking means it is hunting a sound. Freeze.",
-    "scr":   "If the clicking becomes a screech, it is charging. Move.",
+    "scr":   "If it screeches, move.",
     # Losing someone
     "ca1":   "If a member of your team is taken, do not attempt a rescue.",
-    "ca2":   "The Wader will feed for six to ten seconds. During this time, it ignores all sound.",
-    "ca3":   "Use this time.",
+    "busy":  "It will be busy for a moment. Use this time.",
     "ret":   "Taken personnel sometimes come back.",
     "ca6":   "Do not ask them about the water.",
     # Summary
