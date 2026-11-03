@@ -52,12 +52,12 @@ jobs:
           echo "Open for $minutes minutes from $(date -u +%H:%M) UTC." >> "$GITHUB_STEP_SUMMARY"
           curl -s -o /dev/null -d "Test server up: room code ${code:-NONE}, open for $minutes min from $(date -u +%H:%M) UTC" "$STATUS"
           # Pass on joins, leaves and connection problems as they happen.
-          tail -n +1 -F ../host.log 2>/dev/null | grep --line-buffered -E "joined the game|left\.|\[ONLINE\]|\[SNAP\]|matchmaking" | while read -r line; do
+          (set +e +o pipefail; tail -n +1 -F ../host.log 2>/dev/null | grep --line-buffered -E "joined the game|left\.|\[ONLINE\]|\[SNAP\]|matchmaking" | while read -r line; do
             echo "$line"; curl -s -o /dev/null -d "$line" "$STATUS"
-          done &
+          done) &
           # Pictures on request: post "snap" to the command topic.
-          (seen=""; while kill -0 $host_pid 2>/dev/null; do
-            ids=$(curl -s "$STATUS-cmd/json?poll=1&since=30s" | grep '"message":"snap"' | grep -o '"id":"[^"]*"')
+          (set +e +o pipefail; seen=""; while kill -0 $host_pid 2>/dev/null; do
+            ids=$(curl -s "$STATUS-cmd/json?poll=1&since=30s" | grep '"message":"snap"' | grep -o '"id":"[^"]*"' || true)
             for id in $ids; do
               case "$seen" in *"$id"*) continue;; esac
               seen="$seen $id"; rm -f "$snap"; touch "$snap.req"
