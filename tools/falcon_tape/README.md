@@ -5,8 +5,8 @@ VHS tape from the Federal Agency for Liminal Classification & Occult Nature and 
 Microsoft Sam. It hints at the game's rules in-world without giving too much away: the Wader hunts
 by sound, dry ground is safe, don't fall in, stand still, listen for it, and don't go in after
 someone who's taken. It never says what happens to them: in its demonstration of the stillness
-protocol the agent flinches and the tape cuts to a "please stand by" card, with only single frames
-getting through. After the end of the program, the removed footage plays.
+protocol the agent flinches and the tape cuts to a "please stand by" card, with only a few
+half-second glimpses getting through.
 
 The finished video is `media/falcon_tape.mp4` (960x720, 4:3) with subtitles in
 `media/falcon_tape.srt`.

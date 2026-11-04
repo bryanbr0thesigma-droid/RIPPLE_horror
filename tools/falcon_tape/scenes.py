@@ -381,8 +381,8 @@ def claw_point(box):
     return box[0] + (box[2] - box[0]) * 0.14, box[1] + (box[3] - box[1]) * 0.36
 
 
-STANDBY_FLASHES = [(0.6, 1), (1.45, 2), (2.3, 3)]   # (seconds into the stand-by card, picture)
-FLASH = 0.23                                        # long enough to see what it is, then gone
+STANDBY_FLASHES = [(0.5, 1), (1.5, 2), (2.5, 3)]   # (seconds into the stand-by card, picture)
+FLASH = 0.5                                         # half a second each
 
 
 def demo(c, t, sc):
@@ -442,10 +442,6 @@ def stand_by(c, u):
     c.rect(320 - sw, 356, 320 + sw, 359, fill=RED)
     c.rect(320 - sw, 362, 320 + sw, 364, fill=GOLD)
 
-
-KILL_CUTS = [  # (start, length, picture) after the "kill" mark; None is black
-    (0.00, 0.26, 0), (0.26, 0.07, None), (0.33, 0.30, 1), (0.63, 0.06, None), (0.69, 0.55, 2),
-    (1.24, 0.08, None), (1.32, 0.50, 3), (1.82, 0.10, None), (1.92, 1.00, 4)]
 
 _blood = None
 
@@ -513,17 +509,12 @@ def kill_frame(c, phase, u):
 
 
 def stinger(c, t, sc):
-    """After the end of the program: the card, the line, then what the stand-by card covered."""
+    """After the end of the program: the card, the line, static, and the tape stops."""
     m = sc.m
     c.rect(0, 0, W, H, fill=BLACK)
-    if t < m["kill"]:
+    if t < m["static"]:
         s = "THE HUMAN BODY IS ABOUT 60% WATER."
         c.text(320, 240, typed(s, t - 0.5, 15), 20, RED if t >= m["hear"] + 0.3 else WHITE, "mono", "mm", 0)
-    elif t < m["static"]:
-        u = t - m["kill"]
-        for a, d, pic in KILL_CUTS:
-            if a <= u < a + d and pic is not None:
-                kill_frame(c, pic, u - a)
     elif m["stop"] <= t < m["stop"] + 1.6:
         c.rect(0, 0, W, H, fill=VCR_BLUE)
         osd(c, "STOP \u25a0")
