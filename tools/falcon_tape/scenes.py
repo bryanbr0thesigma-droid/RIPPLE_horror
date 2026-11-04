@@ -382,7 +382,7 @@ def claw_point(box):
 
 
 STANDBY_FLASHES = [(0.5, 1), (1.5, 2), (2.5, 3)]   # (seconds into the stand-by card, picture)
-FLASH = 0.5                                         # half a second each
+FLASH = 0.35                                        # about a third of a second each
 
 
 def demo(c, t, sc):
