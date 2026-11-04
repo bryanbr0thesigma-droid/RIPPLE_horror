@@ -347,15 +347,12 @@ def seal_image(r):
     d.ellipse([c - R * 0.93, c - R * 0.93, c + R * 0.93, c + R * 0.93], fill=(18, 30, 92))
     d.ellipse([c - R * 0.66, c - R * 0.66, c + R * 0.66, c + R * 0.66], fill=GOLD)
     d.ellipse([c - R * 0.62, c - R * 0.62, c + R * 0.62, c + R * 0.62], fill=CREAM)
-    bird = _asset(f"{ASSETS}/falcon_121135.png")
-    bh = int(R * 0.98)
-    bird = bird.resize((int(bird.size[0] * bh / bird.size[1]), bh), Image.LANCZOS)
-    inner = Image.new("L", im.size, 0)
-    ImageDraw.Draw(inner).ellipse([c - R * 0.6, c - R * 0.6, c + R * 0.6, c + R * 0.6], fill=255)
-    lay = Image.new("RGBA", im.size, (0, 0, 0, 0))
-    lay.alpha_composite(bird, (int(c - bird.size[0] / 2), int(c - bh / 2 + R * 0.04)))
-    lay.putalpha(Image.composite(lay.getchannel("A"), Image.new("L", im.size, 0), inner))
-    im.alpha_composite(lay)
+    head = Image.open(f"{ASSETS}/made/falcon_head.png").convert("L")     # the falcon's head, a pictogram
+    bh = int(R * 0.84)
+    head = head.resize((int(head.size[0] * bh / head.size[1]), bh), Image.LANCZOS)
+    mask = Image.new("L", im.size, 0)
+    mask.paste(head, (int(c - head.size[0] / 2), int(c - bh / 2)))
+    im.paste((22, 24, 34, 255), (0, 0), mask)
     fnt = ImageFont.truetype(FONTS["sans"], int(R * 0.115))
 
     def ring_text(s, center_deg, radius, inward):

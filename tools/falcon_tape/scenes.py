@@ -2,7 +2,7 @@
 # started, and the scene (sc.m: when each narration line or mark starts, sc.e: when each line
 # ends, sc.dur). Diagrams are side cross-sections with simulated water.
 import math
-from PIL import Image
+from PIL import Image, ImageDraw
 from gfx import *
 
 ENVS = {}  # loudness envelopes of the creature clips (100 per second), filled in by tape.py
@@ -176,41 +176,77 @@ def dry_ground(c, t, sc):
 
 # ---------------------------------------------------------------- falling in
 def falling(c, t, sc):
+    """The fall, the splash, and the climb out up the pool ladder as it arrives."""
     m, e = sc.m, sc.e
-    sy, fy = 320, 400
+    dx, dy, sy, fy = 150, 306, 320, 400               # poolside edge, deck top, surface, pool floor
+    lx = 170                                          # the ladder, against the pool wall
     c.rect(0, 0, W, H, fill=NAVY)
     back_wall(c)
-    hatch(c, 40, 120, 110, H)
-    c.rect(110, 116, 156, 122, fill=(220, 220, 210))
-    hatch(c, 110, fy, W, H)
-    if True:
-        tf = m["drop"] + 0.2
-        tl = tf + 0.8
-        if t < tf:
-            person(c, "stand", 142, 116, 100)
-        elif t < tl:
-            u = (t - tf) / 0.8
-            person(c, "fall", 150 + 75 * u, 116 + (sy + 14 - 116) * u * u, 66)       # the fall sign's figure
-        else:
-            person(c, "stand", 222, fy, 100)
-        tc = e["fall"] + 0.1
-        if t >= tc:
-            u = ease(ramp(t, tc, 0.7))
-            x = 720 - 400 * u
-            wader(c, x, fy, 125, t)
-            if u < 1:
-                for k in range(6):
-                    yy = fy - 20 - k * 17
-                    c.line([(x + 40, yy), (x + 40 + 140 * (1 - u) * (0.5 + 0.1 * k), yy)], WHITE, 2)
-        bumps = surface_bumps([(222, tl, 1.6)] if t >= tl else [], t)
-        if tl <= t < tl + 0.5:
-            bumps.append((222, 22 * (1 - (t - tl) * 2), 14))
-        water(c, 110, W, sy, fy, t, bumps=bumps)
-        if t < m["out"]:
-            sign(c, "fall", 560, 96, 100)
-        else:
-            caption(c, "GET OUT OF THE WATER", 58, 22)
+    deck(c, 0, dx, dy)
+    hatch(c, dx, fy, W, H)
+    hatch(c, 22, 120, 92, dy)                         # the diving tower
+    c.rect(92, 116, 168, 122, fill=(220, 220, 210))   # its board, out over the water
+    pool_ladder(c, lx, dy, fy)
+    tf = m["drop"] + 0.2
+    tl = tf + 0.8
+    land = 250
+    w0 = m["out"] + 0.2                               # wade to the ladder
+    c0, c1 = w0 + 0.6, w0 + 2.0                       # climb
+    s1 = c1 + 0.6                                     # step away onto the deck
+    if t < tf:
+        person(c, "stand", 160, 116, 100)
+    elif t < tl:
+        u = (t - tf) / 0.8
+        person(c, "fall", 168 + 75 * u, 116 + (sy + 14 - 116) * u * u, 66)
+    elif t < w0:
+        person(c, "stand", land, fy, 100)
+    elif t < c0:
+        person(c, "walk", land - (land - (lx + 18)) * ease((t - w0) / 0.6), fy + bob(t, 2, 3.2), 100)
+    elif t < c1:
+        u = (t - c0) / (c1 - c0)
+        rung = int(u * 6)
+        y = fy - (fy - dy) * min(1.0, (rung + ease(u * 6 - rung)) / 6)
+        person(c, "walk" if rung % 2 == 0 else "stand", lx + 14, y, 100)
+    elif t < s1:
+        person(c, "walk", lx + 14 - (lx + 14 - 90) * ease((t - c1) / 0.6), dy, 100)
+    else:
+        person(c, "stand", 90, dy, 100)
+    # it charges, and gets to the ladder just after they are out
+    tc = e["fall"] + 0.1
+    arrive = c1 + 0.15
+    bumps = surface_bumps([(land, tl, 1.6)] if t >= tl else [], t)
+    if t >= tc:
+        u = ease(ramp(t, tc, arrive - tc))
+        x = 720 - (720 - (lx + 70)) * u
+        wader(c, x, fy, 125, t)
+        if u < 1:
+            for k in range(6):
+                yy = fy - 20 - k * 17
+                c.line([(x + 40, yy), (x + 40 + 140 * (1 - u) * (0.5 + 0.1 * k), yy)], WHITE, 2)
+            bumps.append((x - 50, 8, 14))
+    if tl <= t < tl + 0.5:
+        bumps.append((land, 22 * (1 - (t - tl) * 2), 14))
+    if w0 <= t < c0:
+        bumps += surface_bumps(steps(land - (land - (lx + 18)) * (t - w0) / 0.6, t - w0, 3.0, 0.6), t - w0)
+    water(c, dx, W, sy, fy, t, bumps=bumps)
+    if t < m["out"]:
+        sign(c, "fall", 560, 96, 100)
+    else:
+        caption(c, "GET OUT OF THE WATER", 58, 22)
     bug(c, "FALLING IN")
+
+
+def pool_ladder(c, x, deck_y, floor_y):
+    """A pool ladder in section: rails down the wall into the water, and handrails curling over
+    the deck edge."""
+    rail = (196, 204, 214)
+    for xx in (x - 9, x + 9):
+        c.line([(xx, deck_y - 26), (xx, floor_y - 2)], rail, 3)
+        c.arc(xx - 9, deck_y - 26, 9, 180, 360, rail, 3)
+    yy = deck_y + 6
+    while yy < floor_y - 6:
+        c.line([(x - 9, yy), (x + 9, yy)], rail, 2.5)
+        yy += 16
 
 
 # ---------------------------------------------------------------- stillness
@@ -357,17 +393,39 @@ def censored(c, age, sy, fy):
     """A censor bar over its head and claws while it feeds; the blood still gets out."""
     x0, x1, y0, y1 = 334, 432, 232, 322
     cx, cy = 384, 296                                 # where it is feeding, behind the bar
-    lay, d = c.layer()
-    r = min(170, 60 + age * 40)
-    d.ellipse([(cx - r) * S, (sy + 4) * S, (cx + r) * S, (fy + 18) * S], fill=(130, 0, 4, 170))
-    lay.paste((0, 0, 0, 0), (0, 0, W * S, int((sy + 3) * S)))
-    c.overlay(lay)
+    blood_plume(c, cx, sy, fy, min(1.5, 0.35 + age * 0.3), age)
     for k in range(4):                                # it keeps spraying, a burst at a time
         tt = (age - k * 0.27) % 1.1
         if tt < 0.7:
             blood_spray(c, cx, cy, tt * 0.8, sy, seed=k)
     j = int(age * 15) % 3 - 1                         # the bar wobbles with the tape
     c.rect(x0 + j, y0, x1 + j, y1, fill=(0, 0, 0))
+
+
+_plumes = {}
+
+
+def blood_plume(c, cx, sy, fy, amount, t, seed=0, col=(158, 6, 14)):
+    """Blood spreading through the water from (cx, the surface): soft, uneven clouds that sink and
+    drift apart as amount grows (0 to about 1.5)."""
+    import numpy as np
+    from PIL import ImageFilter
+    if seed not in _plumes:
+        _plumes[seed] = np.random.default_rng(50 + seed).random((16, 5))
+    b = _plumes[seed]
+    x0, x1 = max(0, cx - 280), min(W, cx + 280)
+    lay = Image.new("RGBA", (int((x1 - x0) * S), int((fy - sy) * S)), (0, 0, 0, 0))
+    d = ImageDraw.Draw(lay)
+    for i in range(16):
+        reach = amount * (0.35 + 0.65 * b[i, 0])
+        px = cx - x0 + (b[i, 1] - 0.5) * 300 * reach + math.sin(t * 0.7 + i * 1.7) * 5
+        py = 4 + b[i, 2] * (fy - sy) * 0.75 * min(1.0, reach)
+        rx = (10 + 34 * b[i, 3]) * (0.45 + 0.8 * reach)
+        ry = rx * (0.4 + 0.35 * b[i, 4])
+        d.ellipse([(px - rx) * S, (py - ry) * S, (px + rx) * S, (py + ry) * S],
+                  fill=col + (int(175 * (1 - 0.35 * b[i, 0])),))
+    lay = lay.filter(ImageFilter.GaussianBlur(6 * S))
+    c.overlay(lay, at=(int(x0 * S), int(sy * S)))
 
 
 _sprays = {}
@@ -591,11 +649,7 @@ def kill_frame(c, phase, u):
             bumps = [(wx - 60, 4, 12)]
     water(c, 120, W, SY, FY, u, col=(30, 8, 12), alpha=0.82, bumps=bumps)
     if cloud:
-        lay, dr = c.layer()
-        r = 50 + cloud * 110
-        dr.ellipse([(wx - 10 - r) * S, (SY + 6) * S, (wx - 10 + r) * S, (FY + 24) * S], fill=(130, 0, 4, 170))
-        lay.paste((0, 0, 0, 0), (0, 0, W * S, int((SY + 4) * S)))
-        c.overlay(lay)
+        blood_plume(c, wx - 10, SY, FY, cloud * 0.9, u, seed=1, col=(205, 18, 26))
     if int(u * 30) % 6 == 0:
         c.fade_to(BLACK, 0.4)                    # the light stutters
 

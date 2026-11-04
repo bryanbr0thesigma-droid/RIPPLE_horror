@@ -17,7 +17,7 @@ The finished video is `media/falcon_tape.mp4` (960x720, 4:3) with subtitles in
   only artwork made for the tape.
 - **Existing human-made work** (public domain or CC0, listed in `assets/CREDITS.md`): ISO 7010
   safety signs (rebuilt into the tape's own signs by `build_signs.py`, with water added), road-sign
-  stick figures and a falcon engraving from Openclipart for the seal, CC0 static from OpenGameArt,
+  stick figures from Openclipart, a falcon-head pictogram from game-icons.net for the seal, CC0 static from OpenGameArt,
   and the game's own recordings (creature voice, splashes, wading, drips, room tone, music).
 - **Made by the scripts:** text (in existing fonts), the simulated water of the side
   cross-sections, the training-video music and logo jingle (`music.py`), and the VHS tape effect

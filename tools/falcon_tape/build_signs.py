@@ -188,6 +188,15 @@ drop = drop.rotate(ang + 90, resample=Image.BICUBIC, expand=True)            # t
 drop = drop.crop(drop.getbbox())
 drop.save(f"{OUT}/drop.png", optimize=True)
 
+# The seal's falcon: "Eagle head" by Delapouite (game-icons.net, CC BY 3.0), a raptor's head drawn
+# as a one-colour pictogram.
+open(f"{tmp}/falcon.svg", "w").write(open(f"{HERE}/assets/falcon_head_delapouite.svg").read())
+subprocess.run(["node", f"{node_dir}/render_svgs.mjs", "1200", f"{tmp}/falcon.svg", f"{tmp}/falcon.png"],
+               check=True, cwd=node_dir, capture_output=True)
+head = Image.open(f"{tmp}/falcon.png").getchannel("A")
+head = head.crop(head.getbbox())
+head.save(f"{OUT}/falcon_head.png", optimize=True)
+
 for k in ("W001", "M001"):
     L[k].save(f"{OUT}/sign_{k}.png", optimize=True)
 
