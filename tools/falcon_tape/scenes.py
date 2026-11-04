@@ -178,7 +178,7 @@ def dry_ground(c, t, sc):
 def falling(c, t, sc):
     """The fall, the splash, and the climb out up the pool ladder as it arrives."""
     m, e = sc.m, sc.e
-    dx, dy, sy, fy = 150, 306, 320, 400               # poolside edge, deck top, surface, pool floor
+    dx, dy, sy, fy = 150, 314, 320, 400               # poolside edge, deck top, surface, pool floor
     lx = 170                                          # the ladder, against the pool wall
     c.rect(0, 0, W, H, fill=NAVY)
     back_wall(c)
@@ -241,8 +241,8 @@ def pool_ladder(c, x, deck_y, floor_y):
     the deck edge."""
     rail = (196, 204, 214)
     for xx in (x - 9, x + 9):
-        c.line([(xx, deck_y - 26), (xx, floor_y - 2)], rail, 3)
-        c.arc(xx - 9, deck_y - 26, 9, 180, 360, rail, 3)
+        c.line([(xx, deck_y - 12), (xx, floor_y - 2)], rail, 3)
+        c.arc(xx - 9, deck_y - 12, 9, 180, 360, rail, 3)
     yy = deck_y + 6
     while yy < floor_y - 6:
         c.line([(x - 9, yy), (x + 9, yy)], rail, 2.5)
@@ -393,7 +393,7 @@ def censored(c, age, sy, fy):
     """A censor bar over its head and claws while it feeds; the blood still gets out."""
     x0, x1, y0, y1 = 334, 432, 232, 322
     cx, cy = 384, 296                                 # where it is feeding, behind the bar
-    blood_plume(c, cx, sy, fy, min(1.5, 0.35 + age * 0.3), age)
+    blood_plume(c, cx, sy, fy, min(1.0, 0.35 + age * 0.25), age)
     for k in range(4):                                # it keeps spraying, a burst at a time
         tt = (age - k * 0.27) % 1.1
         if tt < 0.7:
@@ -418,9 +418,9 @@ def blood_plume(c, cx, sy, fy, amount, t, seed=0, col=(158, 6, 14)):
     d = ImageDraw.Draw(lay)
     for i in range(16):
         reach = amount * (0.35 + 0.65 * b[i, 0])
-        px = cx - x0 + (b[i, 1] - 0.5) * 300 * reach + math.sin(t * 0.7 + i * 1.7) * 5
-        py = 4 + b[i, 2] * (fy - sy) * 0.75 * min(1.0, reach)
-        rx = (10 + 34 * b[i, 3]) * (0.45 + 0.8 * reach)
+        px = cx - x0 + (b[i, 1] - 0.5) * 150 * reach + math.sin(t * 0.7 + i * 1.7) * 4
+        py = 4 + b[i, 2] * (fy - sy) * 0.7 * min(1.0, reach)
+        rx = (8 + 24 * b[i, 3]) * (0.45 + 0.6 * reach)
         ry = rx * (0.4 + 0.35 * b[i, 4])
         d.ellipse([(px - rx) * S, (py - ry) * S, (px + rx) * S, (py + ry) * S],
                   fill=col + (int(175 * (1 - 0.35 * b[i, 0])),))
@@ -580,6 +580,10 @@ def demo(c, t, sc):
         wader(c, 430, FY, WADER_H, 0.0)
         ev.append((AX, after - 0.4, 0.5))
     water(c, 120, W, SY, FY, t, bumps=surface_bumps(ev, t, 50, 1.4))
+    if gone:                                        # where the remains are: bloody water, and a bar
+        blood_plume(c, 330, SY, FY, 1.45, t, seed=2)
+        j = int(t * 15) % 3 - 1
+        c.rect(282 + j, SY - 18, 380 + j, SY + 22, fill=(0, 0, 0))
     caption(c, "END OF DEMONSTRATION" if gone else "DEMONSTRATION: STILLNESS PROTOCOL", 58, 20)
     if not gone:
         if t < flinch:

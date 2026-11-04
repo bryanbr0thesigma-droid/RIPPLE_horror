@@ -346,13 +346,16 @@ def seal_image(r):
     d.ellipse([c - R, c - R, c + R, c + R], fill=GOLD)
     d.ellipse([c - R * 0.93, c - R * 0.93, c + R * 0.93, c + R * 0.93], fill=(18, 30, 92))
     d.ellipse([c - R * 0.66, c - R * 0.66, c + R * 0.66, c + R * 0.66], fill=GOLD)
-    d.ellipse([c - R * 0.62, c - R * 0.62, c + R * 0.62, c + R * 0.62], fill=CREAM)
-    head = Image.open(f"{ASSETS}/made/falcon_head.png").convert("L")     # the falcon's head, a pictogram
-    bh = int(R * 0.84)
+    d.ellipse([c - R * 0.62, c - R * 0.62, c + R * 0.62, c + R * 0.62], fill=(52, 92, 168))
+    head = Image.open(f"{ASSETS}/made/eagle_head.png").convert("RGBA")   # a bald eagle's head
+    bh = int(R * 1.16)
     head = head.resize((int(head.size[0] * bh / head.size[1]), bh), Image.LANCZOS)
-    mask = Image.new("L", im.size, 0)
-    mask.paste(head, (int(c - head.size[0] / 2), int(c - bh / 2)))
-    im.paste((22, 24, 34, 255), (0, 0), mask)
+    lay = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    lay.alpha_composite(head, (int(c - head.size[0] * 0.47), int(c - R * 0.5)))
+    inner = Image.new("L", im.size, 0)
+    ImageDraw.Draw(inner).ellipse([c - R * 0.62, c - R * 0.62, c + R * 0.62, c + R * 0.62], fill=255)
+    lay.putalpha(Image.composite(lay.getchannel("A"), Image.new("L", im.size, 0), inner))
+    im.alpha_composite(lay)
     fnt = ImageFont.truetype(FONTS["sans"], int(R * 0.115))
 
     def ring_text(s, center_deg, radius, inward):
