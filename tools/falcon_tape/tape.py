@@ -119,8 +119,8 @@ def timeline():
         Scene("fallin", S.fall_in, [P(0.25), L("rm5", 2.2)], glitch=[(0, 0.35, 0.9)], sfx=[(0.0, "static:0.3", 0.5)]),
         Scene("outro", S.outro, [P(0.5), L("end", 3.4)], beds=[(0, "corp")], sfx=[(0.2, "jingle", 0.5)]),
         Scene("blank", S.blank, [P(2.2)], glitch=[(1.95, 0.25, 0.5)]),
-        Scene("stinger", S.stinger, [P(0.8), L("body", 0.9), M("yours"), P(3.2), M("static"), P(1.4), M("stop"), P(1.6),
-                                     P(0.8)],
+        Scene("stinger", S.stinger, [P(0.8), L("body", 0.7), M("yours"), L("hear", 2.4), M("static"), P(1.4), M("stop"),
+                                     P(1.6), P(0.8)],
               beds=[(0, "none")], sfx=[("yours", "static:0.08", 0.3), ("static", "static:1.4", 0.6)],
               glitch=[("yours", 0.12, 0.5, False)], static=[("static", 1.4, 1.0)]),
     ]

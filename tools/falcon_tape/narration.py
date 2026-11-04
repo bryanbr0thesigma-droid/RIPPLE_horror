@@ -47,6 +47,7 @@ LINES = {
     "end":   "This concludes your orientation. Thank you for your service.",
     # After the end of the program
     "body":  "The human body is about sixty percent water.",
+    "hear":  "It can hear yours.",
 }
 
 SUBS = {
