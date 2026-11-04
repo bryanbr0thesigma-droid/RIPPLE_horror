@@ -26,6 +26,7 @@ LINES = {
     "dry":   "It cannot leave the water. Dry ground is safe.",
     # Stillness
     "st1":   "If you cannot reach dry ground, stop moving.",
+    "landed": "If you have just fallen in, it already knows where you are. Move away from that spot first. Then stop moving.",
     "feel":  "It will search for you by feel.",
     "found": "Most personnel who remain perfectly still are not found.",
     "st5":   "Remain perfectly still.",

@@ -28,8 +28,9 @@ def M(name):
 
 
 class Scene:
-    def __init__(self, name, draw, beats, beds=None, sfx=None, glitch=None, static=None, freeze=None):
+    def __init__(self, name, draw, beats, beds=None, sfx=None, glitch=None, static=None, freeze=None, snap=False):
         self.name, self.draw, self.beats = name, draw, beats
+        self.snap = snap                    # round the length up to whole frames
         self.beds = beds or []
         self.sfx = sfx or []
         self.glitch = glitch or []          # (time, seconds, strength[, also dip the sound])
@@ -50,6 +51,11 @@ class Scene:
         if spec.startswith("e:"):
             return self.e[spec[2:]] + off
         return self.m[spec] + off
+
+
+def frac(key, f, add=0.0):
+    """A time that far through a line (0..1), for cues that follow what Sam is saying."""
+    return lambda sc: sc.m[key] + f * (sc.e[key] - sc.m[key]) + add
 
 
 def card(n, name):
@@ -81,6 +87,9 @@ def timeline():
         Scene("dry", S.dry_ground, [P(0.3), L("dry", 1.6)], beds=[(0, "corp")], sfx=[(0.2, "wade:3.0", 0.35)]),
         card(4, "STILLNESS"),
         Scene("stillness", S.stillness, [P(0.3), L("st1", 1.0)], beds=[(0, "eerie")]),
+        Scene("landed", S.landed, [P(0.6), L("landed", 2.4)], beds=[(0, "eerie")], snap=True,
+              sfx=[(0.1, "splash_big", 0.7), (frac("landed", 0.48), "wade:1.6", 0.4),
+                   (frac("landed", 0.84), "charge_onset", 0.55), (frac("landed", 0.84, 0.7), "close:3.0", 0.45)]),
         Scene("demo", S.demo, [P(0.4), M("walk"), L("feel", 4.2), M("flinch"), P(0.8), M("dark"), P(0.35), M("standby"),
                                P(3.6), M("after"), P(2.4)],
               beds=[(0, "eerie"), ("flinch", "none"), ("standby", "corp"), ("after", "eerie")],
@@ -127,6 +136,8 @@ def layout(tl, durs):
                 lt += b[1]
             else:
                 sc.m[b[1]] = lt
+        if getattr(sc, "snap", False):
+            lt = math.ceil(lt * FPS - 1e-6) / FPS
         sc.dur = lt
         t += lt
     return t
@@ -375,6 +386,11 @@ def srt(tl, path):
             f.write(f"{i}\n{ts(a)} --> {ts(b)}\n{s}\n\n")
 
 
+def write_layout(tl, total, path):
+    import json
+    json.dump({"fps": FPS, "total": total, "scenes": [[s.name, s.t0, s.dur] for s in tl]}, open(path, "w"), indent=1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("voice_dir")
@@ -403,6 +419,7 @@ def main():
             Image.fromarray(draw_frame(gt)).save(f"{a.out_dir}/clean_{gt:07.2f}.png")
         return
     srt(TL, f"{a.out_dir}/falcon_tape.srt")
+    write_layout(TL, total, f"{a.out_dir}/layout.json")
     wav = f"{a.out_dir}/falcon_tape_audio.wav"
     if not a.no_audio:
         build_audio(TL, total, voices, clips, wav)

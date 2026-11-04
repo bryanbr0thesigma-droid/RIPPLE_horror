@@ -71,70 +71,74 @@ It cannot leave the water. Dry ground is safe.
 If you cannot reach dry ground, stop moving.
 
 19
-00:01:36,344 --> 00:01:38,714
-It will search for you by feel.
+00:01:36,544 --> 00:01:44,675
+If you have just fallen in, it already knows where you are. Move away from that spot first. Then stop moving.
 
 20
-00:01:50,364 --> 00:01:53,978
-Most personnel who remain perfectly still are not found.
+00:01:47,477 --> 00:01:49,847
+It will search for you by feel.
 
 21
-00:01:55,778 --> 00:01:57,393
-Remain perfectly still.
+00:02:01,497 --> 00:02:05,111
+Most personnel who remain perfectly still are not found.
 
 22
-00:02:02,293 --> 00:02:03,871
-Listen for its clicking.
+00:02:06,911 --> 00:02:08,526
+Remain perfectly still.
 
 23
-00:02:07,071 --> 00:02:08,697
-If it screeches, move.
+00:02:13,426 --> 00:02:15,004
+Listen for its clicking.
 
 24
-00:02:16,097 --> 00:02:19,874
-If a member of your team is taken, do not attempt a rescue.
+00:02:18,204 --> 00:02:19,831
+If it screeches, move.
 
 25
-00:02:21,074 --> 00:02:24,365
-It will be busy for a moment. Use this time.
+00:02:27,231 --> 00:02:31,007
+If a member of your team is taken, do not attempt a rescue.
 
 26
-00:02:26,965 --> 00:02:29,466
-Taken personnel sometimes come back.
+00:02:32,207 --> 00:02:35,498
+It will be busy for a moment. Use this time.
 
 27
-00:02:30,466 --> 00:02:32,318
-Do not ask them about the water.
+00:02:38,098 --> 00:02:40,599
+Taken personnel sometimes come back.
 
 28
-00:02:35,018 --> 00:02:35,643
-Remember.
+00:02:41,599 --> 00:02:43,451
+Do not ask them about the water.
 
 29
-00:02:36,143 --> 00:02:37,056
-Stay dry.
+00:02:46,151 --> 00:02:46,776
+Remember.
 
 30
-00:02:37,656 --> 00:02:38,625
-Stay quiet.
+00:02:47,276 --> 00:02:48,190
+Stay dry.
 
 31
-00:02:39,225 --> 00:02:40,155
-Stay still.
+00:02:48,790 --> 00:02:49,758
+Stay quiet.
 
 32
-00:02:41,055 --> 00:02:42,290
-And above all.
+00:02:50,358 --> 00:02:51,288
+Stay still.
 
 33
-00:02:42,840 --> 00:02:43,940
-Do not fall in.
+00:02:52,188 --> 00:02:53,423
+And above all.
 
 34
-00:02:46,640 --> 00:02:50,825
-This concludes your orientation. Thank you for your service.
+00:02:53,973 --> 00:02:55,073
+Do not fall in.
 
 35
-00:03:00,225 --> 00:03:04,480
+00:02:57,773 --> 00:03:01,958
+This concludes your orientation. Thank you for your service.
+
+36
+00:03:11,358 --> 00:03:15,613
 It can hear yours.
 

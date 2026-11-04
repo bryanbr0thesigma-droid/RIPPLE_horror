@@ -190,7 +190,7 @@ def falling(c, t, sc):
             person(c, "stand", 142, 116, 100)
         elif t < tl:
             u = (t - tf) / 0.8
-            person(c, "stand", 142 + 80 * u, 116 + (fy - 116) * u * u, 100, rot=-100 * u)
+            person(c, "fall", 150 + 75 * u, 116 + (sy + 14 - 116) * u * u, 66)       # the fall sign's figure
         else:
             person(c, "stand", 222, fy, 100)
         tc = e["fall"] + 0.1
@@ -240,6 +240,48 @@ def stillness(c, t, sc):
             flash(c)
 
 
+def landed(c, t, sc):
+    """Freezing where you fell in is no use: it heads straight for the splash. Move away, then freeze."""
+    m, e = sc.m, sc.e
+    dx, sy, fy = 60, 296, 370
+    xl, xs = 440, 250                                # where they landed; where they stop
+    D = e["landed"] - m["landed"]
+    move0, move1 = m["landed"] + 0.48 * D, m["landed"] + 0.70 * D
+    charge = m["landed"] + 0.84 * D
+    pool(c, dx, 286, fy)
+    if t < move0:
+        person(c, "stand", xl, fy, 175)
+    elif t < move1:
+        u = (t - move0) / (move1 - move0)
+        person(c, "walk", xl - (xl - xs) * u, fy + bob(t, 2, 3.2), 175)
+    else:
+        person(c, "stand", xs, fy, 175)
+    ev = [(xl, 0.1, 1.5)]
+    if move0 <= t < move1:
+        ev += steps(xl - (xl - xs) * (t - move0) / (move1 - move0), t - move0, 2.0, 0.5)
+    if t >= charge:
+        a = t - charge
+        if a < 0.7:
+            x = 720 - (720 - (xl + 40)) * ease(a / 0.7)
+            wader(c, x, fy, 219, t)
+            for k in range(5):
+                yy = fy - 30 - k * 30
+                c.line([(x + 50, yy), (x + 50 + 120 * (1 - a / 0.7), yy)], WHITE, 2)
+        else:
+            wader(c, xl + 30, fy, 219, t, name="search")
+            ev.append((xl - 20 + 20 * math.sin(t * 2.4), t - 0.05, 0.35))
+    water(c, dx, W, sy, fy, t, bumps=surface_bumps(ev, t, 50, 1.6))
+    if t >= 0.4:
+        c.text(xl, 104, "WHERE YOU LANDED", 13, RED, "sans", "mm", 2, track=1)
+        if t >= move1:
+            c.dashed((xl, 116), (xl, sy - 8), RED, 2, 6, 5)
+    if t < move1:
+        caption(c, "MOVE AWAY FROM WHERE YOU LANDED", 58, 20)
+    else:
+        caption(c, "THEN STOP MOVING.", 58, 26, WHITE, border=RED)
+    bug(c, "STILLNESS")
+
+
 # ---------------------------------------------------------------- its clicking
 def clicking(c, t, sc):
     m = sc.m
@@ -283,7 +325,7 @@ def taken(c, t, sc):
         return
     pool(c, dx, dy, fy, bg=DARK)
     if not gone:
-        person(c, "woman", 420, fy, 150)
+        person(c, "stand", 420, fy, 150)
     else:
         wader(c, 440, fy, 200, 0.0, name="search")
     ev = [(420, out1 - 0.1, 0.8)] if gone else []
@@ -382,7 +424,7 @@ def claw_point(box):
 
 
 STANDBY_FLASHES = [(0.5, 1), (1.5, 2), (2.5, 3)]   # (seconds into the stand-by card, picture)
-FLASH = 0.35                                        # about a third of a second each
+FLASH = 4 / 30                                      # four frames: a smidge longer than the 2-frame flashes
 
 
 def demo(c, t, sc):

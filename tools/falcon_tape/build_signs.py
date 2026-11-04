@@ -160,6 +160,13 @@ def wader_water(lay, d):
 
 tri_sign("wader", "tri", wader_water)
 
+# The falling person from the fall sign, on its own (the ledge left out), for the falling-in diagram.
+fall = pieces(alpha(L["faller"]))
+ledge = min(fall, key=lambda p: np.nonzero(p)[1].mean())
+os.makedirs(f"{HERE}/assets/people", exist_ok=True)
+fm = crop_mask(np.any([p for p in fall if p is not ledge], axis=0))
+Image.fromarray((fm * 255).astype(np.uint8)).save(f"{HERE}/assets/people/fall.png", optimize=True)
+
 for k in ("W001", "M001"):
     L[k].save(f"{OUT}/sign_{k}.png", optimize=True)
 
