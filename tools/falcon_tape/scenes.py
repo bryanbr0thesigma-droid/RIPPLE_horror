@@ -329,7 +329,11 @@ def taken(c, t, sc):
     else:
         wader(c, 440, fy, 200, 0.0, name="search")
     ev = [(420, out1 - 0.1, 0.8)] if gone else []
+    if gone:
+        ev += [(400 + 50 * (k % 2), out1 + 0.4 + k * 0.6, 0.35) for k in range(int((t - out1) / 0.6))]
     water(c, dx, W, sy, fy, t, bumps=surface_bumps(ev, t))
+    if gone:
+        censored(c, t - out1, sy, fy)
     if t < m["busy"] + 1.6:
         person(c, "stand", 130, dy, 120)
     else:
@@ -343,6 +347,45 @@ def taken(c, t, sc):
         caption(c, "USE THIS TIME.", 58, 26)
     c.fade_to(BLACK, 0.5 if (not gone and int(t * 9) % 4 == 0 and t > m["ca1"]) else 0)
     bug(c, "MISSING PERSONNEL")
+
+
+_spat = None
+
+
+def censored(c, age, sy, fy):
+    """A censor bar over where it is feeding, with blood getting out past its edges."""
+    global _spat
+    import numpy as np
+    if _spat is None:
+        _spat = np.random.default_rng(31).random((12, 10, 3))
+    x0, x1, y0, y1 = 352, 530, 212, 348
+    blood = (124, 0, 4)
+    # blood spreading through the water, wider than the bar
+    lay, d = c.layer()
+    r = min(170, 70 + age * 40)
+    d.ellipse([(441 - r) * S, (sy + 4) * S, (441 + r) * S, (fy + 18) * S], fill=(128, 0, 6, 165))
+    lay.paste((0, 0, 0, 0), (0, 0, W * S, int((sy + 3) * S)))
+    c.overlay(lay)
+    j = int(age * 15) % 3 - 1                      # the bar wobbles with the tape
+    c.rect(x0 + j, y0, x1 + j, y1, fill=(0, 0, 0))
+    # stains creeping out from under its sides, at the waterline
+    for side, sx in ((-1, x0 + j), (1, x1 + j)):
+        for k in range(4):
+            grow = min(1.0, age * 0.6 + k * 0.1)
+            c.circle(sx + side * (4 + k * 7) * grow, sy + 2 + k * 3, (6 - k) * grow + 1, fill=blood)
+    # every so often it spatters out past an edge
+    burst = int(age / 0.9)
+    ba = age - burst * 0.9
+    if burst < len(_spat) and ba < 0.6:
+        side = -1 if burst % 2 == 0 else 1
+        ex = (x0 if side < 0 else x1) + j
+        ey = 240 + _spat[burst, 0, 0] * 50
+        for i in range(10):
+            vx = side * (60 + _spat[burst, i, 0] * 180)
+            vy = -(40 + _spat[burst, i, 1] * 160)
+            px, py = ex + vx * ba, ey + vy * ba + 520 * ba * ba
+            if py < sy + 4:
+                c.circle(px, py, 1.5 + _spat[burst, i, 2] * 3, fill=blood)
 
 
 def coming_back(c, t, sc):
