@@ -46,7 +46,7 @@ LINES = {
     "rm5":   "Do not fall in.",
     "end":   "This concludes your orientation. Thank you for your service.",
     # After the end of the program
-    "hear":  "It can hear yours.",
+    "body":  "The human body is about sixty percent water.",
 }
 
 SUBS = {

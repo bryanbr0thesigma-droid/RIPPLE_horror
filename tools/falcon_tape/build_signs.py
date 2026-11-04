@@ -188,14 +188,28 @@ drop = drop.rotate(ang + 90, resample=Image.BICUBIC, expand=True)            # t
 drop = drop.crop(drop.getbbox())
 drop.save(f"{OUT}/drop.png", optimize=True)
 
-# The seal's bird: "Eagle" by nfroidure (Openclipart 2962, public domain), a flat bald eagle's head,
-# kept in its own colours.
-open(f"{tmp}/eagle.svg", "w").write(open(f"{HERE}/assets/eagle_2962.svg").read())
-subprocess.run(["node", f"{node_dir}/render_svgs.mjs", "1200", f"{tmp}/eagle.svg", f"{tmp}/eagle.png"],
+# The seal's falcon: "peregrine falcon" by papapishu (Openclipart 121135, public domain), with the
+# rock it perches on taken out: everything below the claws and left of the tail is erased, then any
+# loose stroke left in that area. The feet and tail stay, since they join up with the body.
+open(f"{tmp}/falcon.svg", "w").write(open(f"{HERE}/assets/falcon_121135.svg").read())
+subprocess.run(["node", f"{node_dir}/render_svgs.mjs", "2000", f"{tmp}/falcon.svg", f"{tmp}/falcon.png"],
                check=True, cwd=node_dir, capture_output=True)
-head = Image.open(f"{tmp}/eagle.png").convert("RGBA")
-head = head.crop(head.getchannel("A").getbbox())
-head.save(f"{OUT}/eagle_head.png", optimize=True)
+fa = np.asarray(Image.open(f"{tmp}/falcon.png").convert("RGBA"))[..., 3].copy()
+fh, fw = fa.shape
+rock = [(0, 0.76), (0.25, 0.75), (0.36, 0.73), (0.45, 0.722), (0.58, 0.722), (0.62, 0.71), (0.70, 0.92),
+        (0.72, 1.0), (0, 1.0)]
+rm = Image.new("L", (fw, fh), 0)
+ImageDraw.Draw(rm).polygon([(x * fw, y * fh) for x, y in rock], fill=255)
+fa[np.asarray(rm) > 0] = 0
+for p in pieces(fa > 60):
+    py, px = np.nonzero(p)
+    if (py.min() > 0.695 * fh and px.max() < 0.68 * fw) or (py.min() > 0.74 * fh and px.max() < 0.73 * fw):
+        fa[p] = 0
+zone = np.zeros_like(fa, bool)
+zone[int(0.70 * fh):, :int(0.68 * fw)] = True
+fa[zone & (fa < 90)] = 0                      # faint edges left by the cut
+falcon = Image.fromarray(np.dstack([np.zeros_like(fa)] * 3 + [fa]).astype(np.uint8), "RGBA")
+falcon.crop(falcon.getchannel("A").getbbox()).save(f"{OUT}/falcon.png", optimize=True)
 
 for k in ("W001", "M001"):
     L[k].save(f"{OUT}/sign_{k}.png", optimize=True)

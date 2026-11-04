@@ -659,12 +659,18 @@ def kill_frame(c, phase, u):
 
 
 def stinger(c, t, sc):
-    """After the end of the program: the card, the line, static, and the tape stops."""
-    m = sc.m
+    """After the end of the program: Sam reads the card as it types; then a second line, which he
+    does not read, flickers; static; the tape stops."""
+    m, e = sc.m, sc.e
     c.rect(0, 0, W, H, fill=BLACK)
     if t < m["static"]:
         s = "THE HUMAN BODY IS ABOUT 60% WATER."
-        c.text(320, 240, typed(s, t - 0.5, 15), 20, RED if t >= m["hear"] + 0.3 else WHITE, "mono", "mm", 0)
+        dur = max(0.5, (e["body"] - m["body"]) * 0.9)
+        c.text(320, 222, typed(s, t - m["body"], len(s) / dur), 20, WHITE, "mono", "mm", 0)
+        if t >= m["yours"]:
+            k = int(t * 12)
+            col = RED if (k * 7919 + k // 3) % 5 < 3 else WHITE      # an uneven red-white flicker
+            c.text(320, 264, "IT CAN HEAR YOURS.", 20, col, "mono", "mm", 0)
     elif m["stop"] <= t < m["stop"] + 1.6:
         c.rect(0, 0, W, H, fill=VCR_BLUE)
         osd(c, "STOP \u25a0")

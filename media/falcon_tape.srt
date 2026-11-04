@@ -135,6 +135,6 @@ Do not fall in.
 This concludes your orientation. Thank you for your service.
 
 35
-00:03:09,991 --> 00:03:14,247
-It can hear yours.
+00:03:06,991 --> 00:03:09,962
+The human body is about sixty percent water.
 
