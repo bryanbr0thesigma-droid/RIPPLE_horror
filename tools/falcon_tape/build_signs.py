@@ -41,6 +41,7 @@ parts = {
     "tri": keep_paths(svg("W001"), {0}),
     "faller": drop(svg("W008"), ["path4", "polygon6"]),
     "W008": svg("W008"), "W001": svg("W001"), "M001": svg("M001"),
+    "keepdry": open(f"{SIGNS}/ISO_7000_0626.svg").read(),
 }
 args = []
 for k, v in parts.items():
@@ -166,6 +167,26 @@ ledge = min(fall, key=lambda p: np.nonzero(p)[1].mean())
 os.makedirs(f"{HERE}/assets/people", exist_ok=True)
 fm = crop_mask(np.any([p for p in fall if p is not ledge], axis=0))
 Image.fromarray((fm * 255).astype(np.uint8)).save(f"{HERE}/assets/people/fall.png", optimize=True)
+
+# One raindrop from ISO 7000 symbol 0626 ("keep dry"), stood upright, for dripping water. It is
+# cut from a large render and keeps its soft (anti-aliased) edge, so it stays smooth when shrunk.
+open(f"{tmp}/keepdry_big.svg", "w").write(parts["keepdry"])
+subprocess.run(["node", f"{node_dir}/render_svgs.mjs", "2400", f"{tmp}/keepdry_big.svg", f"{tmp}/keepdry_big.png"],
+               check=True, cwd=node_dir, capture_output=True)
+big = Image.open(f"{tmp}/keepdry_big.png").convert("RGBA")
+soft = np.asarray(big)[..., 3].astype(np.float32)
+drops = [p for p in pieces(soft > 100)[1:] if p.sum() > 400]                   # [0] is the umbrella
+piece = drops[len(drops) // 2]
+near = np.asarray(Image.fromarray(piece.astype(np.uint8) * 255).filter(ImageFilter.MaxFilter(9))) > 0
+ys, xs = np.nonzero(near)
+cut = np.where(near, soft, 0)[ys.min():ys.max() + 1, xs.min():xs.max() + 1].astype(np.uint8)
+drop = Image.fromarray(cut)
+pys, pxs = np.nonzero(piece)
+far = np.argmax((pxs - pxs.mean()) ** 2 + (pys - pys.mean()) ** 2)          # the tip of the drop
+ang = math.degrees(math.atan2(pys[far] - pys.mean(), pxs[far] - pxs.mean()))
+drop = drop.rotate(ang + 90, resample=Image.BICUBIC, expand=True)            # tip straight up
+drop = drop.crop(drop.getbbox())
+drop.save(f"{OUT}/drop.png", optimize=True)
 
 for k in ("W001", "M001"):
     L[k].save(f"{OUT}/sign_{k}.png", optimize=True)

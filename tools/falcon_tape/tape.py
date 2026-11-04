@@ -86,15 +86,14 @@ def timeline():
               sfx=[("drop+1.0", "splash_big", 0.7), ("e:fall+0.1", "charge_onset", 0.6)], glitch=[("e:fall+0.1", 0.25, 0.35)]),
         Scene("dry", S.dry_ground, [P(0.3), L("dry", 1.6)], beds=[(0, "corp")], sfx=[(0.2, "wade:3.0", 0.35)]),
         card(4, "STILLNESS"),
-        Scene("stillness", S.stillness, [P(0.3), L("st1", 1.0)], beds=[(0, "eerie")]),
         Scene("landed", S.landed, [P(0.6), L("landed", 2.4)], beds=[(0, "eerie")], snap=True,
               sfx=[(0.1, "splash_big", 0.7), (frac("landed", 0.48), "wade:1.6", 0.4),
                    (frac("landed", 0.84), "charge_onset", 0.55), (frac("landed", 0.84, 0.7), "close:3.0", 0.45)]),
-        Scene("demo", S.demo, [P(0.4), M("walk"), L("feel", 4.2), M("flinch"), P(0.8), M("dark"), P(0.35), M("standby"),
+        Scene("demo", S.demo, [P(0.4), M("walk"), L("feel", 4.2), M("flinch"), P(1.8), M("dark"), P(0.35), M("standby"),
                                P(5.8), M("after"), P(2.4)],
               beds=[(0, "eerie"), ("flinch", "none"), ("standby", "corp"), ("standby+2.75", "none"), ("after", "eerie")],
               sfx=[("walk", "wade:3.0", 0.35), ("walk+0.3", "clip:hunt", 0.55), ("walk+3.0", "close:3.4", 0.45),
-                   ("flinch", "splash_small", 0.25),
+                   ("flinch", "wade:1.8", 0.45),
                    ("standby+0.3", "muffled:kill_screech_5", 1.2), ("standby+1.5", "muffled:kill_tear", 1.0),
                    ("standby+1.55", "muffled:kill_crack_2", 0.9), ("standby+2.6", "muffled:splash_big", 0.7),
                    *[(f"standby+{a:.2f}", "static:0.06", 0.35) for a, p in S.STANDBY_FLASHES],
@@ -125,9 +124,20 @@ def timeline():
     ]
 
 
+ALIGN = None   # (old layout {name: (t0, dur)}, changed names): set by splice.py
+
+
+def copyable(sc, t, dur):
+    old, changed = ALIGN
+    if sc.name in changed or sc.name not in old or abs(old[sc.name][1] - dur) > 1e-6:
+        return False
+    shift = (t - old[sc.name][0]) * FPS
+    return abs(shift - round(shift)) < 1e-3
+
+
 def layout(tl, durs):
     t = 0.0
-    for sc in tl:
+    for i, sc in enumerate(tl):
         sc.t0, sc.m, sc.e = t, {}, {}
         lt = 0.0
         for b in sc.beats:
@@ -141,6 +151,12 @@ def layout(tl, durs):
                 sc.m[b[1]] = lt
         if getattr(sc, "snap", False):
             lt = math.ceil(lt * FPS - 1e-6) / FPS
+        if ALIGN and i + 1 < len(tl) and not copyable(sc, t, lt) and tl[i + 1].name in ALIGN[0]:
+            # a scene that gets rendered anyway is padded (by under a frame) so the next one
+            # lands a whole number of frames from where it was, and can be copied
+            frac = ((t + lt - ALIGN[0][tl[i + 1].name][0]) * FPS) % 1.0
+            if 1e-6 < frac < 1 - 1e-6:
+                lt += (1 - frac) / FPS
         sc.dur = lt
         t += lt
     return t

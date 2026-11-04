@@ -36,11 +36,12 @@ def main():
     old_n = int(old["total"] * fps)
     os.makedirs(a.new_dir, exist_ok=True)
 
+    changed = set(x for x in a.changed.split(",") if x)
+    tape.ALIGN = (old_sc, changed)
     total, voices = tape.setup(a.voice_dir)
     clips = tape.creature_clips()
     S.ENVS.update({k: tape.envelope(v) for k, v in clips.items()})
     n = int(total * fps)
-    changed = set(x for x in a.changed.split(",") if x)
 
     # For each new frame: the old frame it can be copied from, or None.
     src = [None] * n

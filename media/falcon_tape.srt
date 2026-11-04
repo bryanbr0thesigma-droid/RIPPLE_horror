@@ -67,78 +67,74 @@ It is faster than you. Get out of the water.
 It cannot leave the water. Dry ground is safe.
 
 18
-00:01:31,675 --> 00:01:34,944
-If you cannot reach dry ground, stop moving.
-
-19
-00:01:36,544 --> 00:01:44,675
+00:01:31,975 --> 00:01:40,106
 If you have just fallen in, it already knows where you are. Move away from that spot first. Then stop moving.
 
-20
-00:01:47,477 --> 00:01:49,847
+19
+00:01:42,910 --> 00:01:45,280
 It will search for you by feel.
 
-21
-00:02:03,697 --> 00:02:07,311
+20
+00:02:00,130 --> 00:02:03,744
 Most personnel who remain perfectly still are not found.
 
-22
-00:02:09,111 --> 00:02:10,726
+21
+00:02:05,544 --> 00:02:07,159
 Remain perfectly still.
 
-23
-00:02:15,626 --> 00:02:17,204
+22
+00:02:12,059 --> 00:02:13,638
 Listen for its clicking.
 
-24
-00:02:20,404 --> 00:02:22,031
+23
+00:02:16,838 --> 00:02:18,464
 If it screeches, move.
 
-25
-00:02:29,431 --> 00:02:33,207
+24
+00:02:25,864 --> 00:02:29,641
 If a member of your team is taken, do not attempt a rescue.
 
-26
-00:02:34,407 --> 00:02:37,698
+25
+00:02:30,841 --> 00:02:34,131
 It will be busy for a moment. Use this time.
 
-27
-00:02:40,298 --> 00:02:42,799
+26
+00:02:36,731 --> 00:02:39,232
 Taken personnel sometimes come back.
 
-28
-00:02:43,799 --> 00:02:45,651
+27
+00:02:40,232 --> 00:02:42,084
 Do not ask them about the water.
 
-29
-00:02:48,351 --> 00:02:48,976
+28
+00:02:44,784 --> 00:02:45,409
 Remember.
 
-30
-00:02:49,476 --> 00:02:50,390
+29
+00:02:45,909 --> 00:02:46,823
 Stay dry.
 
-31
-00:02:50,990 --> 00:02:51,958
+30
+00:02:47,423 --> 00:02:48,391
 Stay quiet.
 
-32
-00:02:52,558 --> 00:02:53,488
+31
+00:02:48,991 --> 00:02:49,921
 Stay still.
 
-33
-00:02:54,388 --> 00:02:55,623
+32
+00:02:50,821 --> 00:02:52,056
 And above all.
 
-34
-00:02:56,173 --> 00:02:57,273
+33
+00:02:52,606 --> 00:02:53,706
 Do not fall in.
 
-35
-00:02:59,973 --> 00:03:04,158
+34
+00:02:56,406 --> 00:03:00,591
 This concludes your orientation. Thank you for your service.
 
-36
-00:03:13,558 --> 00:03:17,813
+35
+00:03:09,991 --> 00:03:14,247
 It can hear yours.
 

@@ -12,6 +12,7 @@ Uploads from before 2022 were preferred, to stay clear of AI-made work.
 | `signs/ISO_7010_M001` | General mandatory action: remember | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7010_M001.svg) | after ISO 7010 | Public domain |
 | `falcon_121135` | The falcon in the F.A.L.C.O.N. seal | [Openclipart 121135, "peregrine falcon"](https://openclipart.org/detail/121135/peregrine-falcon) (2011) | papapishu | Public domain (CC0) |
 | `people/*` (from `oc_241042.svg`) | The people in the diagrams | [Openclipart 241042, "Template of road signs (stickmen)"](https://openclipart.org/detail/241042) (2016) | rones | Public domain (CC0) |
+| `signs/ISO_7000_0626` | The water drops (one raindrop from "keep dry", stood upright) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:ISO_7000_-_Ref-No_0626.svg) | after ISO 7000 | CC0 |
 | `sound/static.mp3` | Static and tape noise | [OpenGameArt, "Static"](https://opengameart.org/content/static) (2014) | xhunterko | CC0 |
 
 `made/` holds the tape's own signs, put together from those ISO signs by `../build_signs.py`

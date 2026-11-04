@@ -279,6 +279,7 @@ def landed(c, t, sc):
         caption(c, "MOVE AWAY FROM WHERE YOU LANDED", 58, 20)
     else:
         caption(c, "THEN STOP MOVING.", 58, 26, WHITE, border=RED)
+        sign(c, "still", 90, 150, 86)
     bug(c, "STILLNESS")
 
 
@@ -327,7 +328,7 @@ def taken(c, t, sc):
     if not gone:
         person(c, "stand", 420, fy, 150)
     else:
-        wader(c, 440, fy, 200, 0.0, name="search")
+        wader(c, 440, fy + bob(t, 2, 1.1), 200, (t - out1) * 0.4, name="search")    # feeding, slowly
     ev = [(420, out1 - 0.1, 0.8)] if gone else []
     if gone:
         ev += [(400 + 50 * (k % 2), out1 + 0.4 + k * 0.6, 0.35) for k in range(int((t - out1) / 0.6))]
@@ -353,39 +354,49 @@ _spat = None
 
 
 def censored(c, age, sy, fy):
-    """A censor bar over where it is feeding, with blood getting out past its edges."""
-    global _spat
-    import numpy as np
-    if _spat is None:
-        _spat = np.random.default_rng(31).random((12, 10, 3))
-    x0, x1, y0, y1 = 352, 530, 212, 348
-    blood = (124, 0, 4)
-    # blood spreading through the water, wider than the bar
+    """A censor bar over its head and claws while it feeds; the blood still gets out."""
+    x0, x1, y0, y1 = 334, 432, 232, 322
+    cx, cy = 384, 296                                 # where it is feeding, behind the bar
     lay, d = c.layer()
-    r = min(170, 70 + age * 40)
-    d.ellipse([(441 - r) * S, (sy + 4) * S, (441 + r) * S, (fy + 18) * S], fill=(128, 0, 6, 165))
+    r = min(170, 60 + age * 40)
+    d.ellipse([(cx - r) * S, (sy + 4) * S, (cx + r) * S, (fy + 18) * S], fill=(130, 0, 4, 170))
     lay.paste((0, 0, 0, 0), (0, 0, W * S, int((sy + 3) * S)))
     c.overlay(lay)
-    j = int(age * 15) % 3 - 1                      # the bar wobbles with the tape
+    for k in range(4):                                # it keeps spraying, a burst at a time
+        tt = (age - k * 0.27) % 1.1
+        if tt < 0.7:
+            blood_spray(c, cx, cy, tt * 0.8, sy, seed=k)
+    j = int(age * 15) % 3 - 1                         # the bar wobbles with the tape
     c.rect(x0 + j, y0, x1 + j, y1, fill=(0, 0, 0))
-    # stains creeping out from under its sides, at the waterline
-    for side, sx in ((-1, x0 + j), (1, x1 + j)):
-        for k in range(4):
-            grow = min(1.0, age * 0.6 + k * 0.1)
-            c.circle(sx + side * (4 + k * 7) * grow, sy + 2 + k * 3, (6 - k) * grow + 1, fill=blood)
-    # every so often it spatters out past an edge
-    burst = int(age / 0.9)
-    ba = age - burst * 0.9
-    if burst < len(_spat) and ba < 0.6:
-        side = -1 if burst % 2 == 0 else 1
-        ex = (x0 if side < 0 else x1) + j
-        ey = 240 + _spat[burst, 0, 0] * 50
-        for i in range(10):
-            vx = side * (60 + _spat[burst, i, 0] * 180)
-            vy = -(40 + _spat[burst, i, 1] * 160)
-            px, py = ex + vx * ba, ey + vy * ba + 520 * ba * ba
-            if py < sy + 4:
-                c.circle(px, py, 1.5 + _spat[burst, i, 2] * 3, fill=blood)
+
+
+_sprays = {}
+
+
+def blood_spray(c, cx, cy, tt, surface, seed=0, n=70):
+    """The kill shots' blood: droplets thrown up and out from (cx, cy), falling back to the water,
+    some with streaks. tt is seconds since it started."""
+    import numpy as np
+    if seed not in _sprays:
+        _sprays[seed] = np.random.default_rng(13 + seed).random((n, 4))
+    b = _sprays[seed]
+    col = (110, 0, 4)
+    for i in range(n):
+        vx = (b[i, 0] - 0.5) * 360
+        vy = -(40 + b[i, 1] * 300)
+        px, py = cx + vx * tt, cy + vy * tt + 640 * tt * tt
+        if py < surface + 4:
+            r = 1.5 + b[i, 2] * 4
+            c.circle(px, py, r, fill=col)
+            if b[i, 3] > 0.6:
+                c.line([(px, py), (px - vx * 0.03, py - (vy + 1280 * tt) * 0.03)], col, r * 1.2)
+
+
+def drop(c, x, y, h, col):
+    """A water drop: the raindrop from ISO 7000 symbol 0626, standing on its point."""
+    import gfx
+    m = gfx._scaled(f"{gfx.ASSETS}/made/drop.png", int(h * S))
+    c.paste_mask(m, x - m.size[0] / S / 2, y - h / 2, col)
 
 
 def coming_back(c, t, sc):
@@ -395,7 +406,7 @@ def coming_back(c, t, sc):
         person(c, "stand", 320, 330, 170, (200, 214, 226), alpha=0.3)
         for k in range(3):
             ph = (t * 1.1 + k * 0.33) % 1.0
-            c.circle(306 + k * 14, 270 + ph * 60, 2, fill=CYAN_L)
+            drop(c, 298 + k * 22, 268 + ph * 64, 17, CYAN_L)
     if t >= m["ret"]:
         c.text(320, 380, "TAKEN PERSONNEL SOMETIMES COME BACK.", 17, WHITE, "sans", "mm", 0, track=1)
     if t >= m["ca6"]:
@@ -447,7 +458,7 @@ def agent(c, x, floor, h, frame=0, col=WHITE, rot=0, part=None):
     """The demonstration's agent: the tape's road-sign person, standing (frame 0) or taking a step
     (frame 1: the flinch). part: 'top' or 'bottom' half, cut at the waist. Returns its box."""
     import gfx
-    m = gfx._scaled(f"{gfx.ASSETS}/people/{'stand' if frame == 0 else 'walk'}.png", int(h * S), frame == 1)
+    m = gfx._scaled(f"{gfx.ASSETS}/people/{'stand' if frame == 0 else 'walk'}.png", int(h * S))
     if part:
         cut = int(m.size[1] * 0.5)
         m = m.crop((0, 0, m.size[0], cut)) if part == "top" else m.crop((0, cut, m.size[0], m.size[1]))
@@ -490,7 +501,11 @@ def demo(c, t, sc):
     pool(c, 120, 290, FY)
     ev = []
     if not gone:
-        agent(c, AX, FY, AGENT_H, 1 if t >= flinch else 0)
+        if t < flinch:
+            agent(c, AX, FY, AGENT_H, 0)
+        else:                                       # he turns away and tries for the ledge, slowly
+            u = min(1.0, (t - flinch) / (dark - flinch))
+            agent(c, AX - 70 * u, FY + bob(t - flinch, 2, 2.2), AGENT_H, 1)
         a = t - m["walk"]
         if 0 <= a < 3.0:
             x = 720 - 265 * ease(ramp(a, 0, 3.0))
@@ -502,7 +517,7 @@ def demo(c, t, sc):
             if not frozen:
                 ev.append((380 + 25 * math.sin(t * 2.4), t - 0.05, 0.35))
         if t >= flinch:
-            ev.append((AX - 18, flinch, 0.6))
+            ev += steps(AX - 70 * min(1.0, (t - flinch) / (dark - flinch)), t - flinch, 2.2, 0.5)
     else:
         wader(c, 430, FY, WADER_H, 0.0)
         ev.append((AX, after - 0.4, 0.5))
@@ -567,15 +582,7 @@ def kill_frame(c, phase, u):
             agent(c, cx - d, ty, AGENT_H, 0, pale, rot=-82 - 50 * u, part="top")
             agent(c, cx + d * 0.7, by, AGENT_H, 0, pale, rot=-82 + 70 * u, part="bottom")
             tt = u if phase == 2 else 0.55 + u
-            for i in range(70):
-                vx = (_blood[i, 0] - 0.5) * 360
-                vy = -(40 + _blood[i, 1] * 300)
-                px, py = cx + vx * tt, cy + vy * tt + 640 * tt * tt
-                if py < SY + 4:
-                    r = 1.5 + _blood[i, 2] * 4
-                    c.circle(px, py, r, fill=blood)
-                    if _blood[i, 3] > 0.6:
-                        c.line([(px, py), (px - vx * 0.03, py - (vy + 1280 * tt) * 0.03)], blood, r * 1.2)
+            blood_spray(c, cx, cy, tt, SY)
             cloud = 0.4 + tt * 0.8
             if phase == 3 and fall > 0.3:
                 bumps = [(cx - d, 10, 14), (cx + d * 0.7, 10, 14)]
