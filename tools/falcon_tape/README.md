@@ -9,7 +9,14 @@ protocol the agent flinches and the tape cuts to a "please stand by" card, with 
 half-second glimpses getting through.
 
 The finished video is `media/falcon_tape.mp4` (960x720, 4:3) with subtitles in
-`media/falcon_tape.srt`.
+`media/falcon_tape.srt`. For the game there is `game/assets/video/falcon_tape.ogv` (640x480, the tape's
+own resolution, Ogg Theora: the only video format Godot 4 plays on its own), about 29 MB, with
+the same subtitles next to it. To remake it from a build:
+
+```
+ffmpeg -i out/falcon_tape.mp4 -i out/falcon_tape_audio.wav -map 0:v -map 1:a -vf scale=640:480:flags=lanczos \
+  -c:v libtheora -q:v 6 -c:a libvorbis -q:a 3 -ac 1 -shortest game/assets/video/falcon_tape.ogv
+```
 
 ## What's in it
 
