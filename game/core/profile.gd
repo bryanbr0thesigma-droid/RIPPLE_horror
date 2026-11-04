@@ -14,6 +14,7 @@ var snap_turn := true
 var volume := 0.85
 var music := 0.6
 var codes: Array = []        # secret codes typed in (they unlock hidden suits)
+var intro_seen := false      # the first-boot tape has played
 
 
 func _ready() -> void:
@@ -27,6 +28,7 @@ func _ready() -> void:
 		volume = cfg.get_value("settings", "volume", 0.85)
 		music = cfg.get_value("settings", "music", 0.6)
 		codes = cfg.get_value("player", "codes", [])
+		intro_seen = cfg.get_value("player", "intro_seen", false)
 	if not suit_unlocked(suit):
 		suit = 0
 	if player_name == "":
@@ -43,6 +45,7 @@ func save() -> void:
 	cfg.set_value("player", "suit", suit)
 	cfg.set_value("player", "color", color)
 	cfg.set_value("player", "codes", codes)
+	cfg.set_value("player", "intro_seen", intro_seen)
 	cfg.set_value("settings", "snap_turn", snap_turn)
 	cfg.set_value("settings", "volume", volume)
 	cfg.set_value("settings", "music", music)

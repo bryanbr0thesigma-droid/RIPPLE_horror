@@ -88,6 +88,7 @@ func _build_main(parent: Control) -> void:
 	p.add_child(_button("Character", func(): show_page("character"), 30))
 	p.add_child(_button("Settings", func(): show_page("settings"), 30))
 	p.add_child(_button("Credits", func(): show_page("credits"), 30))
+	p.add_child(_button("Watch the tape", func(): Game.play_intro(), 24))
 	p.add_child(_button("Quit", func(): get_tree().quit(), 30))
 	p.add_child(_spacer(10))
 	var hint := _label("The Wader lives in the water. It hunts by sound. Escape together.", 18, DIM)
@@ -347,6 +348,7 @@ All on sketchfab.com. creativecommons.org/licenses/by/4.0
 Props and textures: Poly Haven (Wet Floor Sign, Industrial Wall Lamp, Modular Pipes, Plastic Monobloc Chair, Plastic Thermos by PierreB3D, Tool Cart by Savva Zakharov, Brown Leather) and ambientCG (tiles)
 Hands: Godot XR Tools, by DigitalN8m4r3
 Sounds: Freesound users Fupicat, Moss___6, Zrte, DatBloxyBirb, DangAdv64, batchku, Kinoton, kyles, craigsmith, courter, nomadas, Sclolex
+Intro tape "Water Safety and You": signs after ISO 7010 (public domain), the falcon by papapishu and stick figures by rones (Openclipart, CC0), static by xhunterko (OpenGameArt, CC0); narrated by Microsoft Sam
 Music made from "At the End of Hope" by Emma_MA and "Underwater Ambient Pad" by isaiah658 (OpenGameArt)
 
 [b]Code[/b]

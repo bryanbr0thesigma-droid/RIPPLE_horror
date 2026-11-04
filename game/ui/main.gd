@@ -32,6 +32,9 @@ var gloves: Array[Node] = []
 func _ready() -> void:
 	if not Game.vr_mode:
 		Game.start_xr()
+	if Game.intro_due():          # first launch: the tape first, then this menu
+		Game.play_intro()
+		return
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_ripples.resize(16)
 	var lights := Node3D.new()

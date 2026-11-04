@@ -6,6 +6,7 @@ signal recentered   # after the Meta-button recenter
 
 const LEVEL_SCENE := "res://level/level.tscn"
 const MENU_SCENE := "res://ui/main.tscn"
+const INTRO_SCENE := "res://intro/intro.tscn"
 
 var vr_mode := false
 var xr_interface: XRInterface
@@ -65,6 +66,19 @@ func start_xr() -> bool:
 func recenter() -> void:
 	XRServer.center_on_hmd(XRServer.RESET_BUT_KEEP_TILT, true)
 	recentered.emit()
+
+
+## The first-boot tape (also "Watch the tape" on the main menu).
+func play_intro() -> void:
+	get_tree().change_scene_to_file.call_deferred(INTRO_SCENE)
+
+
+## Whether to play the tape now: on the first launch only, and never in tests or quick starts.
+func intro_due() -> bool:
+	for a in ["autotest", "no-intro", "host", "join", "host-online", "join-code"]:
+		if args.has(a):
+			return false
+	return not Profile.intro_seen
 
 
 func start_level() -> void:

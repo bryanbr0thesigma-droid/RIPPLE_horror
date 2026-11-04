@@ -126,6 +126,20 @@ and door were synthesized for the project.
   (`game/player/suit_ik.gd`): the hips drop and the legs bend when they crouch, the arms
   reach for their hands, the head turns with theirs. No animation library is needed.
 
+## Intro tape
+
+`game/assets/video/falcon_tape.ogv` (with `falcon_tape.srt`): the F.A.L.C.O.N. "Water Safety and You"
+tape, made on the `claude/wizardly-gates-b0selv` branch (`tools/falcon_tape/`, whose
+`assets/CREDITS.md` lists every source). It plays on the first launch in `game/intro/`. Its pictures
+and sounds are public domain or CC0 (ISO 7010 signs, Openclipart's falcon by papapishu and stick
+figures by rones, OpenGameArt static by xhunterko) plus the game's own sounds and creature model.
+
+**Open question:** the narration is Microsoft Sam (SAPI 4), Microsoft's own voice. It is not CC0
+or CC BY, so crediting it doesn't make it free to use commercially. Before a paid release it
+should be re-voiced with a freely licensed synthesizer (e.g. Flite or eSpeak), or kept knowingly.
+
+The TV, VCR and tape in the intro room are placeholder shapes until models are picked.
+
 ## Code libraries
 
 Not art, but shipped in the game, all allowing commercial use:

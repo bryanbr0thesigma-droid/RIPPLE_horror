@@ -34,6 +34,22 @@ func wait_for(cond: Callable, timeout: float) -> bool:
 
 
 func _run() -> void:
+	if scenario == "intro":
+		# The first-boot tape: it plays, skipping ends it, and the menu opens with it marked seen.
+		Profile.intro_seen = false
+		Game.play_intro()
+		await wait(4.0)
+		var intro = get_tree().current_scene
+		check(intro != null and intro.name == "Intro", "the intro scene is running")
+		check(intro.video != null and intro.video.stream != null, "the tape is loaded")
+		check(intro._cues.size() > 10, "subtitles loaded (%d lines)" % intro._cues.size())
+		intro._finish()
+		await wait(4.0)
+		check(Profile.intro_seen, "after the tape it is marked as seen")
+		check(get_tree().current_scene != null and get_tree().current_scene.scene_file_path == Game.MENU_SCENE, "then the title menu opens")
+		check(not Game.intro_due(), "it won't play by itself again")
+		_finish()
+		return
 	if scenario == "menu_shot":
 		var out := str(Game.args.get("out", "user://"))
 		await wait(2.0)
