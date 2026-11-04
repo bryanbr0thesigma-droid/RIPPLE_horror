@@ -75,66 +75,66 @@ If you cannot reach dry ground, stop moving.
 It will search for you by feel.
 
 20
-00:01:49,964 --> 00:01:53,578
+00:01:50,364 --> 00:01:53,978
 Most personnel who remain perfectly still are not found.
 
 21
-00:01:55,378 --> 00:01:56,993
+00:01:55,778 --> 00:01:57,393
 Remain perfectly still.
 
 22
-00:02:01,893 --> 00:02:03,471
+00:02:02,293 --> 00:02:03,871
 Listen for its clicking.
 
 23
-00:02:06,671 --> 00:02:08,297
+00:02:07,071 --> 00:02:08,697
 If it screeches, move.
 
 24
-00:02:15,697 --> 00:02:19,474
+00:02:16,097 --> 00:02:19,874
 If a member of your team is taken, do not attempt a rescue.
 
 25
-00:02:20,674 --> 00:02:23,965
+00:02:21,074 --> 00:02:24,365
 It will be busy for a moment. Use this time.
 
 26
-00:02:26,565 --> 00:02:29,066
+00:02:26,965 --> 00:02:29,466
 Taken personnel sometimes come back.
 
 27
-00:02:30,066 --> 00:02:31,918
+00:02:30,466 --> 00:02:32,318
 Do not ask them about the water.
 
 28
-00:02:34,618 --> 00:02:35,243
+00:02:35,018 --> 00:02:35,643
 Remember.
 
 29
-00:02:35,743 --> 00:02:36,656
+00:02:36,143 --> 00:02:37,056
 Stay dry.
 
 30
-00:02:37,256 --> 00:02:38,225
+00:02:37,656 --> 00:02:38,625
 Stay quiet.
 
 31
-00:02:38,825 --> 00:02:39,755
+00:02:39,225 --> 00:02:40,155
 Stay still.
 
 32
-00:02:40,655 --> 00:02:41,890
+00:02:41,055 --> 00:02:42,290
 And above all.
 
 33
-00:02:42,440 --> 00:02:43,540
+00:02:42,840 --> 00:02:43,940
 Do not fall in.
 
 34
-00:02:46,240 --> 00:02:50,425
+00:02:46,640 --> 00:02:50,825
 This concludes your orientation. Thank you for your service.
 
 35
-00:02:59,825 --> 00:03:04,080
+00:03:00,225 --> 00:03:04,480
 It can hear yours.
 
