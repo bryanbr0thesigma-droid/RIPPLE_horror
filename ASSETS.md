@@ -156,7 +156,10 @@ The user chose to keep Sam for now.
 | `game/assets/intro/office/wall_*` | The office wallpaper (tinted beige) | [ambientCG, Wallpaper 001 A](https://ambientcg.com/view?id=Wallpaper001A) | Lennart Demes | CC0 |
 | `game/assets/intro/office/ceiling_*` | The drop ceiling | [ambientCG, Office Ceiling 001](https://ambientcg.com/view?id=OfficeCeiling001) | Lennart Demes | CC0 |
 
-The window is made in the game (a warm glow, a wooden frame, blinds, the low sun's light).
+| `game/assets/props/office/*` | The office furniture: Metal Office Desk, Mid Century Lounge Chair, Desk Lamp Arm 01, Office Notepads, Vintage Stapler, Clipboard, Standing Picture Frame 01, Wooden Bookshelf Worn, Steel Frame Shelves 01, Binder Notebook, Cardboard Box 01, Potted Plant 02, Wall Clock, Hanging Picture Frame 01 and 02, Fire Alarm | [Poly Haven](https://polyhaven.com/models) (converted by `tools/props/convert_office.py`) | Poly Haven artists | CC0 |
+
+The window is made in the game: a sunset glow, a wooden frame and blinds, light beams with dust in
+them, and the low sun's light across the room.
 Converted by `tools/props/convert_approved.py` (real size, Quest-friendly). The hand that picks the
 tape up and presses play is Godot XR Tools' glove (MIT), tinted to the player's suit.
 

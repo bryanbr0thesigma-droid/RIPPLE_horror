@@ -353,7 +353,7 @@ All on sketchfab.com. creativecommons.org/licenses/by/4.0
 Props and textures: Poly Haven (Wet Floor Sign, Industrial Wall Lamp, Modular Pipes, Plastic Monobloc Chair, Plastic Thermos by PierreB3D, Tool Cart by Savva Zakharov, Brown Leather) and ambientCG (tiles)
 Hands: Godot XR Tools, by DigitalN8m4r3
 Sounds: Freesound users Fupicat, Moss___6, Zrte, DatBloxyBirb, DangAdv64, batchku, Kinoton, kyles, craigsmith, courter, nomadas, Sclolex
-Intro tape "Water Safety and You": signs after ISO 7010 (public domain), the falcon by papapishu and stick figures by rones (Openclipart, CC0), static by xhunterko (OpenGameArt, CC0); narrated by Microsoft Sam\nIntro room: TV "Television 02" by Benny Weimer, armchair by Vibrant Nordic, cabinet by Gabriel Radić, side table by James Ray Cock (Poly Haven, CC0); "VCR Player" by twunnyphaiv and "VHS" tape by Terizmeh (Sketchfab, CC BY 4.0); office carpet, wallpaper and ceiling from ambientCG (CC0)
+Intro tape "Water Safety and You": signs after ISO 7010 (public domain), the falcon by papapishu and stick figures by rones (Openclipart, CC0), static by xhunterko (OpenGameArt, CC0); narrated by Microsoft Sam\nIntro room: TV "Television 02" by Benny Weimer, armchair by Vibrant Nordic, cabinet by Gabriel Radić, side table by James Ray Cock (Poly Haven, CC0); "VCR Player" by twunnyphaiv and "VHS" tape by Terizmeh (Sketchfab, CC BY 4.0); office carpet, wallpaper and ceiling from ambientCG (CC0); office furniture from Poly Haven (CC0)
 Music made from "At the End of Hope" by Emma_MA and "Underwater Ambient Pad" by isaiah658 (OpenGameArt)
 
 [b]Code[/b]

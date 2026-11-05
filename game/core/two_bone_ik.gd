@@ -5,7 +5,9 @@ extends RefCounted
 
 ## Turn bone A (and so its children) and then bone B so that C reaches the target, with the middle
 ## joint on the pole's side. bend_rest: the way B would fold toward when A..C is straight.
-static func solve(sk: Skeleton3D, ia: int, ib: int, ic: int, target: Vector3, pole: Vector3, bend_rest: Vector3) -> void:
+## stretch: when the target is out of reach, the limb may lengthen up to this much (the joints slide
+## apart along the bones), so a hand still meets what it's holding.
+static func solve(sk: Skeleton3D, ia: int, ib: int, ic: int, target: Vector3, pole: Vector3, bend_rest: Vector3, stretch := 1.0) -> void:
 	var A: Transform3D = sk.get_bone_global_pose(ia)
 	var B: Transform3D = sk.get_bone_global_pose(ib)
 	var C: Transform3D = sk.get_bone_global_pose(ic)
@@ -46,3 +48,12 @@ static func solve(sk: Skeleton3D, ia: int, ib: int, ic: int, target: Vector3, po
 	if c_dir.dot(t_dir) < 0.99999:
 		B.basis = Basis(Quaternion(c_dir, t_dir)) * B.basis
 		sk.set_bone_global_pose(ib, B)
+	var reach := (la + lb) * 0.999
+	if stretch > 1.0 and to_t.length() > reach:
+		var k := minf(to_t.length() / reach, stretch)
+		B = sk.get_bone_global_pose(ib)
+		B.origin = A.origin + (B.origin - A.origin) * k
+		sk.set_bone_global_pose(ib, B)
+		C = sk.get_bone_global_pose(ic)
+		C.origin = B.origin + (C.origin - B.origin) * k
+		sk.set_bone_global_pose(ic, C)

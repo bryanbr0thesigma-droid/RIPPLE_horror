@@ -4,6 +4,7 @@ extends SkeletonModifier3D
 ## reach for the hands with the elbows down and out, and the head and hands take the tracked turn.
 ## Works on any humanoid skeleton whatever its bone axes, by turning bones in skeleton space.
 
+const ARM_STRETCH := 1.4  # arms lengthen this much at most to keep the hands on the gloves
 var rig: Node3D          # the SuitRig; targets are read from it in its local space
 var bones := {}          # role -> bone index
 var _rest := {}          # role -> rest global pose (skeleton space)
@@ -94,7 +95,7 @@ func _process_modification() -> void:
 		var sh: Vector3 = sk.get_bone_global_pose(bones[s + "Arm"]).origin
 		var side := -right if i == 0 else right
 		var pole := sh + (side * 0.25 - up * 0.6 - fwd * 0.3) * u
-		_two_bone(sk, bones[s + "Arm"], bones[s + "ForeArm"], bones[s + "Hand"], goal, pole, fwd)
+		_two_bone(sk, bones[s + "Arm"], bones[s + "ForeArm"], bones[s + "Hand"], goal, pole, fwd, ARM_STRETCH)
 		_aim_hand(sk, s, rot_sk * hand_xf.basis.orthonormalized())
 		last_hands[i] = sk.global_transform * sk.get_bone_global_pose(bones[s + "Hand"]).origin
 
@@ -115,8 +116,8 @@ func _shrink(sk: Skeleton3D, role: String) -> void:
 	sk.set_bone_global_pose(bones[role], p)
 
 
-func _two_bone(sk: Skeleton3D, ia: int, ib: int, ic: int, target: Vector3, pole: Vector3, bend_rest: Vector3) -> void:
-	TwoBoneIK.solve(sk, ia, ib, ic, target, pole, bend_rest)
+func _two_bone(sk: Skeleton3D, ia: int, ib: int, ic: int, target: Vector3, pole: Vector3, bend_rest: Vector3, stretch := 1.0) -> void:
+	TwoBoneIK.solve(sk, ia, ib, ic, target, pole, bend_rest, stretch)
 
 
 ## Point the hand's fingers along the controller and its palm toward the controller's middle.

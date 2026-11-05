@@ -18,32 +18,35 @@ const LABEL_TEX := preload("res://assets/intro/tape_label.png")
 const SPINE_TEX := preload("res://assets/intro/tape_spine.png")
 
 # Where things are. The models face +Z; the TV and VCR stand on the cabinet against the far wall.
-const CABINET := Vector3(0.0, 0.0, -2.10)
-const TV := Vector3(-0.30, 0.83, -2.12)
+const ROOM := Rect2(-3.0, -3.4, 6.0, 6.4)             # x, z, width, depth
+const DOOR_Z := 3.0
+const CABINET := Vector3(0.0, 0.0, -3.10)
+const TV := Vector3(-0.30, 0.83, -3.12)
 const TV_SCALE := 1.2                                 # a 24-inch set
-const VCR := Vector3(0.36, 0.83, -2.0)
+const VCR := Vector3(0.36, 0.83, -3.0)
 const SCREEN := TV + Vector3(0.0, 0.32, 0.2167) * TV_SCALE    # the apex of the curved glass, just in front
 const SCREEN_SIZE := Vector2(0.364, 0.272) * TV_SCALE
 const SCREEN_CURVE := Vector2(0.80 / TV_SCALE, 6.0 / (TV_SCALE * TV_SCALE * TV_SCALE))   # depth = a*r^2 - b*x^2*y^2 (flatter at the corners)
 # The window: frosted, in the east wall, lit warm by the low sun (no view out).
-const WINDOW := Vector3(2.0, 1.5, -0.45)
-const WINDOW_SIZE := Vector2(1.3, 1.05)               # along the wall (z), height
-const SUN := Color(1.0, 0.62, 0.34)
+const WINDOW := Vector3(3.0, 1.45, -1.2)
+const WINDOW_SIZE := Vector2(2.0, 1.3)                # along the wall (z), height
+const SUN := Color(1.0, 0.48, 0.22)                   # sunset
 const SLOT := VCR + Vector3(-0.026, 0.070, 0.1158)    # the tape door
 const PLAY := VCR + Vector3(0.096, 0.032, 0.1441)     # the play button
 const LED := VCR + Vector3(0.165, 0.074, 0.1635)
-const SIDE_TABLE := Vector3(-1.62, 0.0, 1.25)
-const TAPE_REST := Vector3(-1.60, 0.551, 1.25)
-const CHAIR := Vector3(-0.30, 0.0, -0.95)
+const SIDE_TABLE := Vector3(-1.25, 0.0, 2.45)
+const TAPE_REST := Vector3(-1.23, 0.551, 2.45)
+const CHAIR := Vector3(-0.30, 0.0, -1.95)
 # Your eyes along the way (standing 1.65 m, crouched at the VCR, seated in the chair).
 const EYE := 1.65
-const PATH_IN: Array[Vector3] = [Vector3(0.0, EYE, 3.6), Vector3(0.0, EYE, 2.2), Vector3(-0.45, EYE, 1.5),
-	Vector3(-0.95, EYE, 1.25)]
-const PATH_VCR: Array[Vector3] = [Vector3(-0.95, EYE, 1.25), Vector3(0.05, EYE, 0.55), Vector3(0.55, EYE, -0.25),
-	Vector3(0.5, EYE, -1.1)]
-const CROUCH := Vector3(0.40, 1.15, -1.27)
-const BESIDE_CHAIR := Vector3(0.48, EYE, -0.85)
-const SEATED := Vector3(-0.30, 1.22, -0.80)
+const PATH_IN: Array[Vector3] = [Vector3(0.0, EYE, 4.9), Vector3(0.0, EYE, 3.3), Vector3(-0.35, EYE, 2.75),
+	Vector3(-0.62, EYE, 2.45)]
+const BEND := Vector3(-0.74, 1.30, 2.45)              # leaning down to the side table
+const PATH_VCR: Array[Vector3] = [Vector3(-0.62, EYE, 2.45), Vector3(0.55, EYE, 1.2), Vector3(0.8, EYE, -0.6),
+	Vector3(0.55, EYE, -2.05)]
+const CROUCH := Vector3(0.40, 1.15, -2.27)
+const BESIDE_CHAIR := Vector3(0.48, EYE, -1.85)
+const SEATED := Vector3(-0.30, 1.22, -1.80)
 # Seated, your hands rest on the armchair's arms (0.71 m up, 0.35 m either side).
 const ARM_L := CHAIR + Vector3(-0.345, 0.75, -0.15)
 const ARM_R := CHAIR + Vector3(0.345, 0.75, -0.15)
@@ -160,6 +163,7 @@ func _pick_up_tape() -> void:
 	# The glove comes up from below and closes over the tape.
 	glove.force_grip_trigger(0.0, 0.0)
 	_grip_v = 0.0
+	_move_eye(BEND, 0.9)                         # lean down to the table
 	await _hand_to(tape.global_transform * GRIP.affine_inverse() * Transform3D(Basis(), Vector3(0, 0.06, 0)), 0.75)
 	await _hand_to(tape.global_transform * GRIP.affine_inverse(), 0.3)
 	await _grip(0.45, 0.25)
@@ -167,6 +171,7 @@ func _pick_up_tape() -> void:
 	# Into your hand: from here on it moves with the glove.
 	tape.reparent(hand_mount)
 	tape.transform = GRIP
+	_move_eye(PATH_VCR[0], 0.8)
 	await _hand_to_hold(0.8)
 
 
@@ -348,8 +353,6 @@ func _fingertip_local() -> Vector3:
 
 func _process(delta: float) -> void:
 	_t += delta
-	# The room's fluorescent tube flickers now and then.
-	room_light.light_energy = 0.45 if fmod(_t, 7.3) > 0.12 else 0.12
 	# Follow the eye point: desktop moves the camera there; VR moves the play area so your head is
 	# there (your own head movement still counts).
 	_speed = lerpf(_speed, Vector2(eye.x - _last_eye.x, eye.z - _last_eye.z).length() / maxf(delta, 0.001), clampf(delta * 6.0, 0.0, 1.0))
@@ -369,7 +372,8 @@ func _process(delta: float) -> void:
 	lhand_mount.global_transform = lhand_mount.global_transform.interpolate_with(_rest_xf(0), clampf(delta * 8.0, 0.0, 1.0))
 	# Your body: head where the camera is, hands on the gloves, feet on the floor under you.
 	var head: Transform3D = cam.global_transform
-	body.pose(head, lhand_mount.global_transform, hand_mount.global_transform, Vector3(head.origin.x, 0.0, head.origin.z))
+	body.pose(head, SuitRig.glove_hand(lglove, lhand_mount.global_transform), SuitRig.glove_hand(glove, hand_mount.global_transform),
+		Vector3(head.origin.x, 0.0, head.origin.z))
 	# Subtitles follow the tape.
 	if _playing:
 		var pos := video.stream_position
@@ -414,8 +418,12 @@ func _environment() -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.0, 0.0, 0.0)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.75, 0.6, 0.48)        # warm: the late sun through the window
-	env.ambient_light_energy = 0.07
+	env.ambient_light_color = Color(0.8, 0.5, 0.36)         # warm: the setting sun through the window
+	env.ambient_light_energy = 0.08
+	env.glow_enabled = true                                  # the window and the light through it bloom
+	env.glow_intensity = 0.7
+	env.glow_bloom = 0.04
+	env.glow_hdr_threshold = 0.9
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.06, 0.045, 0.035)
@@ -430,31 +438,37 @@ func _environment() -> void:
 
 
 func _room() -> void:
-	# A small office, 4 m by 4.4 m: carpet, wallpaper, a drop ceiling, a door in the south wall to a
-	# short hallway, and a frosted window in the east wall glowing with the late sun.
+	# An office, 6 m by 6.4 m: carpet, wallpaper, a drop ceiling, dark wood skirting, a door in the
+	# south wall to a short hallway, and a frosted window in the east wall lit by the setting sun.
 	var carpet := _office_mat("carpet", 1.0, Color(0.78, 0.8, 0.86), 0.95)
 	var wall := _office_mat("wall", 0.7, Color(0.86, 0.78, 0.62), 0.85)      # old beige
 	var ceil := _office_mat("ceiling", 0.83, Color(0.92, 0.9, 0.86), 0.9)
 	G.mat_ceiling = ceil
-	G.floor_slab(-2.0, 2.0, -2.4, 2.0, 0.0, carpet)
-	G.walls(-2.0, 2.0, -2.4, 2.0, 0.0, 2.6, {"s": [[-0.5, 0.5, 2.1]]}, wall)
-	G.ceiling(-2.0, 2.0, -2.4, 2.0, 2.6)
-	G.floor_slab(-0.8, 0.8, 2.0, 4.4, 0.0, carpet)
-	G.walls(-0.8, 0.8, 2.3, 4.4, 0.0, 2.6, {"n": [[-0.8, 0.8, 2.6]]}, wall)
-	G.ceiling(-0.8, 0.8, 2.0, 4.4, 2.6)
-	# Dark wood skirting along the walls and round the door.
+	var x0 := ROOM.position.x
+	var x1 := ROOM.end.x
+	var z0 := ROOM.position.y
+	var z1 := ROOM.end.y
+	G.floor_slab(x0, x1, z0, z1, 0.0, carpet)
+	G.walls(x0, x1, z0, z1, 0.0, 2.6, {"s": [[-0.5, 0.5, 2.1]]}, wall)
+	G.ceiling(x0, x1, z0, z1, 2.6)
+	G.floor_slab(-0.8, 0.8, z1, z1 + 2.4, 0.0, carpet)
+	G.walls(-0.8, 0.8, z1 + 0.3, z1 + 2.4, 0.0, 2.6, {"n": [[-0.8, 0.8, 2.6]]}, wall)
+	G.ceiling(-0.8, 0.8, z1, z1 + 2.4, 2.6)
 	var wood := StandardMaterial3D.new()
 	wood.albedo_color = Color(0.22, 0.14, 0.09)
 	wood.roughness = 0.6
-	for sk in [[-2.0, 2.0, -2.4, -2.38], [-2.0, -1.98, -2.4, 2.0], [1.98, 2.0, -2.4, 2.0], [-2.0, -0.5, 1.98, 2.0], [0.5, 2.0, 1.98, 2.0]]:
+	for sk in [[x0, x1, z0, z0 + 0.02], [x0, x0 + 0.02, z0, z1], [x1 - 0.02, x1, z0, z1], [x0, -0.5, z1 - 0.02, z1], [0.5, x1, z1 - 0.02, z1]]:
 		G.block(sk[0], sk[1], 0.0, 0.09, sk[2], sk[3], wood)
 	for f in [[-0.56, -0.5], [0.5, 0.56]]:
-		G.block(f[0], f[1], 0.0, 2.16, 1.97, 2.03, wood)
-	G.block(-0.56, 0.56, 2.1, 2.16, 1.97, 2.03, wood)
+		G.block(f[0], f[1], 0.0, 2.16, z1 - 0.03, z1 + 0.03, wood)
+	G.block(-0.56, 0.56, 2.1, 2.16, z1 - 0.03, z1 + 0.03, wood)
 	_window(wood)
-	# The tube light is dim and cold next to the window; it flickers now and then.
-	room_light = G.light(Vector3(0.0, 2.45, -0.3), 0.28, 6.0, Color(0.85, 0.92, 1.0))
-	G.light(Vector3(0.0, 2.45, 3.6), 0.16, 3.0, Color(0.85, 0.92, 1.0))
+	# The tube light is off (just its fitting); a dim one out in the hallway.
+	room_light = G.light(Vector3(0.0, 2.45, -0.8), 0.0, 6.0, Color(0.85, 0.92, 1.0), false)
+	var off := StandardMaterial3D.new()
+	off.albedo_color = Color(0.7, 0.7, 0.68)
+	G.block(-0.6, 0.6, 2.52, 2.58, -0.925, -0.675, off)
+	G.light(Vector3(0.0, 2.45, z1 + 1.6), 0.16, 3.0, Color(0.85, 0.92, 1.0))
 
 
 func _office_mat(name: String, scale: float, tint: Color, rough: float) -> StandardMaterial3D:
@@ -470,16 +484,18 @@ func _office_mat(name: String, scale: float, tint: Color, rough: float) -> Stand
 	return m
 
 
-## The frosted window: a warm glow (brighter low down, where the sun is), a wooden frame and
-## half-open blinds across the top, and the light it throws into the room.
+## The frosted window: a sunset glow (deep red-orange at the top, gold where the low sun is), a
+## wooden frame and half-open blinds, beams of light slanting through the blinds into the room with
+## dust drifting in them, and the light it throws: a warm wash and a hot patch across the far side.
 func _window(wood: StandardMaterial3D) -> void:
 	var glass := MeshInstance3D.new()
 	var q := QuadMesh.new()
 	q.size = WINDOW_SIZE
 	glass.mesh = q
 	var grad := Gradient.new()
-	grad.set_color(0, Color(1.0, 0.5, 0.3))                   # top: deeper orange
-	grad.set_color(1, Color(1.0, 0.86, 0.62))                 # bottom: bright, near the low sun
+	grad.set_color(0, Color(0.85, 0.28, 0.25))                # top: red, the sky above the sun
+	grad.add_point(0.55, Color(1.0, 0.52, 0.2))               # orange
+	grad.set_color(grad.get_point_count() - 1, Color(1.0, 0.84, 0.5))   # bottom: gold, the sun
 	var gt := GradientTexture2D.new()
 	gt.gradient = grad
 	gt.fill_from = Vector2(0.5, 0.0)
@@ -487,50 +503,109 @@ func _window(wood: StandardMaterial3D) -> void:
 	var gm := StandardMaterial3D.new()
 	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	gm.albedo_texture = gt
-	gm.albedo_color = Color(1.4, 1.3, 1.2)
+	gm.albedo_color = Color(1.8, 1.6, 1.5)                    # bright enough to bloom
 	glass.material_override = gm
 	glass.position = WINDOW - Vector3(0.012, 0, 0)
 	glass.rotation_degrees.y = -90.0                          # faces into the room (-X)
 	add_child(glass)
 	var hw := WINDOW_SIZE.x * 0.5
 	var hh := WINDOW_SIZE.y * 0.5
-	var x0 := WINDOW.x - 0.05
-	var x1 := WINDOW.x - 0.005
-	G.block(x0, x1, WINDOW.y - hh - 0.05, WINDOW.y - hh, WINDOW.z - hw - 0.05, WINDOW.z + hw + 0.05, wood)   # bottom
-	G.block(x0, x1, WINDOW.y + hh, WINDOW.y + hh + 0.05, WINDOW.z - hw - 0.05, WINDOW.z + hw + 0.05, wood)   # top
-	G.block(x0, x1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z - hw - 0.05, WINDOW.z - hw, wood)                 # sides
-	G.block(x0, x1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z + hw, WINDOW.z + hw + 0.05, wood)
-	G.block(x0, x1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z - 0.02, WINDOW.z + 0.02, wood)                    # middle bar
-	G.block(WINDOW.x - 0.16, WINDOW.x - 0.005, WINDOW.y - hh - 0.08, WINDOW.y - hh - 0.05, WINDOW.z - hw - 0.1, WINDOW.z + hw + 0.1, wood)  # sill
-	# Venetian blinds over the top 60%, slats tilted, dark against the glow.
+	var fx0 := WINDOW.x - 0.05
+	var fx1 := WINDOW.x - 0.005
+	G.block(fx0, fx1, WINDOW.y - hh - 0.05, WINDOW.y - hh, WINDOW.z - hw - 0.05, WINDOW.z + hw + 0.05, wood)
+	G.block(fx0, fx1, WINDOW.y + hh, WINDOW.y + hh + 0.05, WINDOW.z - hw - 0.05, WINDOW.z + hw + 0.05, wood)
+	G.block(fx0, fx1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z - hw - 0.05, WINDOW.z - hw, wood)
+	G.block(fx0, fx1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z + hw, WINDOW.z + hw + 0.05, wood)
+	G.block(fx0, fx1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z - 0.02, WINDOW.z + 0.02, wood)
+	G.block(WINDOW.x - 0.18, WINDOW.x - 0.005, WINDOW.y - hh - 0.08, WINDOW.y - hh - 0.05, WINDOW.z - hw - 0.1, WINDOW.z + hw + 0.1, wood)
+	# Venetian blinds over the top half, slats tilted, dark against the glow.
 	var slat_mat := StandardMaterial3D.new()
 	slat_mat.albedo_color = Color(0.75, 0.7, 0.6)
 	slat_mat.roughness = 0.7
 	var slat := BoxMesh.new()
 	slat.size = Vector3(0.05, 0.003, WINDOW_SIZE.x)
-	var n := 16
-	for i in n:
+	for i in 17:
 		var m := MeshInstance3D.new()
 		m.mesh = slat
 		m.material_override = slat_mat
 		m.position = Vector3(WINDOW.x - 0.08, WINDOW.y + hh - 0.02 - i * 0.04, WINDOW.z)
 		m.rotation_degrees.z = 35.0
 		add_child(m)
-	G.block(WINDOW.x - 0.11, WINDOW.x - 0.05, WINDOW.y + hh + 0.01, WINDOW.y + hh + 0.05, WINDOW.z - hw, WINDOW.z + hw, slat_mat)   # headrail
-	# The low sun's light, warm, across the room.
-	var sun := OmniLight3D.new()
-	sun.light_color = SUN
-	sun.light_energy = 1.6
-	sun.omni_range = 5.5
-	sun.omni_attenuation = 1.1
-	sun.position = WINDOW + Vector3(-0.45, -0.15, 0.0)
+	G.block(WINDOW.x - 0.11, WINDOW.x - 0.05, WINDOW.y + hh + 0.01, WINDOW.y + hh + 0.05, WINDOW.z - hw, WINDOW.z + hw, slat_mat)
+	# Beams of light slanting down through the window into the room (the sun is low: nearly level).
+	var beam_grad := Gradient.new()
+	beam_grad.set_color(0, Color(1.0, 0.62, 0.3, 0.32))
+	beam_grad.set_color(1, Color(1.0, 0.45, 0.2, 0.0))
+	var bt := GradientTexture2D.new()
+	bt.gradient = beam_grad
+	bt.fill_from = Vector2(0.0, 0.5)
+	bt.fill_to = Vector2(1.0, 0.5)
+	var bm := StandardMaterial3D.new()
+	bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	bm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	bm.no_depth_test = false
+	bm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	bm.albedo_texture = bt
+	var dir := Vector3(-1.0, -0.28, 0.12).normalized()       # into the room, down, a little south
+	var length := 4.6
+	for k in 7:
+		var start := WINDOW + Vector3(-0.03, -hh + 0.15 + k * 0.17, -hw + 0.2 + fmod(k * 0.53, 1.0) * (WINDOW_SIZE.x - 0.4))
+		for twist in [0.0, 90.0]:
+			var beam := MeshInstance3D.new()
+			var bq := QuadMesh.new()
+			bq.size = Vector2(length, 0.16 + 0.05 * (k % 3))
+			beam.mesh = bq
+			beam.material_override = bm
+			beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var basis := Basis.looking_at(dir, Vector3.UP)
+			# The quad's long side (x) along the beam; turned about it so the two quads cross.
+			beam.basis = basis * Basis(Vector3.UP, PI * 0.5) * Basis(Vector3.RIGHT, deg_to_rad(twist))
+			beam.position = start + dir * (length * 0.5)
+			add_child(beam)
+	# Dust drifting in the light.
+	var dust := CPUParticles3D.new()
+	dust.amount = 80
+	dust.lifetime = 9.0
+	dust.preprocess = 9.0
+	dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	dust.emission_box_extents = Vector3(1.6, 0.6, 0.9)
+	dust.position = WINDOW + dir * 1.8
+	dust.gravity = Vector3(0, -0.004, 0)
+	dust.initial_velocity_min = 0.005
+	dust.initial_velocity_max = 0.03
+	dust.direction = Vector3(0, 1, 0)
+	dust.spread = 180.0
+	var dq := QuadMesh.new()
+	dq.size = Vector2(0.006, 0.006)
+	var dm := StandardMaterial3D.new()
+	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	dm.albedo_color = Color(1.0, 0.75, 0.45, 0.7)
+	dq.material = dm
+	dust.mesh = dq
+	add_child(dust)
+	# The light: a warm wash from the window, and the low sun itself throwing a hot band across
+	# the room onto the far wall and the desk.
+	var wash := OmniLight3D.new()
+	wash.light_color = SUN
+	wash.light_energy = 1.4
+	wash.omni_range = 5.0
+	wash.omni_attenuation = 1.1
+	wash.position = WINDOW + Vector3(-0.5, -0.2, 0.0)
+	add_child(wash)
+	var sun := SpotLight3D.new()
+	sun.light_color = Color(1.0, 0.55, 0.25)
+	sun.light_energy = 5.0
+	sun.spot_range = 9.0
+	sun.spot_angle = 30.0
+	sun.spot_attenuation = 0.6
+	sun.position = WINDOW + Vector3(0.6, 0.15, 0.0)
+	sun.basis = Basis.looking_at(dir, Vector3.UP)
 	add_child(sun)
-	var spill := OmniLight3D.new()                            # a soft patch on the floor below it
-	spill.light_color = SUN
-	spill.light_energy = 0.7
-	spill.omni_range = 2.2
-	spill.position = Vector3(WINDOW.x - 0.9, 0.35, WINDOW.z - 0.2)
-	add_child(spill)
 
 
 func _prop(path: String, pos: Vector3, yaw: float) -> Node3D:
@@ -547,6 +622,28 @@ func _furniture() -> void:
 	_prop("res://assets/props/intro_vcr.glb", VCR, 0.0)
 	_prop("res://assets/props/intro_side_table.glb", SIDE_TABLE, 90.0)
 	_prop("res://assets/props/intro_armchair.glb", CHAIR, 180.0)
+	# The office: a desk against the west wall with its chair, lamp and papers; shelves, a bookcase,
+	# a plant by the window, a clock over the TV, pictures and a fire alarm.
+	var o := "res://assets/props/office/"
+	_prop(o + "metal_office_desk.glb", Vector3(-2.52, 0.0, -0.6), 90.0)
+	_prop(o + "mid_century_lounge_chair.glb", Vector3(-1.6, 0.0, -0.75), -70.0)
+	_prop(o + "desk_lamp_arm_01.glb", Vector3(-2.78, 0.788, -1.35), 130.0)
+	_prop(o + "office_notepads.glb", Vector3(-2.55, 0.788, -0.45), 95.0).scale = Vector3.ONE * 0.45
+	_prop(o + "vintage_stapler.glb", Vector3(-2.3, 0.788, -1.0), 70.0)
+	_prop(o + "clipboard.glb", Vector3(-2.45, 0.788, 0.05), 80.0)
+	_prop(o + "standing_picture_frame_01.glb", Vector3(-2.82, 0.788, -0.05), 120.0)
+	_prop(o + "binder_notebook.glb", Vector3(-2.7, 0.788, 0.25), 90.0)
+	_prop(o + "wooden_bookshelf_worn.glb", Vector3(-2.25, 0.0, -3.1), 0.0)
+	_prop(o + "steel_frame_shelves_01.glb", Vector3(-2.74, 0.0, 1.0), 90.0).scale = Vector3.ONE * (1.9 / 21.405)
+	_prop(o + "cardboard_box_01.glb", Vector3(-2.65, 0.0, 1.95), 12.0)
+	_prop(o + "cardboard_box_01.glb", Vector3(-2.62, 0.342, 1.93), -8.0)
+	_prop(o + "cardboard_box_01.glb", Vector3(2.55, 0.0, 2.4), 30.0)
+	_prop(o + "potted_plant_02.glb", Vector3(2.55, 0.0, 0.35), 0.0)
+	_prop(o + "potted_plant_02.glb", Vector3(-2.55, 0.0, -2.0), 70.0).scale = Vector3.ONE * 0.85
+	_prop(o + "wall_clock.glb", Vector3(-0.3, 2.0, ROOM.position.y), 0.0)
+	_prop(o + "hanging_picture_frame_02.glb", Vector3(ROOM.end.x, 1.6, 1.5), -90.0)
+	_prop(o + "hanging_picture_frame_01.glb", Vector3(-1.9, 1.55, DOOR_Z), 180.0).scale = Vector3.ONE * 0.8
+	_prop(o + "fire_alarm.glb", Vector3(0.85, 1.45, DOOR_Z), 180.0)
 
 
 func _tv_and_vcr() -> void:

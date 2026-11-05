@@ -101,7 +101,13 @@ func _process(delta: float) -> void:
 	if self_body:
 		self_body.visible = alive and not ghost and Profile.show_body
 		if self_body.visible:
-			self_body.pose(rig.head_transform(), hands[0], hands[1], rig.feet_position())
+			var lh: Transform3D = hands[0]
+			var rh: Transform3D = hands[1]
+			if rig.has_method("gloves"):           # VR: the arms meet the gloves you see
+				var g: Array = rig.gloves()
+				lh = SuitRig.glove_hand(g[0], lh)
+				rh = SuitRig.glove_hand(g[1], rh)
+			self_body.pose(rig.head_transform(), lh, rh, rig.feet_position())
 	# A light buzz in the hand that's touching one.
 	_buzz_t -= delta
 	if _buzz_t <= 0.0 and alive and not ghost and rig.has_method("rumble_hand"):

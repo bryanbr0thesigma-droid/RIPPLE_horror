@@ -12,7 +12,8 @@ const TINT_CUTOUT := preload("res://player/suit_tint_cutout.gdshader")
 const SUITS := [
 	{"name": "Anti-radiation suit", "about": "Baggy rubberized suit, hood and gas mask. Your color tints the camo.",
 		"glove": Color(0.1, 0.11, 0.09), "file": "res://assets/suits/ozk.glb",
-		"masks": {"kostum": "res://assets/suits/ozk_mask.png"}, "gain": 1.9, "flat": []},
+		"masks": {"kostum": "res://assets/suits/ozk_mask.png"}, "gain": 1.9, "flat": [],
+		"fp_hide": ["balon_low", "filtr_low"]},   # the gas mask's canister on the chest fills your own view
 	{"name": "Diver", "about": "Neoprene wetsuit, mask and snorkel. Your color is the panels.",
 		"glove": Color(0.05, 0.05, 0.06), "file": "res://assets/suits/diver.glb",
 		"masks": {}, "gain": 1.0, "flat": ["Buso_Stroke", "Lentes_Respirador"]},
@@ -223,6 +224,11 @@ func set_first_person(no_hands: bool) -> void:
 	hide_hands = no_hands
 	for mi: MeshInstance3D in parts.get("head", []):
 		mi.visible = false
+	for part in parts:                     # gear right under your eyes, hidden from your own view only
+		for mi: MeshInstance3D in parts[part]:
+			for n: String in SUITS[suit].get("fp_hide", []):
+				if mi.name.begins_with(n):
+					mi.visible = false
 	# The raw cuts where the suit splits for the kills (the neck) would show without the head.
 	var clear := StandardMaterial3D.new()
 	clear.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -234,6 +240,21 @@ func set_first_person(no_hands: bool) -> void:
 				var m := mi.mesh.surface_get_material(i)
 				if m and m.resource_name == "Flesh_cut":
 					mi.set_surface_override_material(i, clear)
+
+
+## A hand target for a glove: the suit's wrist goes where the glove's wrist is (its cuff then covers
+## the sleeve's end), so the arm and the glove meet. `hand` is the glove's controller transform.
+static func glove_hand(glove: Node, hand: Transform3D) -> Transform3D:
+	var sk := glove.find_child("Skeleton3D", true, false) as Skeleton3D if glove else null
+	if not sk:
+		return hand
+	var i := sk.find_bone("Wrist_R")
+	if i < 0:
+		i = sk.find_bone("Wrist_L")
+	if i < 0:
+		return hand
+	var wrist := sk.global_transform * sk.get_bone_global_pose(i).origin
+	return Transform3D(hand.basis, wrist - hand.basis.orthonormalized() * Vector3(0, 0, 0.06))
 
 
 ## Hands touching the soft-body bones, for every suit that has them.

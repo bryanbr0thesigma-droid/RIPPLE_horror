@@ -181,6 +181,11 @@ func hand_positions() -> Array:
 	return [left.global_position, right.global_position]
 
 
+## The two gloves you see (for your own body's arms to meet them).
+func gloves() -> Array:
+	return [get_node_or_null("LeftHand/CollisionHandLeft/LeftGlove"), get_node_or_null("RightHand/CollisionHandRight/RightGlove")]
+
+
 func hand_transforms() -> Array:
 	return [left.global_transform, right.global_transform]
 
