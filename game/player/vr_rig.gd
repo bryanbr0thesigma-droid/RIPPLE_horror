@@ -261,6 +261,12 @@ func drop_all() -> void:
 	$RightHand/CollisionHandRight/FunctionPickup.drop_object()
 
 
+func rumble_hand(i: int, amount: float) -> void:
+	var c: XRController3D = left if i == 0 else right
+	if c.get_is_active():
+		c.trigger_haptic_pulse("haptic", 0.0, clampf(amount, 0.05, 1.0), 0.08, 0.0)
+
+
 func rumble(amount: float) -> void:
 	for c in [left, right]:
 		if c.get_is_active():

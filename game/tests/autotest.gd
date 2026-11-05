@@ -112,12 +112,78 @@ func _run() -> void:
 			await _dummy_test()
 		"kill_movie":
 			await _kill_movie()
+		"body":
+			await _body_test()
+		"body_shot":
+			await _body_shot()
 	_finish()
 
 
 func _finish() -> void:
 	print("AUTOTEST done ", scenario, " failures=", failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## Your own body (full-body IK), its walking feet, and hands pushing the soft-body springs.
+func _body_test() -> void:
+	var L = Game.level
+	var me = L.local_player
+	await wait(1.0)
+	var body: SuitRig = me.self_body
+	check(body != null and body.visible, "you have your own suit body")
+	var head_scale := [1.0]
+	var hb: int = body.bones.get("Head", -1)
+	body.skeleton.skeleton_updated.connect(func(): head_scale[0] = body.skeleton.get_bone_global_pose(hb).basis.get_scale().x)
+	await wait(0.3)
+	check(head_scale[0] < 0.01, "its head is hidden from your own view (scale %.3f)" % head_scale[0])
+	check(SuitRig.touch_points.has("local") and SuitRig.touch_points["local"].size() == 2, "your two hands can touch soft-body bones")
+	# Walk: the feet take steps.
+	var r := _rig()
+	var start: Vector3 = r.global_position
+	var stepped := 0.0
+	for i in 60:
+		r.global_position = start + Vector3(0, 0, -1.0 * i / 60.0)
+		await get_tree().process_frame
+		stepped = maxf(stepped, body.foot_offsets[0].length())
+	check(stepped > 0.08, "walking moves the feet in steps (%.2f m)" % stepped)
+	await wait(1.5)
+	check(body.foot_offsets[0].length() < 0.03, "standing still, the feet settle")
+	# Hands push the springs: a soft-body suit, with a hand pressed against her chest.
+	var other := SuitRig.create(4, Color.RED)
+	L.add_child(other)
+	other.global_position = start + Vector3(2.5, 0, 0)
+	var tip := [Vector3.ZERO]
+	var end_bone: int = other.jiggle.get_end_bone(0)
+	other.skeleton.skeleton_updated.connect(func(): tip[0] = other.skeleton.global_transform * other.skeleton.get_bone_global_pose(end_bone).origin)
+	await wait(0.8)
+	var rest: Vector3 = tip[0]
+	SuitRig.set_touch("test", [rest + Vector3(0, 0, -0.02)])
+	await wait(0.4)
+	var pushed: float = (tip[0] - rest).length()
+	check(pushed > 0.02, "a hand pressed on it pushes it in (%.3f m)" % pushed)
+	SuitRig.clear_touch("test")
+	await wait(1.0)
+	check((tip[0] - rest).length() < 0.01, "let go, it springs back")
+	check(other.touches_jiggle(rest), "touching it counts (for the controller buzz)")
+	other.queue_free()
+	Profile.show_body = false
+	await wait(0.2)
+	check(not body.visible, "your body can be hidden in the settings")
+	Profile.show_body = true
+
+
+## Pictures of looking down at your own body, in each suit (desktop camera).
+func _body_shot() -> void:
+	var out := str(Game.args.get("out", "user://"))
+	var me = Game.level.local_player
+	var r := _rig()
+	for s in [0, 2, 4]:
+		Profile.suit = s
+		me.rebuild_self_body()
+		r.set("_pitch", -1.0)
+		await wait(1.2)
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("%s/body_down_%d.png" % [out, s])
 
 
 func _rig() -> Node3D:

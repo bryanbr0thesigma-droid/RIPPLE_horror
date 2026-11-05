@@ -61,11 +61,13 @@ func _process_modification() -> void:
 			sk.set_bone_global_pose(bones.Spine, sp)
 
 	# 3. Legs: feet stay where they stand, knees go forward.
-	for s in ["Left", "Right"]:
+	for li in 2:
+		var s: String = ["Left", "Right"][li]
 		if bones.has(s + "UpLeg") and bones.has(s + "Leg") and bones.has(s + "Foot"):
 			var foot_rest: Transform3D = _rest[s + "Foot"]
 			var knee: Vector3 = sk.get_bone_global_pose(bones[s + "Leg"]).origin
-			_two_bone(sk, bones[s + "UpLeg"], bones[s + "Leg"], bones[s + "Foot"], foot_rest.origin, knee + fwd * u, -fwd)
+			var foot_goal: Vector3 = foot_rest.origin + to_sk.basis * rig.foot_offsets[li]   # walking
+			_two_bone(sk, bones[s + "UpLeg"], bones[s + "Leg"], bones[s + "Foot"], foot_goal, knee + fwd * u, -fwd)
 			var f: Transform3D = sk.get_bone_global_pose(bones[s + "Foot"])
 			f.basis = foot_rest.basis
 			sk.set_bone_global_pose(bones[s + "Foot"], f)
@@ -95,6 +97,22 @@ func _process_modification() -> void:
 		_two_bone(sk, bones[s + "Arm"], bones[s + "ForeArm"], bones[s + "Hand"], goal, pole, fwd)
 		_aim_hand(sk, s, rot_sk * hand_xf.basis.orthonormalized())
 		last_hands[i] = sk.global_transform * sk.get_bone_global_pose(bones[s + "Hand"]).origin
+
+	# 6. Your own body: shrink the head away (the camera is in it), and the hands where the
+	# gloves are. Their child bones (hair, fingers) shrink with them.
+	if rig.first_person:
+		_shrink(sk, "Head")
+		if rig.hide_hands:
+			_shrink(sk, "LeftHand")
+			_shrink(sk, "RightHand")
+
+
+func _shrink(sk: Skeleton3D, role: String) -> void:
+	if not bones.has(role):
+		return
+	var p: Transform3D = sk.get_bone_global_pose(bones[role])
+	p.basis = p.basis.scaled(Vector3.ONE * 0.001)
+	sk.set_bone_global_pose(bones[role], p)
 
 
 func _two_bone(sk: Skeleton3D, ia: int, ib: int, ic: int, target: Vector3, pole: Vector3, bend_rest: Vector3) -> void:

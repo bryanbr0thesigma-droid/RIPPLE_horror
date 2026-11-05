@@ -7,6 +7,7 @@ extends Node3D
 const IK := preload("res://player/suit_ik.gd")
 const EYE_FORWARD := 0.09        # the eyes are this far in front of the head bone
 const TINT := preload("res://player/suit_tint.gdshader")
+const TINT_CUTOUT := preload("res://player/suit_tint_cutout.gdshader")
 
 const SUITS := [
 	{"name": "Anti-radiation suit", "about": "Baggy rubberized suit, hood and gas mask. Your color tints the camo.",
@@ -58,6 +59,22 @@ var skeleton: Skeleton3D
 var head_target := Transform3D()
 var hand_targets: Array[Transform3D] = [Transform3D(), Transform3D()]
 var eye_height := 1.6
+## Your own body in first person: the head shrinks to nothing (the camera is in it), and in VR the
+## hands too (your gloves are there instead).
+var first_person := false
+var hide_hands := false
+## Walking: how far each foot is off its planted spot (this node's space), from the step cycle.
+var foot_offsets: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+var _gait_phase := 0.0
+var _gait_amp := 0.0
+var _gait_dir := Vector3.FORWARD
+var _last_feet := Vector3.INF
+var _last_pose_us := 0
+var _body_yaw := INF
+## Everyone's hands push the soft-body bones (bust, rear, thighs): key -> palm points (world).
+static var touch_points := {}
+const TOUCH_RADIUS := 0.045
+var _touch_spheres: Array[SpringBoneCollisionSphere3D] = []
 ## The suit split for the kills: "head" (head and neck), "upper" (chest and arms), "lower" (hips
 ## and legs). Each holds that part's meshes.
 var parts := {"head": [], "upper": [], "lower": []}
@@ -195,6 +212,63 @@ func _add_jiggle(info: Dictionary) -> void:
 		sim.set_gravity(i, c.gravity)
 	skeleton.add_child(sim)
 	jiggle = sim
+	add_to_group("jiggly")
+
+
+## Your own body: no head piece (hood, mask, hair: the camera is inside it), and optionally no hands.
+func set_first_person(no_hands: bool) -> void:
+	first_person = true
+	hide_hands = no_hands
+	for mi: MeshInstance3D in parts.get("head", []):
+		mi.visible = false
+	# The raw cuts where the suit splits for the kills (the neck) would show without the head.
+	var clear := StandardMaterial3D.new()
+	clear.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	clear.albedo_color = Color(0, 0, 0, 0)
+	clear.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for part in parts:
+		for mi: MeshInstance3D in parts[part]:
+			for i in mi.mesh.get_surface_count():
+				var m := mi.mesh.surface_get_material(i)
+				if m and m.resource_name == "Flesh_cut":
+					mi.set_surface_override_material(i, clear)
+
+
+## Hands touching the soft-body bones, for every suit that has them.
+static func set_touch(key, points: Array) -> void:
+	touch_points[key] = points
+
+
+static func clear_touch(key) -> void:
+	touch_points.erase(key)
+
+
+## Is this point (world) on one of the soft-body bones? For a buzz in the controller.
+func touches_jiggle(p: Vector3) -> bool:
+	if not jiggle or not visible:
+		return false
+	for i in jiggle.setting_count:
+		for b in [jiggle.get_root_bone(i), jiggle.get_end_bone(i)]:
+			var w := skeleton.global_transform * skeleton.get_bone_global_pose(b).origin
+			if w.distance_to(p) < TOUCH_RADIUS + 0.06:
+				return true
+	return false
+
+
+## A push sphere on the springs for every hand in the game (spares parked far away).
+func _sync_touch() -> void:
+	var n := 0
+	for key in touch_points:
+		for p: Vector3 in touch_points[key]:
+			if n >= _touch_spheres.size():
+				var s := SpringBoneCollisionSphere3D.new()
+				s.radius = TOUCH_RADIUS
+				jiggle.add_child(s)
+				_touch_spheres.append(s)
+			_touch_spheres[n].global_position = p
+			n += 1
+	for i in range(n, _touch_spheres.size()):
+		_touch_spheres[i].global_position = Vector3(0, -1000, 0)
 
 
 func _bone_starting(prefix: String) -> int:
@@ -235,6 +309,10 @@ func _recolor(info: Dictionary) -> void:
 func _tinted(src: BaseMaterial3D, mask: Texture2D, gain: float) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = TINT
+	# Cut-out outfits (see-through windows) keep their cut-out; otherwise the empty pixels show.
+	if src.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR:
+		m.shader = TINT_CUTOUT
+		m.set_shader_parameter("alpha_cut", src.alpha_scissor_threshold)
 	m.set_shader_parameter("albedo_tex", src.albedo_texture)
 	m.set_shader_parameter("base_color", src.albedo_color)
 	if src.normal_enabled and src.normal_texture:
@@ -396,7 +474,21 @@ func stand() -> void:
 
 ## Follow a tracked head and hands (global transforms) with the feet on the ground.
 func pose(head_xf: Transform3D, lh: Transform3D, rh: Transform3D, feet: Vector3) -> void:
+	var now := Time.get_ticks_usec()
+	var dt := clampf((now - _last_pose_us) / 1000000.0, 0.0, 0.1) if _last_pose_us > 0 else 0.0
+	_last_pose_us = now
 	var yaw := atan2(head_xf.basis.z.x, head_xf.basis.z.z)   # facing where the head looks (-Z)
+	if first_person:
+		# Your body doesn't spin with every glance: the head turns up to 35 degrees on its own,
+		# then the body follows (and slowly settles behind the head).
+		if _body_yaw == INF:
+			_body_yaw = yaw
+		var d := wrapf(yaw - _body_yaw, -PI, PI)
+		var limit := deg_to_rad(35.0)
+		if absf(d) > limit:
+			_body_yaw += d - signf(d) * limit
+		_body_yaw = lerp_angle(_body_yaw, yaw, clampf(dt * 0.8, 0.0, 1.0))
+		yaw = _body_yaw
 	# The body stands under the middle of the head, which is a little behind the eyes.
 	var b := Basis(Vector3.UP, yaw)
 	global_transform = Transform3D(b, feet + b * Vector3(0, 0, EYE_FORWARD))
@@ -411,9 +503,32 @@ func pose(head_xf: Transform3D, lh: Transform3D, rh: Transform3D, feet: Vector3)
 	elif h > _stand_h:
 		_stand_h += (h - _stand_h) * 0.02
 	model.scale = Vector3.ONE * clampf(_stand_h / eye_height, 0.85, 1.2)
+	_step(feet, dt)
+
+
+## The step cycle: while the body moves, the feet take turns stepping along the way it goes.
+func _step(feet: Vector3, dt: float) -> void:
+	if _last_feet == Vector3.INF or dt <= 0.0 or feet.distance_to(_last_feet) > 1.0:
+		_last_feet = feet
+		return
+	var v := (feet - _last_feet) / dt
+	_last_feet = feet
+	v.y = 0.0
+	var speed := v.length()
+	var k := model.scale.x
+	var stride := 0.6 * k
+	_gait_amp = move_toward(_gait_amp, clampf(speed / 1.1, 0.0, 1.0), dt * 3.0)
+	if speed > 0.05:
+		_gait_phase = fmod(_gait_phase + speed * dt / stride * PI, TAU)
+		_gait_dir = (global_transform.basis.inverse() * v).normalized()
+	for i in 2:
+		var ph := _gait_phase + PI * i
+		foot_offsets[i] = (_gait_dir * sin(ph) * stride * 0.5 + Vector3.UP * maxf(0.0, cos(ph)) * 0.09 * k) * _gait_amp
 
 
 func _process(delta: float) -> void:
+	if jiggle:
+		_sync_touch()
 	if idle:
 		_t += delta
 		stand()

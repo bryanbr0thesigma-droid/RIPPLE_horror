@@ -11,6 +11,7 @@ var player_name := ""
 var suit := 0
 var color := Color(0.95, 0.55, 0.15)
 var snap_turn := true
+var show_body := true        # see your own suit when you look down
 var volume := 0.85
 var music := 0.6
 var codes: Array = []        # secret codes typed in (they unlock hidden suits)
@@ -25,6 +26,7 @@ func _ready() -> void:
 		suit = int(cfg.get_value("player", "suit", 0))
 		color = cfg.get_value("player", "color", color)
 		snap_turn = cfg.get_value("settings", "snap_turn", true)
+		show_body = cfg.get_value("settings", "show_body", true)
 		volume = cfg.get_value("settings", "volume", 0.85)
 		music = cfg.get_value("settings", "music", 0.6)
 		codes = cfg.get_value("player", "codes", [])
@@ -47,6 +49,7 @@ func save() -> void:
 	cfg.set_value("player", "codes", codes)
 	cfg.set_value("player", "intro_seen", intro_seen)
 	cfg.set_value("settings", "snap_turn", snap_turn)
+	cfg.set_value("settings", "show_body", show_body)
 	cfg.set_value("settings", "volume", volume)
 	cfg.set_value("settings", "music", music)
 	cfg.save(PATH)

@@ -66,7 +66,10 @@ func set_target(h: Transform3D, lh: Transform3D, rh: Transform3D, feet: Vector3,
 ## A teammate who died is a ghost: faint and see-through, can't be bumped, "(ghost)" by the name.
 var _name := ""
 
+var _ghost := false
+
 func set_ghost(on: bool) -> void:
+	_ghost = on
 	suit.set_ghost(on)
 	body.collision_layer = 0 if on else LevelGeometry.L_AVATARS
 	if _name == "":
@@ -94,6 +97,10 @@ func drag_under() -> void:
 ## The creature tore them apart: torn-off pieces take over, this body hides until they respawn.
 ## (Dead until their own game says they're alive again; without this the whole body popped back up
 ## where it stood on the next frame, next to the pieces.)
+func _exit_tree() -> void:
+	SuitRig.clear_touch(peer_id)
+
+
 func release() -> void:
 	_seized = null
 	_alive = false
@@ -144,6 +151,11 @@ func _process(delta: float) -> void:
 		_hands[i] = (_hands[i] as Transform3D).interpolate_with(_t_hands[i], k)
 	_feet = _feet.lerp(_t_feet, k)
 	suit.pose(_head, _hands[0], _hands[1], _feet)
+	# Their hands push soft-body bones (yours and everyone's), like yours do.
+	if _alive and not _ghost:
+		SuitRig.set_touch(peer_id, [Palm.of(_hands[0]), Palm.of(_hands[1])])
+	else:
+		SuitRig.clear_touch(peer_id)
 	var yaw := atan2(_head.basis.z.x, _head.basis.z.z)
 	body.global_transform = Transform3D(Basis(Vector3.UP, yaw), _feet)
 	label.global_position = _head.origin + Vector3.UP * 0.32

@@ -26,6 +26,7 @@ var _suit_label: Label
 var _suit_about: Label
 var _swatches: Array[Button] = []
 var _turn_btn: Button
+var _body_btn: Button
 var _vol_label: Label
 var _music_label: Label
 var _connecting_label: Label
@@ -306,6 +307,10 @@ func _build_settings(parent: Control) -> void:
 		Profile.snap_turn = not Profile.snap_turn
 		_refresh_settings())
 	p.add_child(_turn_btn)
+	_body_btn = _button("", func():
+		Profile.show_body = not Profile.show_body
+		_refresh_settings())
+	p.add_child(_body_btn)
 	p.add_child(_stepper("Volume", func(d): Profile.volume = clampf(Profile.volume + d, 0.0, 1.0)))
 	_vol_label = p.get_child(p.get_child_count() - 1).get_child(1)
 	p.add_child(_stepper("Music", func(d): Profile.music = clampf(Profile.music + d, 0.0, 1.0)))
@@ -555,6 +560,7 @@ func _refresh_character() -> void:
 
 func _refresh_settings() -> void:
 	_turn_btn.text = "Turning: " + ("snap" if Profile.snap_turn else "smooth")
+	_body_btn.text = "Your body: " + ("shown" if Profile.show_body else "hidden")
 	if _vol_label:
 		_vol_label.text = "%d%%" % roundi(Profile.volume * 100)
 		_music_label.text = "%d%%" % roundi(Profile.music * 100)

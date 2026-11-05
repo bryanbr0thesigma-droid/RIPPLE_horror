@@ -13,6 +13,9 @@ var info := {}
 var is_local := false
 var rig: Node3D = null
 var avatar: Node3D = null
+## Your own suit, seen when you look down (full-body IK from your head and hands).
+var self_body: SuitRig = null
+var _buzz_t := 0.0
 
 # Network pose (remote players, and what the host's creature reads).
 var net_feet := Vector3.ZERO
@@ -66,11 +69,53 @@ func setup() -> void:
 		add_child(_wade_audio)
 		_wade_audio.play()
 		NoiseBus.my_noise.connect(_on_my_noise)
+		rebuild_self_body()
 	else:
 		avatar = Avatar.new()
 		avatar.name = "Avatar"
 		add_child(avatar)
 		avatar.setup(info, peer_id)
+
+
+## Your own suit (again, after changing suits).
+func rebuild_self_body() -> void:
+	if self_body:
+		self_body.queue_free()
+	self_body = SuitRig.create(Profile.suit, Profile.color)
+	self_body.name = "SelfBody"
+	self_body.set_first_person(Game.vr_mode)  # in VR your gloves are where its hands would be
+	self_body.top_level = true
+	add_child(self_body)
+
+
+## Your body follows your head and hands every frame, and your hands push soft-body bones.
+func _process(delta: float) -> void:
+	if not is_local or not rig:
+		return
+	var hands: Array = rig.hand_transforms()
+	var palms := [Palm.of(hands[0]), Palm.of(hands[1])]
+	if alive and not ghost:
+		SuitRig.set_touch("local", palms)
+	else:
+		SuitRig.clear_touch("local")
+	if self_body:
+		self_body.visible = alive and not ghost and Profile.show_body
+		if self_body.visible:
+			self_body.pose(rig.head_transform(), hands[0], hands[1], rig.feet_position())
+	# A light buzz in the hand that's touching one.
+	_buzz_t -= delta
+	if _buzz_t <= 0.0 and alive and not ghost and rig.has_method("rumble_hand"):
+		for i in 2:
+			for s in get_tree().get_nodes_in_group("jiggly"):
+				if (s as SuitRig).touches_jiggle(palms[i]):
+					rig.rumble_hand(i, 0.12)
+					_buzz_t = 0.15
+					break
+
+
+func _exit_tree() -> void:
+	if is_local:
+		SuitRig.clear_touch("local")
 
 
 func body_position() -> Vector3:
