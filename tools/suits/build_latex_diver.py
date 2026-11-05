@@ -5,7 +5,8 @@
 #         too, as gloves); the face, hair, cat ears and black-and-pink top stay, the top made shiny.
 #   Gear: the tank, vest and mask of "Scuba Diver" by turelljc (CC BY), taken from the
 #         rigged game copy (game/assets/suits/scuba.glb) and fitted to her: the tank and harness
-#         ride on her chest bone, the mask is pushed up onto her forehead and rides on her head.
+#         ride on her chest bone (pushed out of her where her fuller figure met it, and following
+#         her bust's jiggle bones where it lies on it), the mask is pushed up onto her forehead.
 # The VRoid bones are renamed to the Mixamo names the game looks for.
 #   blender -b --python build_latex_diver.py -- catgirl.glb scuba.glb out.glb
 import bpy, bmesh, sys, re, math
@@ -353,6 +354,172 @@ for o, bn, base in gear:
     o.parent = arm
     o.matrix_parent_inverse = arm.matrix_world.inverted()
     o.name = 'Gear_' + base
+
+# 4b. The vest sits on her, not in her. It was sized from her skin, but her top stands further out
+#     over the (fuller) bust, so the vest's sides and straps sank into it. Every vest point inside
+#     her (skin or top) is pushed out to just above her surface, its neighbours within a centimetre
+#     (the other face of the same panel) going with it so the panels keep their thickness; and where
+#     the vest lies on her bust it takes the bust's jiggle bones, so the straps bounce with it.
+from mathutils.bvhtree import BVHTree
+from mathutils.kdtree import KDTree
+S_VERTS, S_POLYS, S_W = [], [], []        # her surface (skin and top), with each point's bust weights
+for o in body:
+    mats = [m.name if m else '' for m in o.data.materials]
+    names = {g.index: g.name for g in o.vertex_groups}
+    seen = {}
+    for poly in o.data.polygons:
+        mn = mats[poly.material_index] if poly.material_index < len(mats) else ''
+        if not (mn == 'Latex_suit' or 'Onepiece' in mn):
+            continue
+        ids = []
+        for vi in poly.vertices:
+            if vi not in seen:
+                seen[vi] = len(S_VERTS)
+                v = o.data.vertices[vi]
+                S_VERTS.append(o.matrix_world @ v.co)
+                tw = sum(g.weight for g in v.groups) or 1.0
+                S_W.append({names[g.group]: g.weight / tw for g in v.groups
+                            if 'Bust' in names.get(g.group, '') and g.weight > 0.0})
+            ids.append(seen[vi])
+        S_POLYS.append(ids)
+surface = BVHTree.FromPolygons(S_VERTS, S_POLYS)
+s_kd = KDTree(len(S_VERTS))
+for i, q in enumerate(S_VERTS):
+    s_kd.insert(q, i)
+s_kd.balance()
+# Which way is out: her chest's normal should point forward (-Y).
+_l, _n, _i, _d = surface.find_nearest(bone('Spine2') + Vector((0, -0.4, 0)))
+OUT = 1.0 if _n.y < 0 else -1.0
+GAP, KEEP, FADE = 0.006, 0.012, 0.03
+
+
+def signed(p):
+    loc, n, _, _ = surface.find_nearest(p, 0.15)
+    if loc is None:
+        return None, None, 1.0
+    n = n * OUT
+    return loc, n, (p - loc).dot(n)
+
+
+def pieces(o):
+    """The vest's separate hard pieces: vertices joined by an edge or lying on top of each other
+    (the import splits a buckle into loose triangles)."""
+    vs = o.data.vertices
+    parent = list(range(len(vs)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(i, j):
+        ri, rj = find(i), find(j)
+        if ri != rj:
+            parent[ri] = rj
+    for e in o.data.edges:
+        union(e.vertices[0], e.vertices[1])
+    kd = KDTree(len(vs))
+    for i, v in enumerate(vs):
+        kd.insert(v.co, i)
+    kd.balance()
+    for i, v in enumerate(vs):
+        for _co, j, _d in kd.find_range(v.co, 0.002):
+            union(i, j)
+    out = {}
+    for i in range(len(vs)):
+        out.setdefault(find(i), []).append(i)
+    return list(out.values()), kd
+
+
+def mid_fade(x):
+    """Nothing near her middle follows one side of the bust (the buckle over the cleavage)."""
+    t = min(max((abs(x) - 0.04) / 0.07, 0.0), 1.0)
+    return t * t * (3 - 2 * t)
+
+
+SMALL = 0.06          # pieces smaller than this (buckles, clips, rings) move as one
+STRAP = 0.85          # straps pulled tight over the bust swing a little less than it does
+for o, bn, base in gear:
+    if base not in ('Object_5', 'Object_6'):
+        continue
+    vs = o.data.vertices
+    parts, kd = pieces(o)
+    small = {}
+    for pc in parts:
+        pts = [vs[i].co for i in pc]
+        lo = Vector(map(min, *pts)) if len(pts) > 1 else pts[0]
+        hi = Vector(map(max, *pts)) if len(pts) > 1 else pts[0]
+        if (hi - lo).length < SMALL:
+            for i in pc:
+                small[i] = pc
+    push = []
+    for v in vs:
+        loc, n, d = signed(v.co)
+        push.append(n * (GAP - d) if loc is not None and d < GAP else Vector())
+    new = []
+    for i, v in enumerate(vs):
+        best = Vector()
+        if i in small:                       # a hard piece: one push for all of it
+            for j in small[i]:
+                if push[j].length > best.length:
+                    best = push[j]
+        else:
+            for co, j, dist in kd.find_range(v.co, KEEP + FADE):
+                f = 1.0 if dist <= KEEP else 1.0 - (dist - KEEP) / FADE
+                cand = push[j] * f
+                if cand.length > best.length:
+                    best = cand
+        new.append(v.co + best)
+    moved = sum(1 for i, v in enumerate(vs) if (new[i] - v.co).length > 1e-4)
+    for i, v in enumerate(vs):
+        v.co = new[i]
+    # Anything of the soft panels still inside (where the fade fell short) goes straight out.
+    left = 0
+    for i, v in enumerate(vs):
+        if i in small:
+            continue
+        loc, n, d = signed(v.co)
+        if loc is not None and d < GAP * 0.5:
+            v.co = loc + n * GAP
+            left += 1
+    # Weights: where the vest lies on her bust, the bust's jiggle bones (not near her middle);
+    # a hard piece takes the average of its points, so it moves as one.
+    want = []
+    for i, v in enumerate(vs):
+        loc, n, d = signed(v.co)
+        if loc is None or d > KEEP + FADE:
+            want.append({})
+            continue
+        f = (1.0 if d <= KEEP else 1.0 - (d - KEEP) / FADE) * mid_fade(v.co.x) * STRAP
+        _co, j, _dist = s_kd.find(loc)
+        want.append({k: w * f for k, w in S_W[j].items()})
+    done = set()
+    for i in range(len(vs)):
+        if i in small and i not in done:
+            pc = small[i]
+            avg = {}
+            for j in pc:
+                for k, w in want[j].items():
+                    avg[k] = avg.get(k, 0.0) + w / len(pc)
+            for j in pc:
+                want[j] = avg
+                done.add(j)
+    groups = {g.name: g for g in o.vertex_groups}
+    rigid = groups[bn]
+    sprung = 0
+    for i, ws in enumerate(want):
+        tot = sum(ws.values())
+        if tot < 0.02:
+            continue
+        for k, w in ws.items():
+            if k not in groups:
+                groups[k] = o.vertex_groups.new(name=k)
+            groups[k].add([i], w, 'REPLACE')
+        rigid.add([i], max(0.0, 1.0 - tot), 'REPLACE')
+        sprung += 1
+    print('vest fit', base, 'pieces', len(parts), 'hard', len({id(p) for p in small.values()}), 'pushed out', moved,
+          'still inside after', left, 'on the bust springs', sprung)
 
 for img in bpy.data.images:
     if img.size[0] > 1024:
