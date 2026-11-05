@@ -2,7 +2,7 @@
 # their packaging: CHLORA-COLA (the vending machine), FLOATER'S coffee, LIMINAL GEOGRAPHIC magazine
 # and SORNY electronics. They are parodies: the names and colours nod at the real thing, but the
 # lettering and artwork are drawn here and no real logo is copied.
-import math
+import math, os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 from kit import *  # noqa: F401,F403
@@ -222,86 +222,6 @@ def vgrad(d, x0, y0, x1, y1, c0, c1, steps=64):
         rect(d, x0, y0 + (y1 - y0) * i / steps, x1, y0 + (y1 - y0) * (i + 1) / steps + 1, fill=col)
 
 
-def cover_motel(im, d, W, H):
-    vgrad(d, 0, 0, W, 470, (34, 24, 74), (236, 116, 70))
-    ellipse(d, 150, 420, 60, fill=(252, 196, 96))
-    rect(d, 0, 400, W, 470, fill=(60, 40, 70))
-    # motel block
-    rect(d, 40, 330, 470, 470, fill=(232, 220, 196))
-    rect(d, 30, 318, 480, 334, fill=(176, 52, 46))
-    for i in range(7):
-        x = 60 + i * 58
-        rect(d, x, 370, x + 26, 450, fill=(46, 92, 110))
-        rect(d, x + 32, 380, x + 50, 404, fill=(250, 214, 120))
-        tracked(d, x + 13, 360, str(i + 1), F("sans", 11), (90, 60, 50))
-    # sign
-    rect(d, 412, 190, 420, 330, fill=(70, 70, 80))
-    rect(d, 356, 196, 476, 286, fill=(28, 120, 120), r=10)
-    tracked(d, 416, 226, "MOTEL", F("sans", 26), (250, 240, 220), 3)
-    rect(d, 368, 252, 464, 276, fill=(240, 80, 70), r=4)
-    tracked(d, 416, 264, "VACANCY", F("sans", 13), (255, 250, 230), 2)
-    # empty pool in front
-    rect(d, 0, 470, W, H, fill=(214, 206, 192))
-    poly(d, [(120, 520), (430, 520), (470, 640), (80, 640)], fill=(150, 196, 210))
-    poly(d, [(132, 528), (418, 528), (452, 632), (98, 632)], fill=(196, 222, 228))
-    for i in range(8):
-        x = 140 + i * 38
-        line(d, [(x, 528), (x - 10 + i * 2.5, 632)], (176, 206, 216), 2)
-    rect(d, 400, 500, 406, 540, fill=(170, 174, 180))
-    rect(d, 420, 500, 426, 540, fill=(170, 174, 180))
-
-
-def cover_hall(im, d, W, H):
-    d.rectangle([0, 0, W * SS, H * SS], fill=(214, 196, 120))
-    vx, vy = W / 2, 340
-    # floor and ceiling
-    poly(d, [(0, H), (W, H), (vx + 30, vy + 22), (vx - 30, vy + 22)], fill=(150, 130, 90))
-    poly(d, [(0, 0), (W, 0), (vx + 30, vy - 22), (vx - 30, vy - 22)], fill=(232, 226, 196))
-    poly(d, [(0, 0), (vx - 30, vy - 22), (vx - 30, vy + 22), (0, H)], fill=(222, 202, 124))
-    poly(d, [(W, 0), (vx + 30, vy - 22), (vx + 30, vy + 22), (W, H)], fill=(204, 184, 108))
-    rect(d, vx - 30, vy - 22, vx + 30, vy + 22, fill=(120, 104, 70))
-    # ceiling lights receding
-    for i in range(9):
-        t = 0.82 ** i
-        y = vy - (vy - 30) * t
-        w = 60 * t
-        ln = 26 * t
-        rect(d, vx - w, y - ln / 2, vx + w, y + ln / 2, fill=(255, 252, 232))
-    # doors receding on both walls
-    for i in range(7):
-        t0, t1 = 0.78 ** (i + 0.15), 0.78 ** (i + 0.55)
-        for side in (-1, 1):
-            xa, xb = vx + side * (vx * t0 + 30 * (1 - t0)), vx + side * (vx * t1 + 30 * (1 - t1))
-            ya0, ya1 = vy - (vy - 120) * t0, vy + (H - vy) * t0 * 0.92
-            yb0, yb1 = vy - (vy - 120) * t1, vy + (H - vy) * t1 * 0.92
-            poly(d, [(xa, ya0), (xb, yb0), (xb, yb1), (xa, ya1)], fill=(126, 92, 60))
-    # a figure at the far end
-    put(im, person("stand", 22), vx, vy + 9, (40, 34, 26))
-
-
-def cover_pool(im, d, W, H):
-    d.rectangle([0, 0, W * SS, H * SS], fill=(226, 236, 236))
-    for y in range(0, H, 22):  # tiles
-        line(d, [(0, y), (W, y)], (200, 214, 216), 1.5, False)
-    for x in range(0, W, 22):
-        line(d, [(x, 0), (x, 400)], (200, 214, 216), 1.5, False)
-    rect(d, 320, 220, 440, 400, fill=(40, 52, 58))                # doorway
-    rect(d, 0, 400, W, H, fill=(76, 182, 206))                    # water
-    rng = np.random.default_rng(4)
-    for i in range(40):
-        x, y = rng.uniform(0, W), rng.uniform(420, H)
-        ww = rng.uniform(20, 70)
-        line(d, [(x, y), (x + ww * 0.5, y - 4), (x + ww, y)], (150, 222, 236), 2.5)
-    rect(d, 0, 396, W, 404, fill=(196, 214, 216))
-    # reflection of the doorway
-    rect(d, 326, 404, 434, 520, fill=(46, 120, 140))
-    # a ladder
-    for x in (70, 96):
-        line(d, [(x, 330), (x, 404), (x + 6, 460)], (190, 196, 204), 5)
-    for y in (350, 376, 402):
-        line(d, [(70, y), (96, y)], (190, 196, 204), 4)
-
-
 def headline(d, x, y, big, small, col_big, col_small, w, anchor="l", size=32, edge=(0, 0, 0)):
     fb = fit("sans", big, w, size, 0)
     tracked(d, x, y, big, fb, col_big, 0, anchor, stroke=2.2, stroke_fill=edge)
@@ -310,38 +230,42 @@ def headline(d, x, y, big, small, col_big, col_small, w, anchor="l", size=32, ed
         tracked(d, x, y + fb.size / SS * 0.9, small, fs, col_small, 0, anchor, stroke=1.6, stroke_fill=edge)
 
 
+COVERS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "covers")
+
+
 def magazine(out, n):
+    """Liminal Geographic. The cover photos are stills from the game engine (covers/): the Shallow
+    Halls' first pool, and two sets built in the engine as homages to Level 0 and Level Run."""
     W, H = 512, 680
-    art, ad = new(W, H, (0, 0, 0))
+    RED_T = (176, 30, 36)
     issues = [
-        (cover_motel, "JULY 1993",
-         [("10 POOLS", "you should never swim in", 206), ("MOTELS THAT", "aren't there anymore", 276)],
-         "ROAD TRIP: NOWHERE, NEVADA"),
-        (cover_hall, "OCTOBER 1993",
-         [("IS YOUR HALLWAY", "too long? A checklist", 500), ("NEW ROOMS:", "how to tell", 566)],
-         "EXIT SIGNS: A FIELD GUIDE"),
-        (cover_pool, "FEBRUARY 1994",
-         [("THE QUIET SEASON", "indoor pools, off-peak", 214), ("WHY IS THE WATER", "always warm?", 540)],
+        ("cover_level0", "JULY 1993",
+         [("LOST IN THE LOBBY", "600 million square miles of carpet", 160, RED_T, INK, PURE),
+          ("MONO-YELLOW", "the colour that never left", 520, FRAME_Y, PURE, (0, 0, 0))],
+         "HOW TO TELL IF A ROOM IS NEW"),
+        ("cover_level_run", "OCTOBER 1993",
+         [("IS YOUR HALLWAY", "too long? A checklist", 196, FRAME_Y, PURE, (0, 0, 0)),
+          ("EMERGENCY LIGHTS", "why are they always red?", 540, FRAME_Y, PURE, (0, 0, 0))],
+         "DON'T STOP: A RUNNER'S GUIDE"),
+        ("cover_pool", "FEBRUARY 1994",
+         [("THE QUIET SEASON", "indoor pools, off-peak", 160, FRAME_Y, PURE, (0, 0, 0)),
+          ("WHY IS THE WATER", "always warm?", 530, FRAME_Y, PURE, (0, 0, 0))],
          "READERS' PHOTOS: ROOMS WE CAN'T FIND AGAIN"),
     ]
-    draw, date, heads, kicker = issues[n - 1]
-    draw(art, ad, W, H)
-    # white cover, the art in a window, a thick yellow frame round the edge
+    photo, date, heads, kicker = issues[n - 1]
+    # white cover, the photo in a window, a thick yellow frame round the edge
     im, d = new(W, H, (250, 250, 246))
     box = (34, 112, W - 34, H - 34)
-    crop = art.crop(tuple(int(v * SS) for v in box))
-    im.alpha_composite(crop, (int(box[0] * SS), int(box[1] * SS)))
+    ph = Image.open(os.path.join(COVERS, photo + ".jpg")).convert("RGBA")
+    ph = ph.resize((int((box[2] - box[0]) * SS), int((box[3] - box[1]) * SS)), Image.LANCZOS)
+    im.alpha_composite(ph, (int(box[0] * SS), int(box[1] * SS)))
     rect(d, 12, 12, W - 12, H - 12, outline=FRAME_Y, width=22)
     tracked(d, W / 2, 62, "LIMINAL GEOGRAPHIC", fit("serif", "LIMINAL GEOGRAPHIC", W - 90, 44, 3), INK, 3)
     tracked(d, W / 2, 96, f"{date}  \u00b7  VOL. 184, NO. {n + 2}  \u00b7  $2.95", F("sans", 11), INK, 2)
     d2 = ImageDraw.Draw(im)
-    for big, small, y in heads:
-        if n == 3:
-            headline(d2, 48, y, big, small, (176, 30, 36), INK, 300, edge=PURE)
-        else:
-            headline(d2, 48, y, big, small, FRAME_Y, PURE, 300)
-    tracked(d2, 48, H - 56, kicker, fit("sans", kicker, 300, 15, 1), PURE if n != 3 else INK, 1, "l",
-            stroke=1.4, stroke_fill=(0, 0, 0) if n != 3 else PURE)
+    for big, small, y, cb, cs, edge in heads:
+        headline(d2, 48, y, big, small, cb, cs, 300, edge=edge)
+    tracked(d2, 48, H - 56, kicker, fit("sans", kicker, 300, 15, 1), PURE, 1, "l", stroke=1.4, stroke_fill=(0, 0, 0))
     barcode(d2, W - 116, H - 100, 64, 30, 10 + n, INK)
     return save(im, out, f"magazine_{n}.png")
 

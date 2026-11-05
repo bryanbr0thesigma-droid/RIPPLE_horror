@@ -25,6 +25,12 @@ thing, but the lettering and artwork are drawn here and no real logo is copied.
 | Soda | **Chlora-Cola**: "Enjoy", "It's the wet thing!", a lane rope under the script |
 | Coffee | **Floater's**: Pool Grown, Classic Soak, "The best part of wakin' up is Floater's in your cup." |
 | Magazine | **Liminal Geographic**, in a yellow frame (July 1993, October 1993, February 1994) |
+
+The magazine covers are the one place with "photos": stills rendered in the game engine (Godot
+4.7, the game's own renderer), in `covers/`. February's is the Shallow Halls' first pool, with a
+figure standing in the far doorway. July's and October's are homages to the Backrooms' Level 0 (the
+yellow rooms) and Level Run (the red corridor), built in the engine just for these pictures from the
+game's materials and two textures drawn for it, then deleted.
 | Electronics | **SORNY** |
 
 ## Files
@@ -35,6 +41,7 @@ thing, but the lettering and artwork are drawn here and no real logo is copied.
   coffee label, magazines, electronics logo).
 - `lobby.py`: PART 2, pamphlets, posters, the station sign, the certificate, key fob, sign-in book,
   memo, door decal, neon, clock face and rug.
+- `covers/`: the three engine stills used on the magazine covers.
 - `facility.py`: PARTS 3 to 5, the training sign template, room titles, noise meter, warning
   signs, equipment plates, exit sign, the Shallow Halls plaque, the RIPPLE logo and the menu header.
 
