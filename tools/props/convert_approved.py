@@ -153,6 +153,14 @@ LATER = [
     ('ToolCart', f'{PH}/tool_cart/tool_cart_1k.gltf', f'{P}/tool_cart.glb', 0.9, 'z', 'bottom', 8000),
     # Round 24: the distiller machine the canteen goes on, in front of the tanks
     ('Machinery', f'{DL}/machinery/model.glb', f'{P}/distiller_machine.glb', 1.7, 'max', 'bottom', 12000),
+    # --- The first-boot intro room (game/intro): TV, VCR, tape, the TV's cabinet, the tape's table
+    # and the chair. Poly Haven ones keep their real size; the TV is a 20-inch set. ---
+    ('TV', f'{PH}/television_02/television_02_1k.gltf', f'{P}/intro_tv.glb', 0.5, 'z', 'bottom', None, 1024),
+    ('VCR', f'{DL}/vcr/model.glb', f'{P}/intro_vcr.glb', 0.43, 'x', 'bottom', None, 512),
+    ('Tape', f'{DL}/tape/model.glb', f'{P}/intro_tape.glb', 0.187, 'x', 'bottom', None, 512),
+    ('Cabinet', f'{PH}/WoodenTable_03/WoodenTable_03_1k.gltf', f'{P}/intro_cabinet.glb', 0.83, 'z', 'bottom'),
+    ('SideTable', f'{PH}/side_table_01/side_table_01_1k.gltf', f'{P}/intro_side_table.glb', 0.55, 'z', 'bottom'),
+    ('ArmChair', f'{PH}/modern_arm_chair_01/modern_arm_chair_01_1k.gltf', f'{P}/intro_armchair.glb', 1.023, 'z', 'bottom'),
 ]
 if ONLY:                       # just these, then stop
     for args in LATER:

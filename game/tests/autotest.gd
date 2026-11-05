@@ -43,6 +43,17 @@ func _run() -> void:
 		check(intro != null and intro.name == "Intro", "the intro scene is running")
 		check(intro.video != null and intro.video.stream != null, "the tape is loaded")
 		check(intro._cues.size() > 10, "subtitles loaded (%d lines)" % intro._cues.size())
+		# Run the walk-in at 4x: you pick the tape up, put it in, press play and end up in the chair.
+		Engine.time_scale = 4.0
+		var t0 := Time.get_ticks_msec()
+		while not intro._playing and Time.get_ticks_msec() - t0 < 20000:
+			await get_tree().process_frame
+		check(intro._playing, "the tape got picked up, put in and played")
+		check(not intro.tape.visible, "the tape went into the VCR")
+		await wait(10.0)
+		Engine.time_scale = 1.0
+		check(intro.eye.distance_to(intro.SEATED) < 0.05, "you end up sitting in the armchair")
+		check(not intro.hand_mount.visible, "the hand is put away while you watch")
 		intro._finish()
 		await wait(4.0)
 		check(Profile.intro_seen, "after the tape it is marked as seen")

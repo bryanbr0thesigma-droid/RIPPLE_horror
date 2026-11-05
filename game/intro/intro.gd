@@ -1,23 +1,45 @@
 extends Node3D
-## First-boot cutscene. You walk into a small dim room, put the F.A.L.C.O.N. tape in the VCR, and
-## the TV plays it ("Water Safety and You", with subtitles under the screen); then it fades to black
+## First-boot cutscene. You walk into a small dim room where an old TV glows blue, pick the
+## F.A.L.C.O.N. tape up off the side table, push it into the VCR, press play and sit down in the
+## armchair to watch it ("Water Safety and You", with subtitles under the TV); then it fades to black
 ## and the title menu opens. It plays once, on the first launch (Profile.intro_seen); "Watch the
 ## tape" on the main menu plays it again. Hold A, X or a trigger (VR), or Space (desktop), to skip.
-##
-## The TV, VCR and tape are simple shapes until real models are picked on the review page.
 
 const TAPE := preload("res://assets/video/falcon_tape.ogv")
 const SUBTITLES := "res://assets/video/falcon_tape.srt"
 const CLANK := preload("res://assets/audio/clank.ogg")
+const CLICK := preload("res://assets/audio/flashlight_click.ogg")
+const WHIR := preload("res://assets/audio/flashlight_whir.ogg")
 const AMBIENCE := preload("res://assets/audio/amb_halls.ogg")
+const GLOVE := preload("res://addons/godot-xr-tools/hands/scenes/lowpoly/right_fullglove_low.tscn")
+const LABEL_TEX := preload("res://assets/intro/tape_label.png")
+const SPINE_TEX := preload("res://assets/intro/tape_spine.png")
 
-const START := Vector3(0.0, 0.0, 3.5)       # in the corridor, outside the door
-const STAND := Vector3(0.0, 0.0, 0.1)       # in front of the TV
-const SCREEN := Vector3(0.0, 1.19, -1.655)  # centre of the TV screen
-const SLOT := Vector3(0.0, 0.855, -1.735)   # the VCR's tape slot
-const WALK_TIME := 6.0
-const SKIP_HOLD := 1.2
+# Where things are. The models face +Z; the TV and VCR stand on the cabinet against the far wall.
+const CABINET := Vector3(0.0, 0.0, -2.10)
+const TV := Vector3(-0.30, 0.83, -2.13)
+const VCR := Vector3(0.36, 0.83, -2.0)
+const SCREEN := TV + Vector3(0.0, 0.32, 0.2167)       # the apex of the curved glass, 4 mm in front
+const SCREEN_SIZE := Vector2(0.364, 0.272)
+const SCREEN_CURVE := Vector2(0.80, 6.0)              # depth = a*r^2 - b*x^2*y^2 (the glass is flatter at its corners)
+const SLOT := VCR + Vector3(-0.026, 0.070, 0.1158)    # the tape door
+const PLAY := VCR + Vector3(0.096, 0.032, 0.1441)     # the play button
+const LED := VCR + Vector3(0.165, 0.074, 0.1635)
+const SIDE_TABLE := Vector3(-1.62, 0.0, 1.25)
+const TAPE_REST := Vector3(-1.60, 0.551, 1.25)
+const CHAIR := Vector3(-0.30, 0.0, -0.95)
+# Your eyes along the way (standing 1.65 m, crouched at the VCR, seated in the chair).
 const EYE := 1.65
+const PATH_IN: Array[Vector3] = [Vector3(0.0, EYE, 3.6), Vector3(0.0, EYE, 2.2), Vector3(-0.45, EYE, 1.5),
+	Vector3(-0.95, EYE, 1.25)]
+const PATH_VCR: Array[Vector3] = [Vector3(-0.95, EYE, 1.25), Vector3(0.05, EYE, 0.55), Vector3(0.55, EYE, -0.25),
+	Vector3(0.5, EYE, -1.1)]
+const CROUCH := Vector3(0.40, 1.15, -1.27)
+const BESIDE_CHAIR := Vector3(0.48, EYE, -0.85)
+const SEATED := Vector3(-0.30, 1.18, -0.80)
+const SKIP_HOLD := 1.2
+# The tape in the glove's hand space while held (palm down over it, fingers along it).
+var GRIP := Transform3D(Basis(Vector3(0, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, 1)), Vector3(-0.045, 0.0, -0.06))
 
 var G: LevelGeometry
 var rig: Node3D
@@ -32,11 +54,18 @@ var tape: Node3D
 var subs: Label3D
 var hint: Label3D
 var ambience: AudioStreamPlayer
+var hand_mount: Node3D
+var glove: Node3D
+var eye := PATH_IN[0]           # where your eyes are; the rig follows it every frame
+var _head0 := Vector3(0, EYE, 0)   # VR: the headset's position at the start, kept as the reference
+var _grip_v := 0.0
+var _hand_mode := "off"         # off, free (tweened), hold (follows your head)
 var _fade_vr: StandardMaterial3D
 var _fade_2d: ColorRect
 var _cues: Array = []          # [start, end, text]
-var _look := SCREEN            # where the desktop camera looks
-var _walking := false
+var _look := Vector3(0.0, 1.3, -2.4)   # where the desktop camera looks
+var _last_eye := Vector3.ZERO
+var _speed := 0.0
 var _skip_t := 0.0
 var _t := 0.0
 var _ending := false
@@ -53,10 +82,14 @@ func _ready() -> void:
 	G = LevelGeometry.new(self)
 	_environment()
 	_room()
+	_furniture()
 	_tv_and_vcr()
+	_tape()
+	_hand()
 	_rig()
 	_cues = _load_srt(SUBTITLES)
 	_set_fade(1.0)
+	_last_eye = eye
 	_run()
 
 
@@ -65,25 +98,40 @@ func _ready() -> void:
 func _run() -> void:
 	ambience.play()
 	await _wait(0.4)
+	if Game.vr_mode:
+		_head0 = cam.position
 	_fade_to(0.0, 1.6)
-	await _wait(1.0)
-	# Walk in.
-	_walking = true
-	var tw := create_tween()
-	tw.tween_property(rig, "position", STAND, WALK_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	await tw.finished
-	_walking = false
+	await _wait(0.8)
+	# Walk in, past the glowing TV, to the side table.
+	get_tree().create_timer(2.6).timeout.connect(func(): _look = TAPE_REST)
+	await _walk(PATH_IN, 4.4)
 	if _ending:
 		return
-	# The tape, from your hand into the slot.
+	await _pick_up_tape()
+	if _ending:
+		return
+	# Over to the VCR, and crouch in front of it.
+	_look = VCR + Vector3(0, 0.1, 0)
+	await _walk(PATH_VCR, 3.8)
+	_look = SLOT
+	await _move_eye(CROUCH, 0.9)
+	if _ending:
+		return
 	await _insert_tape()
 	if _ending:
 		return
-	# The TV comes on, and the tape plays.
-	await _wait(0.6)
-	_tv_on()
-	video.play()
-	_playing = true
+	await _press_play()
+	if _ending:
+		return
+	# Stand, step over to the armchair and sit down.
+	_look = SCREEN
+	await _move_eye(Vector3(CROUCH.x + 0.04, EYE, CROUCH.z + 0.25), 1.0)
+	await _walk([eye, BESIDE_CHAIR], 1.6)
+	if cam is Camera3D:
+		create_tween().tween_property(cam, "fov", 52.0, 2.5).set_trans(Tween.TRANS_SINE)   # desktop: settle in
+	await _move_eye(SEATED, 1.7)
+	if _ending:
+		return
 	await video.finished
 	_playing = false
 	if not _ending:
@@ -91,29 +139,65 @@ func _run() -> void:
 		_finish()
 
 
+func _pick_up_tape() -> void:
+	# The glove comes up from below and closes over the tape.
+	glove.force_grip_trigger(0.0, 0.0)
+	_grip_v = 0.0
+	hand_mount.global_transform = Transform3D(_yaw_basis(), cam.global_position + _yaw_basis() * Vector3(0.2, -0.75, -0.2))
+	hand_mount.visible = true
+	await _hand_to(tape.global_transform * GRIP.affine_inverse() * Transform3D(Basis(), Vector3(0, 0.06, 0)), 0.75)
+	await _hand_to(tape.global_transform * GRIP.affine_inverse(), 0.3)
+	await _grip(0.45, 0.25)
+	_sfx(CLICK, TAPE_REST, -16.0, 0.6)
+	# Into your hand: from here on it moves with the glove.
+	tape.reparent(hand_mount)
+	tape.transform = GRIP
+	await _hand_to_hold(0.8)
+
+
 func _insert_tape() -> void:
-	var c := cam.global_transform
-	var hand := c.origin + (-c.basis.z) * 0.38 + Vector3.DOWN * 0.3 + c.basis.x * 0.06
-	tape.global_position = hand
-	tape.rotation = Vector3(0.0, 0.0, 0.0)
-	tape.scale = Vector3.ONE * 0.01
-	tape.visible = true
-	_look = SLOT + Vector3(0, 0.05, 0)
+	# Line the tape up with the door, push it in, and let the VCR pull it the rest of the way.
+	var mid := SLOT + Vector3(0, -0.0133, 0)       # the tape's origin is its bottom face
+	await _hand_to(Transform3D(Basis(), mid + Vector3(0, 0, 0.16)) * GRIP.affine_inverse(), 1.0)
+	await _wait(0.15)
+	await _hand_to(Transform3D(Basis(), mid + Vector3(0, 0, 0.045)) * GRIP.affine_inverse(), 0.45, Tween.TRANS_QUAD)
+	tape.reparent(self)
+	await _grip(0.0, 0.15)
+	_sfx(CLANK, SLOT, -8.0, 1.0)
+	_sfx(WHIR, SLOT, -14.0, 0.55)
 	var tw := create_tween()
-	tw.tween_property(tape, "scale", Vector3.ONE, 0.25)
-	tw.tween_property(tape, "global_position", SLOT + Vector3(0, 0, 0.16), 1.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_interval(0.15)
-	tw.tween_property(tape, "global_position", SLOT + Vector3(0, 0, -0.14), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(tape, "global_position", mid + Vector3(0, 0, -0.07), 0.6).set_trans(Tween.TRANS_SINE)
+	_hand_to(hand_mount.global_transform.translated(Vector3(0.04, 0.03, 0.12)), 0.6)
 	await tw.finished
 	tape.visible = false
-	_sfx(CLANK, SLOT, -6.0)
 	led_mat.albedo_color = Color(0.2, 1.0, 0.3)
 	led_mat.emission = Color(0.2, 1.0, 0.3)
+
+
+func _press_play() -> void:
+	_look = PLAY + Vector3(0, 0.02, 0)
+	glove.force_grip_trigger(1.0, 0.0)          # pointing
+	_grip_v = 1.0
+	await _wait(0.35)
+	var basis := Basis.looking_at(Vector3(-0.55, -0.3, -0.75).normalized(), Vector3.UP)
+	var tip := _fingertip_local()
+	var at := func(gap: float) -> Transform3D:
+		return Transform3D(basis, PLAY + Vector3(0, 0, gap) - basis * tip)
+	await _hand_to(at.call(0.03), 0.7)
+	await _hand_to(at.call(-0.004), 0.15, Tween.TRANS_QUAD)
+	_sfx(CLICK, PLAY, -6.0, 1.0)
+	await _hand_to(at.call(0.04), 0.25)
+	# The tape starts: a flicker of static, then the picture.
+	_tv_on()
+	video.play()
+	_playing = true
 	_look = SCREEN
+	await _hand_to(hand_mount.global_transform.translated(Vector3(0.05, -0.45, 0.25)), 0.6)
+	hand_mount.visible = false
+	_hand_mode = "off"
 
 
 func _tv_on() -> void:
-	# A white flash as the tube warms up, then the picture.
 	screen_mat.albedo_texture = null
 	screen_mat.albedo_color = Color(0.9, 0.95, 1.0)
 	tv_light.light_energy = 1.2
@@ -122,6 +206,7 @@ func _tv_on() -> void:
 	tw.tween_callback(func():
 		screen_mat.albedo_color = Color(1, 1, 1)
 		screen_mat.albedo_texture = video.get_parent().get_texture()
+		tv_light.light_color = Color(0.75, 0.85, 1.0)
 		tv_light.light_energy = 0.55)
 
 
@@ -142,17 +227,104 @@ func _finish() -> void:
 	Game.go_to_menu()
 
 
+# --- Moving you and the hand ---------------------------------------------------------------------
+
+## Walk along the points (a smooth curve through them) in `time` seconds.
+func _walk(points: Array[Vector3], time: float) -> Signal:
+	var curve := Curve3D.new()
+	for i in points.size():
+		var p := points[i]
+		var tangent := Vector3.ZERO
+		if i > 0 and i < points.size() - 1:
+			tangent = (points[i + 1] - points[i - 1]) * 0.25
+		curve.add_point(p, -tangent, tangent)
+	var length := curve.get_baked_length()
+	var tw := create_tween()
+	tw.tween_method(func(k: float): eye = curve.sample_baked(k * length), 0.0, 1.0, time) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	return tw.finished
+
+
+func _move_eye(to: Vector3, time: float) -> Signal:
+	var tw := create_tween()
+	tw.tween_property(self, "eye", to, time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	return tw.finished
+
+
+func _yaw_basis() -> Basis:
+	var f := -cam.global_transform.basis.z
+	f.y = 0.0
+	if f.length() < 0.01:
+		f = Vector3.FORWARD
+	return Basis.looking_at(f.normalized(), Vector3.UP)
+
+
+## Where the glove holds the tape while you walk: low and to the right, label tilted towards you.
+func _hold_xf() -> Transform3D:
+	var yb := _yaw_basis()
+	var tape_xf := Transform3D(yb * Basis(Vector3.RIGHT, deg_to_rad(35.0)), cam.global_position + yb * Vector3(0.12, -0.38, -0.36))
+	return tape_xf * GRIP.affine_inverse()
+
+
+func _hand_to(target: Transform3D, time: float, trans := Tween.TRANS_SINE) -> Signal:
+	_hand_mode = "free"
+	var a := hand_mount.global_transform
+	var tw := create_tween()
+	tw.tween_method(func(k: float): hand_mount.global_transform = a.interpolate_with(target, k), 0.0, 1.0, time) \
+		.set_trans(trans).set_ease(Tween.EASE_IN_OUT)
+	return tw.finished
+
+
+func _hand_to_hold(time: float) -> void:
+	_hand_mode = "free"
+	var a := hand_mount.global_transform
+	var tw := create_tween()
+	tw.tween_method(func(k: float): hand_mount.global_transform = a.interpolate_with(_hold_xf(), k), 0.0, 1.0, time) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await tw.finished
+	_hand_mode = "hold"
+
+
+func _grip(amount: float, time: float) -> Signal:
+	var tw := create_tween()
+	tw.tween_method(func(v: float):
+		_grip_v = v
+		glove.force_grip_trigger(v, v), _grip_v, amount, time)
+	return tw.finished
+
+
+## The index fingertip in the hand mount's space (for pressing the button with it).
+func _fingertip_local() -> Vector3:
+	var sk := glove.find_child("Skeleton3D", true, false) as Skeleton3D
+	if not sk:
+		return Vector3(0, 0, -0.15)
+	var i := sk.find_bone("Index_Tip_R")
+	if i < 0:
+		return Vector3(0, 0, -0.15)
+	var tip := sk.global_transform * sk.get_bone_global_pose(i).origin
+	return glove.global_transform.affine_inverse() * tip
+
+
 # --- Every frame ---------------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
 	_t += delta
 	# The room's fluorescent tube flickers now and then.
 	room_light.light_energy = 0.45 if fmod(_t, 7.3) > 0.12 else 0.12
-	if not Game.vr_mode:
-		var bob := sin(_t * 7.5) * 0.014 if _walking else 0.0
-		cam.position = Vector3(0, EYE + bob, 0)
+	# Follow the eye point: desktop moves the camera there; VR moves the play area so your head is
+	# there (your own head movement still counts).
+	_speed = lerpf(_speed, Vector2(eye.x - _last_eye.x, eye.z - _last_eye.z).length() / maxf(delta, 0.001), clampf(delta * 6.0, 0.0, 1.0))
+	_last_eye = eye
+	if Game.vr_mode:
+		rig.position = eye - _head0
+	else:
+		var bob := sin(_t * 7.5) * 0.016 * clampf(_speed / 0.7, 0.0, 1.0)
+		rig.position = Vector3(eye.x, 0.0, eye.z)
+		cam.position = Vector3(0, eye.y + bob, 0)
 		var want := cam.global_transform.looking_at(_look, Vector3.UP).basis
 		cam.global_transform.basis = cam.global_transform.basis.slerp(want, clampf(delta * 2.5, 0.0, 1.0))
+	if _hand_mode == "hold":
+		hand_mount.global_transform = hand_mount.global_transform.interpolate_with(_hold_xf(), clampf(delta * 10.0, 0.0, 1.0))
 	# Subtitles follow the tape.
 	if _playing:
 		var pos := video.stream_position
@@ -224,36 +396,36 @@ func _room() -> void:
 	G.light(Vector3(0.0, 2.45, 3.6), 0.18, 3.0, Color(0.8, 0.9, 1.0))
 
 
-func _dark(c: Color, rough := 0.6) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = c
-	m.roughness = rough
-	return m
+func _prop(path: String, pos: Vector3, yaw: float) -> Node3D:
+	var n: Node3D = load(path).instantiate()
+	n.position = pos
+	n.rotation_degrees.y = yaw
+	add_child(n)
+	return n
+
+
+func _furniture() -> void:
+	_prop("res://assets/props/intro_cabinet.glb", CABINET, 0.0)
+	_prop("res://assets/props/intro_tv.glb", TV, 0.0)
+	_prop("res://assets/props/intro_vcr.glb", VCR, 0.0)
+	_prop("res://assets/props/intro_side_table.glb", SIDE_TABLE, 90.0)
+	_prop("res://assets/props/intro_armchair.glb", CHAIR, 180.0)
 
 
 func _tv_and_vcr() -> void:
-	# Stand, VCR, CRT television (placeholders until models are picked).
-	G.block(-0.55, 0.55, 0.0, 0.8, -2.25, -1.75, _dark(Color(0.22, 0.16, 0.11), 0.8))
-	G.block(-0.22, 0.22, 0.8, 0.89, -2.1, -1.74, _dark(Color(0.06, 0.06, 0.07), 0.4))
-	G.block(-0.36, 0.36, 0.89, 1.49, -2.2, -1.66, _dark(Color(0.09, 0.085, 0.08), 0.5))
-	var slot := MeshInstance3D.new()
-	var sq := QuadMesh.new()
-	sq.size = Vector2(0.2, 0.02)
-	slot.mesh = sq
-	slot.material_override = _dark(Color(0, 0, 0))
-	slot.position = SLOT + Vector3(0, 0, -0.004)
-	add_child(slot)
+	# The VCR's power light: red until the tape is in.
 	var led := MeshInstance3D.new()
 	var lb := BoxMesh.new()
-	lb.size = Vector3(0.012, 0.006, 0.004)
+	lb.size = Vector3(0.008, 0.004, 0.002)
 	led.mesh = lb
-	led_mat = _dark(Color(0.25, 0.05, 0.05), 0.3)
+	led_mat = StandardMaterial3D.new()
+	led_mat.albedo_color = Color(0.6, 0.05, 0.05)
 	led_mat.emission_enabled = true
-	led_mat.emission = Color(0.4, 0.0, 0.0)
+	led_mat.emission = Color(0.8, 0.05, 0.0)
 	led.material_override = led_mat
-	led.position = Vector3(0.16, 0.835, -1.737)
+	led.position = LED
 	add_child(led)
-	# The screen shows the tape through a 640x480 viewport.
+	# The tape plays through a 640x480 viewport onto a screen curved like the TV's glass.
 	var vp := SubViewport.new()
 	vp.size = Vector2i(640, 480)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -265,50 +437,88 @@ func _tv_and_vcr() -> void:
 	video.volume_db = -1.0
 	vp.add_child(video)
 	var screen := MeshInstance3D.new()
-	var qm := QuadMesh.new()
-	qm.size = Vector2(0.56, 0.42)
-	screen.mesh = qm
+	screen.mesh = _curved_screen(SCREEN_SIZE, SCREEN_CURVE)
 	screen_mat = StandardMaterial3D.new()
 	screen_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	screen_mat.albedo_color = Color(0.03, 0.035, 0.035)
+	screen_mat.albedo_color = Color(0.06, 0.13, 0.62)       # the blue of an empty video channel
 	screen.material_override = screen_mat
 	screen.position = SCREEN
 	add_child(screen)
 	tv_light = OmniLight3D.new()
-	tv_light.light_color = Color(0.75, 0.85, 1.0)
-	tv_light.light_energy = 0.0
+	tv_light.light_color = Color(0.25, 0.4, 1.0)
+	tv_light.light_energy = 0.35
 	tv_light.omni_range = 4.0
-	tv_light.position = SCREEN + Vector3(0, 0, 0.5)
+	tv_light.position = SCREEN + Vector3(0, 0, 0.45)
 	add_child(tv_light)
-	# Subtitles on the stand, under the TV.
+	# Subtitles on the cabinet, under the TV.
 	subs = Label3D.new()
-	subs.position = Vector3(0, 0.72, -1.735)
-	subs.pixel_size = 0.0019
+	subs.position = Vector3(TV.x, 0.76, CABINET.z + 0.30)
+	subs.pixel_size = 0.0013
 	subs.font_size = 32
 	subs.outline_size = 10
-	subs.width = 600
+	subs.width = 640
 	subs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	subs.modulate = Color(1, 1, 0.92)
 	subs.no_depth_test = true
 	add_child(subs)
-	# The tape (black shell, white label), hidden until you hold it.
+
+
+## A rectangle bulging towards +Z like a CRT's glass (its apex at the origin).
+static func _curved_screen(size: Vector2, curve: Vector2) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var nx := 16
+	var ny := 12
+	for j in ny + 1:
+		for i in nx + 1:
+			var u := float(i) / nx
+			var v := float(j) / ny
+			var x := (u - 0.5) * size.x
+			var y := (0.5 - v) * size.y
+			st.set_uv(Vector2(u, v))
+			st.set_normal(Vector3(2.0 * curve.x * x, 2.0 * curve.x * y, 1.0).normalized())
+			st.add_vertex(Vector3(x, y, -curve.x * (x * x + y * y) + curve.y * x * x * y * y))
+	for j in ny:
+		for i in nx:
+			var k := j * (nx + 1) + i
+			st.add_index(k)
+			st.add_index(k + 1)
+			st.add_index(k + nx + 1)
+			st.add_index(k + 1)
+			st.add_index(k + nx + 2)
+			st.add_index(k + nx + 1)
+	return st.commit()
+
+
+func _tape() -> void:
+	# The tape lies on the side table, spine towards the door, with the F.A.L.C.O.N. labels.
 	tape = Node3D.new()
-	var shell := MeshInstance3D.new()
-	var tb := BoxMesh.new()
-	tb.size = Vector3(0.19, 0.025, 0.105)
-	shell.mesh = tb
-	shell.material_override = _dark(Color(0.03, 0.03, 0.03), 0.35)
-	tape.add_child(shell)
-	var label := MeshInstance3D.new()
-	var lq := QuadMesh.new()
-	lq.size = Vector2(0.15, 0.06)
-	label.mesh = lq
-	label.material_override = _dark(Color(0.92, 0.9, 0.82), 0.8)
-	label.rotation_degrees = Vector3(-90, 0, 0)
-	label.position = Vector3(0, 0.0131, 0.0)
-	tape.add_child(label)
-	tape.visible = false
 	add_child(tape)
+	tape.add_child(load("res://assets/props/intro_tape.glb").instantiate())
+	for l in [[LABEL_TEX, Vector2(0.0790, 0.0466), Vector3(0.0005, 0.0268, 0.004), Vector3(-90, 0, 0)],
+			[SPINE_TEX, Vector2(0.1448, 0.0188), Vector3(0.0, 0.0133, 0.0528), Vector3.ZERO]]:
+		var m := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = l[1]
+		m.mesh = q
+		var mat := StandardMaterial3D.new()
+		mat.albedo_texture = l[0]
+		mat.roughness = 0.85
+		m.material_override = mat
+		m.position = l[2]
+		m.rotation_degrees = l[3]
+		tape.add_child(m)
+	tape.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(98.0)), TAPE_REST)
+
+
+func _hand() -> void:
+	# A gloved right hand (your suit's glove colour) for picking up the tape and pressing play.
+	hand_mount = Node3D.new()
+	add_child(hand_mount)
+	glove = GLOVE.instantiate()
+	hand_mount.add_child(glove)
+	VRHands.tint(glove, SuitRig.glove_color(Profile.suit))
+	hand_mount.visible = false
 
 
 func _rig() -> void:
@@ -335,8 +545,10 @@ func _rig() -> void:
 		c.current = true
 		rig.add_child(c)
 		cam = c
-	rig.position = START
-	cam.position = Vector3(0, EYE, 0) if not Game.vr_mode else cam.position
+	rig.position = Vector3(eye.x, 0.0, eye.z)
+	if not Game.vr_mode:
+		cam.position = Vector3(0, eye.y, 0)
+		cam.look_at(_look, Vector3.UP)
 	# Fades: a black sphere around the head (VR), a black screen (desktop).
 	var sphere := MeshInstance3D.new()
 	var sm := SphereMesh.new()
@@ -351,6 +563,13 @@ func _rig() -> void:
 	_fade_vr.render_priority = 100
 	sphere.material_override = _fade_vr
 	cam.add_child(sphere)
+	# A faint light by your head, so the glove and the tape read in the dim room.
+	var near := OmniLight3D.new()
+	near.light_color = Color(1.0, 0.95, 0.88)
+	near.light_energy = 0.35
+	near.omni_range = 1.4
+	near.position = Vector3(0.1, 0.05, 0.0)
+	cam.add_child(near)
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	_fade_2d = ColorRect.new()
@@ -389,10 +608,11 @@ func _wait(t: float) -> Signal:
 	return get_tree().create_timer(t).timeout
 
 
-func _sfx(stream: AudioStream, pos: Vector3, db: float) -> void:
+func _sfx(stream: AudioStream, pos: Vector3, db: float, pitch := 1.0) -> void:
 	var p := AudioStreamPlayer3D.new()
 	p.stream = stream
 	p.volume_db = db
+	p.pitch_scale = pitch
 	p.position = pos
 	add_child(p)
 	p.play()

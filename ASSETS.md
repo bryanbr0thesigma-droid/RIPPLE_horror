@@ -138,7 +138,22 @@ figures by rones, OpenGameArt static by xhunterko) plus the game's own sounds an
 or CC BY, so crediting it doesn't make it free to use commercially. Before a paid release it
 should be re-voiced with a freely licensed synthesizer (e.g. Flite or eSpeak), or kept knowingly.
 
-The TV, VCR and tape in the intro room are placeholder shapes until models are picked.
+The user chose to keep Sam for now.
+
+### The intro room (picked by the user)
+
+| File | What | Source | Author | License |
+|---|---|---|---|---|
+| `game/assets/props/intro_tv.glb` | The TV (scaled to a 20-inch set) | [Poly Haven, Television 02](https://polyhaven.com/a/television_02) | Benny Weimer | CC0 |
+| `game/assets/props/intro_armchair.glb` | The armchair | [Poly Haven, Modern Arm Chair 01](https://polyhaven.com/a/modern_arm_chair_01) | Vibrant Nordic | CC0 |
+| `game/assets/props/intro_cabinet.glb` | The cabinet the TV stands on | [Poly Haven, Wooden Table 03](https://polyhaven.com/a/WoodenTable_03) | Gabriel Radić | CC0 |
+| `game/assets/props/intro_side_table.glb` | The table the tape lies on | [Poly Haven, Side Table 01](https://polyhaven.com/a/side_table_01) | James Ray Cock | CC0 |
+| `game/assets/props/intro_vcr.glb` | The VCR | [Sketchfab, "VCR Player"](https://sketchfab.com/3d-models/98951dfd481b432b883b128222ea24ae) | twunnyphaiv | CC BY 4.0 |
+| `game/assets/props/intro_tape.glb` | The VHS tape | [Sketchfab, "VHS"](https://sketchfab.com/3d-models/c11a8596c3314677a8b9321e141de275) | Terizmeh | CC BY 4.0 |
+| `game/assets/intro/tape_label.png`, `tape_spine.png` | The tape's F.A.L.C.O.N. labels | made for RIPPLE on the `claude/wizardly-gates-b0selv` branch (`media/labels/`), with the falcon by papapishu (Openclipart, CC0) | — | CC0 parts |
+
+Converted by `tools/props/convert_approved.py` (real size, Quest-friendly). The hand that picks the
+tape up and presses play is Godot XR Tools' glove (MIT), tinted to the player's suit.
 
 ## Code libraries
 
