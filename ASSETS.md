@@ -152,6 +152,11 @@ The user chose to keep Sam for now.
 | `game/assets/props/intro_tape.glb` | The VHS tape | [Sketchfab, "VHS"](https://sketchfab.com/3d-models/c11a8596c3314677a8b9321e141de275) | Terizmeh | CC BY 4.0 |
 | `game/assets/intro/tape_label.png`, `tape_spine.png` | The tape's F.A.L.C.O.N. labels | made for RIPPLE on the `claude/wizardly-gates-b0selv` branch (`media/labels/`), with the falcon by papapishu (Openclipart, CC0) | — | CC0 parts |
 
+| `game/assets/intro/office/carpet_*` | The office carpet | [ambientCG, Carpet 012](https://ambientcg.com/view?id=Carpet012) | Lennart Demes | CC0 |
+| `game/assets/intro/office/wall_*` | The office wallpaper (tinted beige) | [ambientCG, Wallpaper 001 A](https://ambientcg.com/view?id=Wallpaper001A) | Lennart Demes | CC0 |
+| `game/assets/intro/office/ceiling_*` | The drop ceiling | [ambientCG, Office Ceiling 001](https://ambientcg.com/view?id=OfficeCeiling001) | Lennart Demes | CC0 |
+
+The window is made in the game (a warm glow, a wooden frame, blinds, the low sun's light).
 Converted by `tools/props/convert_approved.py` (real size, Quest-friendly). The hand that picks the
 tape up and presses play is Godot XR Tools' glove (MIT), tinted to the player's suit.
 

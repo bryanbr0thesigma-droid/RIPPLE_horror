@@ -53,7 +53,8 @@ func _run() -> void:
 		await wait(10.0)
 		Engine.time_scale = 1.0
 		check(intro.eye.distance_to(intro.SEATED) < 0.05, "you end up sitting in the armchair")
-		check(not intro.hand_mount.visible, "the hand is put away while you watch")
+		check(intro._hand_mode == "rest" and intro._seated, "your hands rest on the armchair while you watch")
+		check(intro.body != null and intro.body.visible, "you see your own body (full-body IK)")
 		intro._finish()
 		await wait(4.0)
 		check(Profile.intro_seen, "after the tape it is marked as seen")

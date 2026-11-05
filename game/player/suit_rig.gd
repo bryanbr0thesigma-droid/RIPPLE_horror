@@ -65,6 +65,8 @@ var first_person := false
 var hide_hands := false
 ## Walking: how far each foot is off its planted spot (this node's space), from the step cycle.
 var foot_offsets: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO]
+## Both feet moved this far (this node's space) on top of that: forward, to sit in a chair.
+var foot_extra := Vector3.ZERO
 var _gait_phase := 0.0
 var _gait_amp := 0.0
 var _gait_dir := Vector3.FORWARD

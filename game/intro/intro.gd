@@ -1,7 +1,7 @@
 extends Node3D
-## First-boot cutscene. You walk into a small dim room where an old TV glows blue, pick the
-## F.A.L.C.O.N. tape up off the side table, push it into the VCR, press play and sit down in the
-## armchair to watch it ("Water Safety and You", with subtitles under the TV); then it fades to black
+## First-boot cutscene. Late in the day you walk into a small office (carpet, drop ceiling, a frosted
+## window glowing warm with the low sun) where an old TV glows blue, pick the F.A.L.C.O.N. tape up
+## off the side table, push it into the VCR, press play and sit down in the armchair to watch it ("Water Safety and You", with subtitles under the TV); then it fades to black
 ## and the title menu opens. It plays once, on the first launch (Profile.intro_seen); "Watch the
 ## tape" on the main menu plays it again. Hold A, X or a trigger (VR), or Space (desktop), to skip.
 
@@ -12,16 +12,23 @@ const CLICK := preload("res://assets/audio/flashlight_click.ogg")
 const WHIR := preload("res://assets/audio/flashlight_whir.ogg")
 const AMBIENCE := preload("res://assets/audio/amb_halls.ogg")
 const GLOVE := preload("res://addons/godot-xr-tools/hands/scenes/lowpoly/right_fullglove_low.tscn")
+const GLOVE_L := preload("res://addons/godot-xr-tools/hands/scenes/lowpoly/left_fullglove_low.tscn")
+const OFFICE := "res://assets/intro/office/"
 const LABEL_TEX := preload("res://assets/intro/tape_label.png")
 const SPINE_TEX := preload("res://assets/intro/tape_spine.png")
 
 # Where things are. The models face +Z; the TV and VCR stand on the cabinet against the far wall.
 const CABINET := Vector3(0.0, 0.0, -2.10)
-const TV := Vector3(-0.30, 0.83, -2.13)
+const TV := Vector3(-0.30, 0.83, -2.12)
+const TV_SCALE := 1.2                                 # a 24-inch set
 const VCR := Vector3(0.36, 0.83, -2.0)
-const SCREEN := TV + Vector3(0.0, 0.32, 0.2167)       # the apex of the curved glass, 4 mm in front
-const SCREEN_SIZE := Vector2(0.364, 0.272)
-const SCREEN_CURVE := Vector2(0.80, 6.0)              # depth = a*r^2 - b*x^2*y^2 (the glass is flatter at its corners)
+const SCREEN := TV + Vector3(0.0, 0.32, 0.2167) * TV_SCALE    # the apex of the curved glass, just in front
+const SCREEN_SIZE := Vector2(0.364, 0.272) * TV_SCALE
+const SCREEN_CURVE := Vector2(0.80 / TV_SCALE, 6.0 / (TV_SCALE * TV_SCALE * TV_SCALE))   # depth = a*r^2 - b*x^2*y^2 (flatter at the corners)
+# The window: frosted, in the east wall, lit warm by the low sun (no view out).
+const WINDOW := Vector3(2.0, 1.5, -0.45)
+const WINDOW_SIZE := Vector2(1.3, 1.05)               # along the wall (z), height
+const SUN := Color(1.0, 0.62, 0.34)
 const SLOT := VCR + Vector3(-0.026, 0.070, 0.1158)    # the tape door
 const PLAY := VCR + Vector3(0.096, 0.032, 0.1441)     # the play button
 const LED := VCR + Vector3(0.165, 0.074, 0.1635)
@@ -36,7 +43,10 @@ const PATH_VCR: Array[Vector3] = [Vector3(-0.95, EYE, 1.25), Vector3(0.05, EYE, 
 	Vector3(0.5, EYE, -1.1)]
 const CROUCH := Vector3(0.40, 1.15, -1.27)
 const BESIDE_CHAIR := Vector3(0.48, EYE, -0.85)
-const SEATED := Vector3(-0.30, 1.18, -0.80)
+const SEATED := Vector3(-0.30, 1.22, -0.80)
+# Seated, your hands rest on the armchair's arms (0.71 m up, 0.35 m either side).
+const ARM_L := CHAIR + Vector3(-0.345, 0.75, -0.15)
+const ARM_R := CHAIR + Vector3(0.345, 0.75, -0.15)
 const SKIP_HOLD := 1.2
 # The tape in the glove's hand space while held (palm down over it, fingers along it).
 var GRIP := Transform3D(Basis(Vector3(0, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, 1)), Vector3(-0.045, 0.0, -0.06))
@@ -56,10 +66,14 @@ var hint: Label3D
 var ambience: AudioStreamPlayer
 var hand_mount: Node3D
 var glove: Node3D
+var lhand_mount: Node3D
+var lglove: Node3D
+var body: SuitRig               # your own suit, seen when you look down (full-body IK)
+var _seated := false
 var eye := PATH_IN[0]           # where your eyes are; the rig follows it every frame
 var _head0 := Vector3(0, EYE, 0)   # VR: the headset's position at the start, kept as the reference
 var _grip_v := 0.0
-var _hand_mode := "off"         # off, free (tweened), hold (follows your head)
+var _hand_mode := "rest"        # rest (at your side / on the armrest), free (tweened), hold (near your head)
 var _fade_vr: StandardMaterial3D
 var _fade_2d: ColorRect
 var _cues: Array = []          # [start, end, text]
@@ -87,6 +101,7 @@ func _ready() -> void:
 	_tape()
 	_hand()
 	_rig()
+	_body()
 	_cues = _load_srt(SUBTITLES)
 	_set_fade(1.0)
 	_last_eye = eye
@@ -129,6 +144,8 @@ func _run() -> void:
 	await _walk([eye, BESIDE_CHAIR], 1.6)
 	if cam is Camera3D:
 		create_tween().tween_property(cam, "fov", 52.0, 2.5).set_trans(Tween.TRANS_SINE)   # desktop: settle in
+	_seated = true
+	create_tween().tween_property(body, "foot_extra", Vector3(0, 0, -0.5), 1.5).set_trans(Tween.TRANS_SINE)
 	await _move_eye(SEATED, 1.7)
 	if _ending:
 		return
@@ -143,8 +160,6 @@ func _pick_up_tape() -> void:
 	# The glove comes up from below and closes over the tape.
 	glove.force_grip_trigger(0.0, 0.0)
 	_grip_v = 0.0
-	hand_mount.global_transform = Transform3D(_yaw_basis(), cam.global_position + _yaw_basis() * Vector3(0.2, -0.75, -0.2))
-	hand_mount.visible = true
 	await _hand_to(tape.global_transform * GRIP.affine_inverse() * Transform3D(Basis(), Vector3(0, 0.06, 0)), 0.75)
 	await _hand_to(tape.global_transform * GRIP.affine_inverse(), 0.3)
 	await _grip(0.45, 0.25)
@@ -192,9 +207,9 @@ func _press_play() -> void:
 	video.play()
 	_playing = true
 	_look = SCREEN
-	await _hand_to(hand_mount.global_transform.translated(Vector3(0.05, -0.45, 0.25)), 0.6)
-	hand_mount.visible = false
-	_hand_mode = "off"
+	glove.force_grip_trigger(0.15, 0.15)
+	_grip_v = 0.15
+	await _hand_to_rest(0.8)
 
 
 func _tv_on() -> void:
@@ -285,6 +300,30 @@ func _hand_to_hold(time: float) -> void:
 	_hand_mode = "hold"
 
 
+## Where a hand rests (0 left, 1 right): hanging at your side, swinging a little as you walk; seated,
+## on the armchair's arm.
+func _rest_xf(i: int) -> Transform3D:
+	if _seated:
+		var at := ARM_L if i == 0 else ARM_R
+		var side := Vector3.RIGHT if i == 0 else Vector3.LEFT       # index finger towards your middle
+		return Transform3D(Basis(side.cross(Vector3.BACK), side, Vector3.BACK), at)
+	var b := Basis(Vector3.UP, body.global_transform.basis.get_euler().y) if body else _yaw_basis()
+	var swing := sin(_t * 3.75 + (PI if i == 0 else 0.0)) * 0.09 * clampf(_speed / 0.7, 0.0, 1.0)
+	var off := Vector3(-0.23 if i == 0 else 0.23, 0.87, 0.02 - swing)
+	var base := Transform3D(b, Vector3(cam.global_position.x, 0.0, cam.global_position.z))
+	return Transform3D(b * Basis(Vector3.RIGHT, -PI * 0.5), base * off)      # fingers down
+
+
+func _hand_to_rest(time: float) -> void:
+	_hand_mode = "free"
+	var a := hand_mount.global_transform
+	var tw := create_tween()
+	tw.tween_method(func(k: float): hand_mount.global_transform = a.interpolate_with(_rest_xf(1), k), 0.0, 1.0, time) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await tw.finished
+	_hand_mode = "rest"
+
+
 func _grip(amount: float, time: float) -> Signal:
 	var tw := create_tween()
 	tw.tween_method(func(v: float):
@@ -325,6 +364,12 @@ func _process(delta: float) -> void:
 		cam.global_transform.basis = cam.global_transform.basis.slerp(want, clampf(delta * 2.5, 0.0, 1.0))
 	if _hand_mode == "hold":
 		hand_mount.global_transform = hand_mount.global_transform.interpolate_with(_hold_xf(), clampf(delta * 10.0, 0.0, 1.0))
+	elif _hand_mode == "rest":
+		hand_mount.global_transform = hand_mount.global_transform.interpolate_with(_rest_xf(1), clampf(delta * 8.0, 0.0, 1.0))
+	lhand_mount.global_transform = lhand_mount.global_transform.interpolate_with(_rest_xf(0), clampf(delta * 8.0, 0.0, 1.0))
+	# Your body: head where the camera is, hands on the gloves, feet on the floor under you.
+	var head: Transform3D = cam.global_transform
+	body.pose(head, lhand_mount.global_transform, hand_mount.global_transform, Vector3(head.origin.x, 0.0, head.origin.z))
 	# Subtitles follow the tape.
 	if _playing:
 		var pos := video.stream_position
@@ -369,12 +414,12 @@ func _environment() -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.0, 0.0, 0.0)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.45, 0.55, 0.6)
-	env.ambient_light_energy = 0.05
+	env.ambient_light_color = Color(0.75, 0.6, 0.48)        # warm: the late sun through the window
+	env.ambient_light_energy = 0.07
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.04, 0.05, 0.06)
-	env.fog_density = 0.05
+	env.fog_light_color = Color(0.06, 0.045, 0.035)
+	env.fog_density = 0.04
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -385,15 +430,107 @@ func _environment() -> void:
 
 
 func _room() -> void:
-	# The room: 4 m by 4.4 m, door in the south wall; a short dark corridor outside.
-	G.floor_slab(-2.0, 2.0, -2.4, 2.0, 0.0)
-	G.walls(-2.0, 2.0, -2.4, 2.0, 0.0, 2.6, {"s": [[-0.5, 0.5, 2.1]]})
+	# A small office, 4 m by 4.4 m: carpet, wallpaper, a drop ceiling, a door in the south wall to a
+	# short hallway, and a frosted window in the east wall glowing with the late sun.
+	var carpet := _office_mat("carpet", 1.0, Color(0.78, 0.8, 0.86), 0.95)
+	var wall := _office_mat("wall", 0.7, Color(0.86, 0.78, 0.62), 0.85)      # old beige
+	var ceil := _office_mat("ceiling", 0.83, Color(0.92, 0.9, 0.86), 0.9)
+	G.mat_ceiling = ceil
+	G.floor_slab(-2.0, 2.0, -2.4, 2.0, 0.0, carpet)
+	G.walls(-2.0, 2.0, -2.4, 2.0, 0.0, 2.6, {"s": [[-0.5, 0.5, 2.1]]}, wall)
 	G.ceiling(-2.0, 2.0, -2.4, 2.0, 2.6)
-	G.floor_slab(-0.8, 0.8, 2.0, 4.4, 0.0, G.mat_blue)
-	G.walls(-0.8, 0.8, 2.3, 4.4, 0.0, 2.6, {"n": [[-0.8, 0.8, 2.6]]}, G.mat_blue)
+	G.floor_slab(-0.8, 0.8, 2.0, 4.4, 0.0, carpet)
+	G.walls(-0.8, 0.8, 2.3, 4.4, 0.0, 2.6, {"n": [[-0.8, 0.8, 2.6]]}, wall)
 	G.ceiling(-0.8, 0.8, 2.0, 4.4, 2.6)
-	room_light = G.light(Vector3(0.0, 2.45, -0.3), 0.45, 6.5)
-	G.light(Vector3(0.0, 2.45, 3.6), 0.18, 3.0, Color(0.8, 0.9, 1.0))
+	# Dark wood skirting along the walls and round the door.
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.22, 0.14, 0.09)
+	wood.roughness = 0.6
+	for sk in [[-2.0, 2.0, -2.4, -2.38], [-2.0, -1.98, -2.4, 2.0], [1.98, 2.0, -2.4, 2.0], [-2.0, -0.5, 1.98, 2.0], [0.5, 2.0, 1.98, 2.0]]:
+		G.block(sk[0], sk[1], 0.0, 0.09, sk[2], sk[3], wood)
+	for f in [[-0.56, -0.5], [0.5, 0.56]]:
+		G.block(f[0], f[1], 0.0, 2.16, 1.97, 2.03, wood)
+	G.block(-0.56, 0.56, 2.1, 2.16, 1.97, 2.03, wood)
+	_window(wood)
+	# The tube light is dim and cold next to the window; it flickers now and then.
+	room_light = G.light(Vector3(0.0, 2.45, -0.3), 0.28, 6.0, Color(0.85, 0.92, 1.0))
+	G.light(Vector3(0.0, 2.45, 3.6), 0.16, 3.0, Color(0.85, 0.92, 1.0))
+
+
+func _office_mat(name: String, scale: float, tint: Color, rough: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load(OFFICE + name + "_color.jpg")
+	m.albedo_color = tint
+	m.normal_enabled = true
+	m.normal_texture = load(OFFICE + name + "_normal.jpg")
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3.ONE * scale
+	m.roughness = rough
+	return m
+
+
+## The frosted window: a warm glow (brighter low down, where the sun is), a wooden frame and
+## half-open blinds across the top, and the light it throws into the room.
+func _window(wood: StandardMaterial3D) -> void:
+	var glass := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = WINDOW_SIZE
+	glass.mesh = q
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1.0, 0.5, 0.3))                   # top: deeper orange
+	grad.set_color(1, Color(1.0, 0.86, 0.62))                 # bottom: bright, near the low sun
+	var gt := GradientTexture2D.new()
+	gt.gradient = grad
+	gt.fill_from = Vector2(0.5, 0.0)
+	gt.fill_to = Vector2(0.5, 1.0)
+	var gm := StandardMaterial3D.new()
+	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	gm.albedo_texture = gt
+	gm.albedo_color = Color(1.4, 1.3, 1.2)
+	glass.material_override = gm
+	glass.position = WINDOW - Vector3(0.012, 0, 0)
+	glass.rotation_degrees.y = -90.0                          # faces into the room (-X)
+	add_child(glass)
+	var hw := WINDOW_SIZE.x * 0.5
+	var hh := WINDOW_SIZE.y * 0.5
+	var x0 := WINDOW.x - 0.05
+	var x1 := WINDOW.x - 0.005
+	G.block(x0, x1, WINDOW.y - hh - 0.05, WINDOW.y - hh, WINDOW.z - hw - 0.05, WINDOW.z + hw + 0.05, wood)   # bottom
+	G.block(x0, x1, WINDOW.y + hh, WINDOW.y + hh + 0.05, WINDOW.z - hw - 0.05, WINDOW.z + hw + 0.05, wood)   # top
+	G.block(x0, x1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z - hw - 0.05, WINDOW.z - hw, wood)                 # sides
+	G.block(x0, x1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z + hw, WINDOW.z + hw + 0.05, wood)
+	G.block(x0, x1, WINDOW.y - hh, WINDOW.y + hh, WINDOW.z - 0.02, WINDOW.z + 0.02, wood)                    # middle bar
+	G.block(WINDOW.x - 0.16, WINDOW.x - 0.005, WINDOW.y - hh - 0.08, WINDOW.y - hh - 0.05, WINDOW.z - hw - 0.1, WINDOW.z + hw + 0.1, wood)  # sill
+	# Venetian blinds over the top 60%, slats tilted, dark against the glow.
+	var slat_mat := StandardMaterial3D.new()
+	slat_mat.albedo_color = Color(0.75, 0.7, 0.6)
+	slat_mat.roughness = 0.7
+	var slat := BoxMesh.new()
+	slat.size = Vector3(0.05, 0.003, WINDOW_SIZE.x)
+	var n := 16
+	for i in n:
+		var m := MeshInstance3D.new()
+		m.mesh = slat
+		m.material_override = slat_mat
+		m.position = Vector3(WINDOW.x - 0.08, WINDOW.y + hh - 0.02 - i * 0.04, WINDOW.z)
+		m.rotation_degrees.z = 35.0
+		add_child(m)
+	G.block(WINDOW.x - 0.11, WINDOW.x - 0.05, WINDOW.y + hh + 0.01, WINDOW.y + hh + 0.05, WINDOW.z - hw, WINDOW.z + hw, slat_mat)   # headrail
+	# The low sun's light, warm, across the room.
+	var sun := OmniLight3D.new()
+	sun.light_color = SUN
+	sun.light_energy = 1.6
+	sun.omni_range = 5.5
+	sun.omni_attenuation = 1.1
+	sun.position = WINDOW + Vector3(-0.45, -0.15, 0.0)
+	add_child(sun)
+	var spill := OmniLight3D.new()                            # a soft patch on the floor below it
+	spill.light_color = SUN
+	spill.light_energy = 0.7
+	spill.omni_range = 2.2
+	spill.position = Vector3(WINDOW.x - 0.9, 0.35, WINDOW.z - 0.2)
+	add_child(spill)
 
 
 func _prop(path: String, pos: Vector3, yaw: float) -> Node3D:
@@ -406,7 +543,7 @@ func _prop(path: String, pos: Vector3, yaw: float) -> Node3D:
 
 func _furniture() -> void:
 	_prop("res://assets/props/intro_cabinet.glb", CABINET, 0.0)
-	_prop("res://assets/props/intro_tv.glb", TV, 0.0)
+	_prop("res://assets/props/intro_tv.glb", TV, 0.0).scale = Vector3.ONE * TV_SCALE
 	_prop("res://assets/props/intro_vcr.glb", VCR, 0.0)
 	_prop("res://assets/props/intro_side_table.glb", SIDE_TABLE, 90.0)
 	_prop("res://assets/props/intro_armchair.glb", CHAIR, 180.0)
@@ -518,7 +655,22 @@ func _hand() -> void:
 	glove = GLOVE.instantiate()
 	hand_mount.add_child(glove)
 	VRHands.tint(glove, SuitRig.glove_color(Profile.suit))
-	hand_mount.visible = false
+	lhand_mount = Node3D.new()
+	add_child(lhand_mount)
+	lglove = GLOVE_L.instantiate()
+	lhand_mount.add_child(lglove)
+	VRHands.tint(lglove, SuitRig.glove_color(Profile.suit))
+
+
+## Your own suit (full-body IK): no head (the camera is in it) and no hands (the gloves are).
+func _body() -> void:
+	body = SuitRig.create(Profile.suit, Profile.color)
+	body.set_first_person(true)
+	add_child(body)
+	var feet := Vector3(cam.global_position.x, 0.0, cam.global_position.z)
+	hand_mount.global_transform = _rest_xf(1)
+	lhand_mount.global_transform = _rest_xf(0)
+	body.pose(cam.global_transform, lhand_mount.global_transform, hand_mount.global_transform, feet)
 
 
 func _rig() -> void:

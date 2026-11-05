@@ -66,7 +66,7 @@ func _process_modification() -> void:
 		if bones.has(s + "UpLeg") and bones.has(s + "Leg") and bones.has(s + "Foot"):
 			var foot_rest: Transform3D = _rest[s + "Foot"]
 			var knee: Vector3 = sk.get_bone_global_pose(bones[s + "Leg"]).origin
-			var foot_goal: Vector3 = foot_rest.origin + to_sk.basis * rig.foot_offsets[li]   # walking
+			var foot_goal: Vector3 = foot_rest.origin + to_sk.basis * (rig.foot_offsets[li] + rig.foot_extra)   # walking, sitting
 			_two_bone(sk, bones[s + "UpLeg"], bones[s + "Leg"], bones[s + "Foot"], foot_goal, knee + fwd * u, -fwd)
 			var f: Transform3D = sk.get_bone_global_pose(bones[s + "Foot"])
 			f.basis = foot_rest.basis
