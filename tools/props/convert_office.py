@@ -22,9 +22,9 @@ OFFICE = {
     'fire_alarm': ('wall', 2800),
 }
 LOBBY = {
-    'sofa_03': ('floor', 8000), 'sofa_02': ('floor', 3000), 'GreenChair_01': ('floor', 4300),
-    'coffee_table_round_01': ('floor', 4100), 'potted_plant_01': ('floor', 9000), 'potted_plant_04': ('floor', 6000),
-    'side_table_tall_01': ('floor', 6500), 'antique_ceramic_vase_01': ('floor', 4000), 'industrial_wall_sconce': ('wall', 5000),
+    'sofa_03': ('floor', 8000), 'CoffeeTable_01': ('floor', 6000), 'ceiling_fan': ('floor', 5000),
+    'potted_plant_01': ('floor', 9000), 'potted_plant_04': ('floor', 6000),
+    'side_table_tall_01': ('floor', 6500), 'antique_ceramic_vase_01': ('floor', 4000),
 }
 ITEMS = LOBBY if GROUP == 'lobby' else OFFICE
 

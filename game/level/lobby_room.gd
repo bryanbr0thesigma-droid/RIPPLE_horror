@@ -1,27 +1,31 @@
 extends Node3D
-## The multiplayer lobby: the ground-floor lobby of a 90s office building, where everyone waits
-## before a game. Checkered marble floor, dark wood wainscoting under teal wallpaper, marble columns
-## with brass bands, a drop ceiling with recessed lights. Frosted glass doors and tall windows on
-## the south wall glow with the setting sun, light slanting in. A front desk with the F.A.L.C.O.N.
-## seal behind it: the host rings its service bell to start the game. Two elevators. A felt letter
-## board with the room code and who's here. A waiting area with a patterned sofa, armchairs, a rug,
-## and a TV with a VCR; the F.A.L.C.O.N. tape is on the coffee table. Put it in the VCR and it plays
-## on the TV for everyone, with subtitles, and pops back out when it ends.
+## The multiplayer lobby: the visitor reception of a F.A.L.C.O.N. field station, built like a cozy
+## old roadside lodge, where everyone waits before a game. Knotty pine walls, red carpet, a stucco
+## ceiling with dark beams and a slow ceiling fan. Dusk through the venetian blinds, and a neon
+## FIELD STATION sign glowing in the window (backwards from in here). A pine reception counter with a
+## service bell (the host rings it to start the game), the visitors' sign-in book and a green
+## banker's lamp; behind it the dormitory keys on their hooks, the staff mail cubbies and the
+## station's carved sign with the F.A.L.C.O.N. seal. An orange cone fireplace in the corner, a coffee
+## station, a rack of F.A.L.C.O.N. pamphlets and a glowing soda machine. By the TV: a couch, a leather
+## armchair and a coffee table on a plaid rug, where the F.A.L.C.O.N. tape lies. Put it in the VCR
+## and it plays on the TV for everyone, with subtitles, and pops back out when it ends.
 
 const INTRO := preload("res://intro/intro.gd")
 const LOBBY := "res://assets/lobby/"
 const P := "res://assets/props/lobby/"
-const X0 := -7.0
-const X1 := 7.0
-const Z0 := -6.0
-const Z1 := 6.0
-const H := 3.4
-const SUN := Color(1.0, 0.5, 0.24)
-const BELL := Vector3(-0.5, 1.13, -3.92)
-## The TV corner: the office's TV set, turned to stand against the east wall of the waiting area.
-const TV_CORNER := Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(3.6, 0.0, 1.5))
-const COFFEE_TABLE := Vector3(5.35, 0.0, 1.5)
-const SPAWNS: Array[Vector3] = [Vector3(0.0, 0.05, 2.6), Vector3(-1.2, 0.05, 2.2), Vector3(1.2, 0.05, 2.2), Vector3(0.0, 0.05, 3.8)]
+const O := "res://assets/props/office/"
+const X0 := -4.0
+const X1 := 4.0
+const Z0 := -3.5
+const Z1 := 3.5
+const H := 2.6
+const DUSK := Color(1.0, 0.52, 0.28)
+const BELL := Vector3(-1.2, 1.07, -1.76)
+## The TV corner: the office's TV set, turned to stand against the east wall.
+const TV_CORNER := Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0.6, 0.0, -0.6))
+const COFFEE_TABLE := Vector3(2.6, 0.0, -0.6)
+const FIREPLACE := Vector3(-3.25, 0.0, 2.75)
+const SPAWNS: Array[Vector3] = [Vector3(0.0, 0.05, 1.8), Vector3(-1.0, 0.05, 1.2), Vector3(0.9, 0.05, 1.0), Vector3(-0.2, 0.05, 0.4)]
 
 var level: Node3D
 var G: LevelGeometry
@@ -35,24 +39,29 @@ var info: Label3D
 var playing := false
 var _cues: Array = []
 var _info_t := 0.0
+var _t := 0.0
+var _fan: Node3D
+var _fire_light: OmniLight3D
+var _fire_mat: StandardMaterial3D
+var _pine: StandardMaterial3D
 var _wood: StandardMaterial3D
-var _marble: StandardMaterial3D
 var _brass: StandardMaterial3D
-var _steel: StandardMaterial3D
 
 
 func build(lv: Node3D) -> void:
 	level = lv
 	G = lv.G
 	_environment(lv.world_env.environment)
-	_materials()
+	_pine = _tex_mat("pine", 0.8, Color(1, 0.96, 0.9), 0.35)
+	_wood = _tex_mat("wood", 0.9, Color(0.75, 0.62, 0.55), 0.45)
+	_brass = _flat(Color(0.82, 0.62, 0.3), 0.3, 1.0)
 	_shell()
-	_entrance()
-	_front_desk()
-	_elevators()
-	_columns()
-	_waiting_area()
-	_decor()
+	_front()
+	_counter()
+	_behind_counter()
+	_west_wall()
+	_fireplace()
+	_tv_nook()
 	_letter_board()
 	lv.spawn_points = SPAWNS
 	lv.zones = []
@@ -61,20 +70,20 @@ func build(lv: Node3D) -> void:
 
 func _environment(env: Environment) -> void:
 	env.background_color = Color(0, 0, 0)
-	env.ambient_light_color = Color(0.85, 0.62, 0.48)
-	env.ambient_light_energy = 0.16
+	env.ambient_light_color = Color(0.9, 0.62, 0.42)
+	env.ambient_light_energy = 0.12
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.07, 0.05, 0.04)
+	env.fog_light_color = Color(0.06, 0.04, 0.03)
 	env.fog_density = 0.02
 	env.glow_enabled = true
-	env.glow_intensity = 0.65
-	env.glow_bloom = 0.04
-	env.glow_hdr_threshold = 0.9
+	env.glow_intensity = 0.6
+	env.glow_bloom = 0.02
+	env.glow_hdr_threshold = 1.15      # only lamps, neon, the fire and the window bloom
 
 
-# --- Building ------------------------------------------------------------------------------------
+# --- Helpers -------------------------------------------------------------------------------------
 
-func _tex_mat(name: String, scale: float, tint: Color, rough: float, metal := 0.0) -> StandardMaterial3D:
+func _tex_mat(name: String, scale: float, tint: Color, rough: float) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = load(LOBBY + name + "_color.jpg")
 	m.albedo_color = tint
@@ -84,7 +93,6 @@ func _tex_mat(name: String, scale: float, tint: Color, rough: float, metal := 0.
 	m.uv1_world_triplanar = true
 	m.uv1_scale = Vector3.ONE * scale
 	m.roughness = rough
-	m.metallic = metal
 	return m
 
 
@@ -96,56 +104,92 @@ func _flat(c: Color, rough := 0.6, metal := 0.0) -> StandardMaterial3D:
 	return m
 
 
-func _materials() -> void:
-	_wood = _tex_mat("wood", 0.9, Color(0.85, 0.75, 0.7), 0.45)
-	_marble = _tex_mat("marble", 0.6, Color(1, 1, 1), 0.15)
-	_brass = _flat(Color(0.82, 0.62, 0.3), 0.28, 1.0)
-	_steel = _flat(Color(0.62, 0.63, 0.64), 0.32, 0.9)
+func _glow(c: Color, energy := 1.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = c * energy
+	return m
+
+
+func _box(size: Vector3, pos: Vector3, mat: Material, yaw := 0.0) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var b := BoxMesh.new()
+	b.size = size
+	mi.mesh = b
+	mi.material_override = mat
+	mi.position = pos
+	mi.rotation_degrees.y = yaw
+	level.add_child(mi)
+	return mi
+
+
+func _cyl(r_top: float, r_bot: float, h: float, pos: Vector3, mat: Material) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var c := CylinderMesh.new()
+	c.top_radius = r_top
+	c.bottom_radius = r_bot
+	c.height = h
+	mi.mesh = c
+	mi.material_override = mat
+	mi.position = pos
+	level.add_child(mi)
+	return mi
+
+
+func _text(t: String, pos: Vector3, yaw: float, size: float, col: Color, font := 48) -> Label3D:
+	var l := Label3D.new()
+	l.text = t
+	l.font_size = font
+	l.pixel_size = size
+	l.modulate = col
+	l.outline_size = 0
+	l.position = pos
+	l.rotation_degrees.y = yaw
+	level.add_child(l)
+	return l
+
+
+func _light(pos: Vector3, c: Color, energy: float, rng: float) -> OmniLight3D:
+	var l := OmniLight3D.new()
+	l.position = pos
+	l.light_color = c
+	l.light_energy = energy
+	l.omni_range = rng
+	l.shadow_enabled = false
+	level.add_child(l)
+	return l
 
 
 func _prop(path: String, pos: Vector3, yaw: float, parent: Node3D = null) -> Node3D:
 	return OfficeRoom.prop(parent if parent else level, path, pos, yaw)
 
 
+# --- The room ------------------------------------------------------------------------------------
+
 func _shell() -> void:
-	var floor_mat := _tex_mat("tiles", 1.0, Color(1, 1, 1), 0.2)
-	var wall := OfficeRoom.office_mat("wall", 0.6, Color(0.42, 0.62, 0.6), 0.85)       # dusty teal
-	G.mat_ceiling = OfficeRoom.office_mat("ceiling", 0.83, Color(0.93, 0.91, 0.87), 0.9)
-	G.floor_slab(X0, X1, Z0, Z1, 0.0, floor_mat)
-	G.walls(X0, X1, Z0, Z1, 0.0, H, {}, wall)
+	var carpet := _tex_mat("carpet", 1.3, Color(0.8, 0.62, 0.6), 0.95)
+	G.mat_ceiling = _tex_mat("stucco", 1.0, Color(0.95, 0.92, 0.86), 0.95)
+	G.floor_slab(X0, X1, Z0, Z1, 0.0, carpet)
+	G.walls(X0, X1, Z0, Z1, 0.0, H, {}, _pine)
 	G.ceiling(X0, X1, Z0, Z1, H)
-	# Wood wainscoting to 1.05 m, a chair rail, and crown moulding at the top.
-	var t := 0.03
-	for w in [[X0, X1, Z0, Z0 + t], [X0, X1, Z1 - t, Z1], [X0, X0 + t, Z0, Z1], [X1 - t, X1, Z0, Z1]]:
-		G.block(w[0], w[1], 0.0, 1.05, w[2], w[3], _wood)
-	for w in [[X0, X1, Z0, Z0 + 0.06], [X0, X1, Z1 - 0.06, Z1], [X0, X0 + 0.06, Z0, Z1], [X1 - 0.06, X1, Z0, Z1]]:
-		G.block(w[0], w[1], 1.05, 1.1, w[2], w[3], _wood)
-		G.block(w[0], w[1], H - 0.14, H, w[2], w[3], _wood)
-	# Recessed light panels in the drop ceiling; three of them actually light the room.
-	var panel := StandardMaterial3D.new()
-	panel.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	panel.albedo_color = Color(1.25, 1.12, 0.92)
-	for x in [-4.5, -0.5, 3.5]:
-		for z in [-3.0, 2.5]:
-			var m := MeshInstance3D.new()
-			var q := QuadMesh.new()
-			q.size = Vector2(0.6, 0.6)
-			m.mesh = q
-			m.material_override = panel
-			m.rotation_degrees.x = 90.0
-			m.position = Vector3(x, H - 0.005, z)
-			level.add_child(m)
-	for p in [Vector3(-4.5, H - 0.3, -0.2), Vector3(-0.5, H - 0.3, -1.6), Vector3(3.5, H - 0.3, 1.2)]:
-		G.light(p, 0.75, 8.0, Color(1.0, 0.86, 0.68), false)
+	# Dark skirting and crown moulding; beams across the ceiling.
+	for w in [[X0, X1, Z0, Z0 + 0.03], [X0, X1, Z1 - 0.03, Z1], [X0, X0 + 0.03, Z0, Z1], [X1 - 0.03, X1, Z0, Z1]]:
+		G.block(w[0], w[1], 0.0, 0.11, w[2], w[3], _wood)
+		G.block(w[0], w[1], H - 0.08, H, w[2], w[3], _wood)
+	for z in [-2.4, -0.9, 0.6, 2.1]:
+		G.block(X0, X1, H - 0.16, H, z - 0.09, z + 0.09, _wood)
+	# The ceiling fan turns slowly; a dim light in its middle.
+	_fan = _prop(P + "ceiling_fan.glb", Vector3(1.0, H - 0.516, -0.2), 0.0)
+	_light(Vector3(1.0, H - 0.6, -0.2), Color(1.0, 0.8, 0.55), 0.35, 5.0)
 
 
-## The south wall: frosted glass doors and tall windows with vertical blinds, glowing with the low
-## sun, beams of light slanting in with dust in them.
-func _entrance() -> void:
+## The front wall: the glass door and the big window, venetian blinds, dusk outside, the station's
+## neon sign hanging in the window.
+func _front() -> void:
 	var grad := Gradient.new()
-	grad.set_color(0, Color(0.85, 0.3, 0.26))
-	grad.add_point(0.5, Color(1.0, 0.55, 0.22))
-	grad.set_color(grad.get_point_count() - 1, Color(1.0, 0.85, 0.52))
+	grad.set_color(0, Color(0.45, 0.25, 0.45))            # dusk sky
+	grad.add_point(0.55, Color(1.0, 0.45, 0.25))
+	grad.set_color(grad.get_point_count() - 1, Color(1.0, 0.75, 0.45))
 	var gt := GradientTexture2D.new()
 	gt.gradient = grad
 	gt.fill_from = Vector2(0.5, 0.0)
@@ -153,11 +197,9 @@ func _entrance() -> void:
 	var glass := StandardMaterial3D.new()
 	glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	glass.albedo_texture = gt
-	glass.albedo_color = Color(1.7, 1.55, 1.45)
-	var zg := Z1 - 0.035
-	var panes := [[-1.2, 0.0, 0.02, 2.35], [0.0, 1.2, 0.02, 2.35], [-1.2, 1.2, 2.45, 3.05],      # doors, transom
-		[-5.3, -2.5, 1.2, 3.0], [2.5, 5.3, 1.2, 3.0]]                                          # windows
-	for p in panes:
+	glass.albedo_color = Color(1.5, 1.4, 1.35)
+	var zg := Z1 - 0.025
+	for p in [[-3.25, -2.35, 0.05, 2.05], [-1.6, 2.8, 0.85, 2.15]]:
 		var m := MeshInstance3D.new()
 		var q := QuadMesh.new()
 		q.size = Vector2(p[1] - p[0], p[3] - p[2])
@@ -166,37 +208,50 @@ func _entrance() -> void:
 		m.rotation_degrees.y = 180.0
 		m.position = Vector3((p[0] + p[1]) * 0.5, (p[2] + p[3]) * 0.5, zg)
 		level.add_child(m)
-	# Brass door frame and push bars; dark wood window frames and mullions.
 	var zf0 := Z1 - 0.08
-	var zf1 := Z1 - 0.03
-	G.block(-1.3, -1.2, 0.0, 3.15, zf0, zf1, _brass)
-	G.block(1.2, 1.3, 0.0, 3.15, zf0, zf1, _brass)
-	G.block(-0.03, 0.03, 0.0, 2.4, zf0, zf1, _brass)
-	G.block(-1.3, 1.3, 2.36, 2.44, zf0, zf1, _brass)
-	G.block(-1.3, 1.3, 3.05, 3.15, zf0, zf1, _brass)
-	G.block(-0.9, -0.15, 1.0, 1.05, zf0 - 0.05, zf0, _brass)
-	G.block(0.15, 0.9, 1.0, 1.05, zf0 - 0.05, zf0, _brass)
-	for wx in [[-5.3, -2.5], [2.5, 5.3]]:
-		G.block(wx[0] - 0.08, wx[1] + 0.08, 1.12, 1.2, zf0 - 0.06, zf1, _wood)          # sill
-		G.block(wx[0] - 0.08, wx[1] + 0.08, 3.0, 3.08, zf0, zf1, _wood)
-		for x in [wx[0] - 0.08, (wx[0] + wx[1]) * 0.5 - 0.03, wx[1]]:
-			G.block(x, x + 0.08, 1.2, 3.0, zf0, zf1, _wood)
-		# Vertical blinds, half drawn, turned to the light.
-		var slat_mat := _flat(Color(0.88, 0.84, 0.74), 0.8)
+	var zf1 := Z1 - 0.02
+	# The door: wood frame, a brass handle, the visitor entrance lettered on the glass (from outside).
+	G.block(-3.33, -3.25, 0.0, 2.13, zf0, zf1, _wood)
+	G.block(-2.35, -2.27, 0.0, 2.13, zf0, zf1, _wood)
+	G.block(-3.33, -2.27, 2.05, 2.13, zf0, zf1, _wood)
+	G.block(-3.25, -2.35, 0.0, 0.3, zf0 + 0.02, zf1, _wood)
+	_cyl(0.015, 0.015, 0.16, Vector3(-2.47, 1.0, zf0 - 0.03), _brass)
+	var door_l := _text("F.A.L.C.O.N.\nVISITOR ENTRANCE", Vector3(-2.8, 1.55, Z1 - 0.03), 0.0, 0.0018, Color(0.95, 0.93, 0.85), 48)
+	door_l.double_sided = true
+	# The window: frame, mullion, sill.
+	G.block(-1.68, 2.88, 0.77, 0.85, zf0 - 0.08, zf1, _wood)
+	G.block(-1.68, 2.88, 2.15, 2.23, zf0, zf1, _wood)
+	for x in [-1.68, 0.56, 2.8]:
+		G.block(x, x + 0.08, 0.85, 2.15, zf0, zf1, _wood)
+	# Venetian blinds over door and window, slats tilted: stripes of dusk between them.
+	var slat_mat := _flat(Color(0.9, 0.86, 0.76), 0.75)
+	for b in [[-3.25, -2.35, 1.0, 2.0], [-1.6, 2.8, 1.2, 2.12]]:
 		var slat := BoxMesh.new()
-		slat.size = Vector3(0.09, 1.75, 0.005)
-		var n := 9
-		for i in n:
+		slat.size = Vector3(b[1] - b[0], 0.003, 0.045)
+		var y: float = b[3]
+		while y > b[2]:
 			var m := MeshInstance3D.new()
 			m.mesh = slat
 			m.material_override = slat_mat
-			m.position = Vector3(wx[0] + 0.12 + i * 0.13, 2.1, Z1 - 0.16)
-			m.rotation_degrees.y = 62.0
+			m.position = Vector3((b[0] + b[1]) * 0.5, y, Z1 - 0.09)
+			m.rotation_degrees.x = -40.0
 			level.add_child(m)
-	# The light: beams slanting in from the windows and doors, a hot patch across the floor.
-	var dir := Vector3(0.12, -0.3, -1.0).normalized()
+			y -= 0.038
+	# The station's neon sign, hanging in the window and facing the road: backwards from here.
+	_box(Vector3(1.5, 0.42, 0.02), Vector3(1.4, 1.6, Z1 - 0.16), _flat(Color(0.05, 0.05, 0.05), 0.6))
+	var neon := _text("F.A.L.C.O.N.\nFIELD STATION", Vector3(1.4, 1.6, Z1 - 0.17), 0.0, 0.0028, Color(0.35, 0.85, 2.2), 64)
+	neon.shaded = false
+	neon.double_sided = true
+	neon.outline_size = 10
+	neon.outline_modulate = Color(0.2, 0.55, 1.0, 0.5)
+	var open := _text("OPEN 24 HRS", Vector3(1.4, 1.3, Z1 - 0.17), 0.0, 0.0018, Color(2.2, 0.3, 0.2), 64)
+	open.shaded = false
+	open.double_sided = true
+	_light(Vector3(1.4, 1.6, Z1 - 0.5), Color(0.3, 0.55, 1.0), 0.7, 3.0)
+	# Dusk light slanting in through the blinds.
+	var dir := Vector3(0.12, -0.22, -1.0).normalized()
 	var beam_grad := Gradient.new()
-	beam_grad.set_color(0, Color(1.0, 0.62, 0.3, 0.26))
+	beam_grad.set_color(0, Color(1.0, 0.6, 0.32, 0.2))
 	beam_grad.set_color(1, Color(1.0, 0.45, 0.2, 0.0))
 	var bt := GradientTexture2D.new()
 	bt.gradient = beam_grad
@@ -209,115 +264,69 @@ func _entrance() -> void:
 	bm.cull_mode = BaseMaterial3D.CULL_DISABLED
 	bm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	bm.albedo_texture = bt
-	var length := 6.0
-	var starts := [Vector3(-4.6, 2.4, Z1), Vector3(-3.3, 1.8, Z1), Vector3(-0.6, 2.0, Z1), Vector3(0.6, 1.4, Z1),
-		Vector3(3.2, 2.5, Z1), Vector3(4.5, 1.7, Z1)]
-	for st in starts:
+	var length := 4.5
+	for i in 7:
+		var st := Vector3(-1.3 + i * 0.62, 1.25 + fmod(i * 0.37, 0.8), Z1)
 		for twist in [0.0, 90.0]:
 			var beam := MeshInstance3D.new()
 			var bq := QuadMesh.new()
-			bq.size = Vector2(length, 0.35)
+			bq.size = Vector2(length, 0.12)
 			beam.mesh = bq
 			beam.material_override = bm
 			beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			beam.basis = Basis.looking_at(dir, Vector3.UP) * Basis(Vector3.UP, PI * 0.5) * Basis(Vector3.RIGHT, deg_to_rad(twist))
 			beam.position = st + dir * (length * 0.5)
 			level.add_child(beam)
-	var dust := CPUParticles3D.new()
-	dust.amount = 120
-	dust.lifetime = 10.0
-	dust.preprocess = 10.0
-	dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	dust.emission_box_extents = Vector3(5.0, 0.8, 1.6)
-	dust.position = Vector3(0.0, 1.5, 3.4)
-	dust.gravity = Vector3(0, -0.004, 0)
-	dust.initial_velocity_min = 0.005
-	dust.initial_velocity_max = 0.03
-	dust.direction = Vector3(0, 1, 0)
-	dust.spread = 180.0
-	var dq := QuadMesh.new()
-	dq.size = Vector2(0.006, 0.006)
-	var dm := StandardMaterial3D.new()
-	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	dm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	dm.albedo_color = Color(1.0, 0.75, 0.45, 0.7)
-	dq.material = dm
-	dust.mesh = dq
-	level.add_child(dust)
 	var sun := SpotLight3D.new()
-	sun.light_color = SUN
-	sun.light_energy = 4.0
-	sun.spot_range = 13.0
-	sun.spot_angle = 38.0
-	sun.spot_attenuation = 0.5
-	sun.position = Vector3(0.0, 2.6, Z1 + 0.6)
+	sun.light_color = DUSK
+	sun.light_energy = 3.0
+	sun.spot_range = 9.0
+	sun.spot_angle = 35.0
+	sun.spot_attenuation = 0.6
+	sun.position = Vector3(0.6, 1.9, Z1 + 0.5)
 	sun.basis = Basis.looking_at(dir, Vector3.UP)
 	level.add_child(sun)
-	var wash := OmniLight3D.new()
-	wash.light_color = SUN
-	wash.light_energy = 1.0
-	wash.omni_range = 6.0
-	wash.position = Vector3(0.0, 1.8, Z1 - 0.8)
-	level.add_child(wash)
 
 
-## The front desk: dark wood with a marble top and a brass rail; behind it, the F.A.L.C.O.N. seal
-## and its name in brass, and a back counter with a monitor. The host rings the bell to start.
-func _front_desk() -> void:
-	G.block(-3.0, 2.0, 0.0, 1.08, -4.4, -3.75, _wood)                  # the counter
-	G.block(-3.06, 2.06, 1.08, 1.13, -4.46, -3.68, _marble)             # its marble top
-	G.block(-3.0, 2.0, 0.1, 0.14, -3.75, -3.72, _brass)                 # brass kick rail
-	G.block(-3.0, 2.0, 0.0, 0.76, -5.05, -4.4, _wood)                   # the clerks' work surface
-	G.block(-3.4, 2.4, 0.0, 0.92, Z0, -5.45, _wood)                     # back counter
-	G.block(-3.42, 2.42, 0.92, 0.96, Z0, -5.42, _marble)
-	var seal := MeshInstance3D.new()
-	var sq := QuadMesh.new()
-	sq.size = Vector2(1.25, 1.25)
-	seal.mesh = sq
-	var sm := StandardMaterial3D.new()
-	sm.albedo_texture = load(LOBBY + "seal.png")
-	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	sm.roughness = 0.6
-	seal.material_override = sm
-	seal.position = Vector3(-0.5, 2.3, Z0 + 0.035)
-	level.add_child(seal)
-	var name_l := Label3D.new()
-	name_l.text = "F . A . L . C . O . N ."
-	name_l.font_size = 96
-	name_l.pixel_size = 0.0042
-	name_l.modulate = Color(0.85, 0.65, 0.3)
-	name_l.outline_size = 0
-	name_l.position = Vector3(-0.5, 1.45, Z0 + 0.04)
-	level.add_child(name_l)
-	var sub := Label3D.new()
-	sub.text = "FACILITIES  &  ORIENTATION"
-	sub.font_size = 48
-	sub.pixel_size = 0.0035
-	sub.modulate = Color(0.8, 0.62, 0.3)
-	sub.outline_size = 0
-	sub.position = Vector3(-0.5, 1.18, Z0 + 0.04)
-	level.add_child(sub)
-	# On the desk: a lamp, papers, a stapler; on the back counter, the front desk's monitor.
-	var o := "res://assets/props/office/"
-	_prop(o + "desk_lamp_arm_01.glb", Vector3(1.55, 1.13, -4.15), 200.0)
-	_prop(o + "clipboard.glb", Vector3(0.4, 1.13, -4.05), 10.0)
-	_prop(o + "vintage_stapler.glb", Vector3(-1.4, 1.13, -4.1), -20.0)
-	_prop(o + "office_notepads.glb", Vector3(1.0, 1.13, -4.15), 0.0).scale = Vector3.ONE * 0.35
-	_prop("res://assets/props/intro_tv.glb", Vector3(-2.4, 0.96, -5.75), 20.0).scale = Vector3.ONE * 0.8
-	_prop(P + "potted_plant_04.glb", Vector3(-2.9, 1.13, -4.05), 0.0)
-	_prop(o + "binder_notebook.glb", Vector3(1.6, 0.96, -5.7), 0.0)
+## The reception counter: pine front, dark wood top. The bell (the host rings it to start), the
+## visitors' sign-in book, a green banker's lamp, a little plant, a card.
+func _counter() -> void:
+	G.block(-2.9, 0.6, 0.0, 1.03, -2.2, -1.62, _pine)
+	G.block(-2.95, 0.65, 1.03, 1.07, -2.25, -1.55, _wood)
+	G.block(-2.9, 0.6, 0.0, 0.1, -1.64, -1.6, _wood)
+	G.block(-2.9, 0.6, 0.0, 0.78, -2.6, -2.2, _wood)                # the clerk's shelf
+	# The visitors' sign-in book, open.
+	_box(Vector3(0.42, 0.012, 0.3), Vector3(-2.0, 1.076, -1.86), _flat(Color(0.3, 0.12, 0.08), 0.7), 8.0)
+	var page := _flat(Color(0.93, 0.9, 0.82), 0.9)
+	for s in [-1.0, 1.0]:
+		var p := _box(Vector3(0.19, 0.006, 0.27), Vector3(-2.0 + s * 0.1, 1.086, -1.86), page, 8.0)
+		p.rotation_degrees.z = -s * 4.0
+	_cyl(0.004, 0.004, 0.14, Vector3(-1.85, 1.09, -1.75), _flat(Color(0.1, 0.1, 0.2), 0.4)).rotation_degrees = Vector3(90, 30, 0)
+	# Banker's lamp: brass base and stem, green glass shade, a warm pool of light.
+	_cyl(0.07, 0.08, 0.025, Vector3(-2.6, 1.083, -1.95), _brass)
+	_cyl(0.008, 0.008, 0.3, Vector3(-2.6, 1.23, -1.95), _brass)
+	var shade := MeshInstance3D.new()
+	var sc := CylinderMesh.new()
+	sc.top_radius = 0.07
+	sc.bottom_radius = 0.07
+	sc.height = 0.3
+	sc.radial_segments = 16
+	shade.mesh = sc
+	var green := _flat(Color(0.05, 0.4, 0.2), 0.15)
+	green.emission_enabled = true
+	green.emission = Color(0.1, 0.5, 0.25)
+	green.emission_energy_multiplier = 0.5
+	shade.material_override = green
+	shade.rotation_degrees.z = 90.0
+	shade.scale = Vector3(1, 1, 0.55)
+	shade.position = Vector3(-2.6, 1.37, -1.92)
+	level.add_child(shade)
+	_light(Vector3(-2.6, 1.28, -1.85), Color(1.0, 0.82, 0.55), 0.6, 2.6)
+	_prop(P + "potted_plant_04.glb", Vector3(0.38, 1.07, -1.92), 0.0)
+	_text("PLEASE RING\nFOR SERVICE", BELL + Vector3(0.25, 0.06, 0.04), 0.0, 0.0012, Color(0.15, 0.1, 0.06), 32)
+	_box(Vector3(0.16, 0.1, 0.003), BELL + Vector3(0.25, 0.06, 0.035), _flat(Color(0.95, 0.92, 0.84), 0.9))
 	# The service bell: brass dome on a dark base. Ringing it (grab, or interact) starts the game.
-	var base := MeshInstance3D.new()
-	var bc := CylinderMesh.new()
-	bc.top_radius = 0.055
-	bc.bottom_radius = 0.06
-	bc.height = 0.022
-	base.mesh = bc
-	base.material_override = _flat(Color(0.08, 0.06, 0.05), 0.4)
-	base.position = BELL + Vector3(0, 0.011, 0)
-	level.add_child(base)
+	_cyl(0.055, 0.06, 0.022, BELL + Vector3(0, 0.011, 0), _flat(Color(0.08, 0.06, 0.05), 0.4))
 	var dome := MeshInstance3D.new()
 	var ds := SphereMesh.new()
 	ds.radius = 0.05
@@ -328,107 +337,176 @@ func _front_desk() -> void:
 	dome.position = BELL + Vector3(0, 0.022, 0)
 	dome.scale = Vector3(1, 0.75, 1)
 	level.add_child(dome)
-	var knob := MeshInstance3D.new()
-	var kc := CylinderMesh.new()
-	kc.top_radius = 0.008
-	kc.bottom_radius = 0.006
-	kc.height = 0.025
-	knob.mesh = kc
-	knob.material_override = _brass
-	knob.position = BELL + Vector3(0, 0.07, 0)
-	level.add_child(knob)
+	_cyl(0.008, 0.006, 0.025, BELL + Vector3(0, 0.07, 0), _brass)
 	level.lever_point = BELL + Vector3(0, 0.05, 0)
 	var ring := preload("res://items/lever_handle.gd").new()
 	ring.name = "Bell"
 	level.get_node("Props").add_child(ring)
 	ring.global_position = level.lever_point
-	var tag := Label3D.new()
-	tag.text = "RING FOR SERVICE\nthe host rings to start"
-	tag.font_size = 32
-	tag.pixel_size = 0.0018
-	tag.modulate = Color(0.12, 0.1, 0.08)
-	tag.outline_size = 0
-	tag.position = BELL + Vector3(0, -0.2, 0.2)
-	level.add_child(tag)
 
 
-## Two elevators in the west wall: brushed steel doors, brass frames, call buttons and floor dials.
-func _elevators() -> void:
-	var amber := StandardMaterial3D.new()
-	amber.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	amber.albedo_color = Color(1.0, 0.6, 0.15)
-	var dark := _flat(Color(0.05, 0.05, 0.05), 0.5)
-	for c in [-2.6, 0.6]:
-		G.block(X0, X0 + 0.1, 0.0, 2.55, c - 0.78, c + 0.78, _brass)        # frame
-		G.block(X0, X0 + 0.12, 0.02, 2.4, c - 0.62, c + 0.62, _steel)      # the doors
-		G.block(X0 + 0.12, X0 + 0.125, 0.02, 2.4, c - 0.005, c + 0.005, dark)
-		G.block(X0, X0 + 0.11, 2.6, 2.86, c - 0.35, c + 0.35, dark)         # the floor dial
-		var dial := Label3D.new()
-		dial.text = "L   2   3   4"
-		dial.font_size = 40
-		dial.pixel_size = 0.0035
-		dial.modulate = Color(1.0, 0.62, 0.18)
-		dial.outline_size = 0
-		dial.position = Vector3(X0 + 0.115, 2.73, c)
-		dial.rotation_degrees.y = 90.0
-		level.add_child(dial)
-		G.block(X0, X0 + 0.04, 1.0, 1.35, c + 0.92, c + 1.08, _brass)       # call buttons
-		for y in [1.24, 1.11]:
-			var b := MeshInstance3D.new()
-			var bc := CylinderMesh.new()
-			bc.top_radius = 0.022
-			bc.bottom_radius = 0.022
-			bc.height = 0.012
-			b.mesh = bc
-			b.material_override = amber
-			b.rotation_degrees.z = 90.0
-			b.position = Vector3(X0 + 0.045, y, c + 1.0)
-			level.add_child(b)
+## Behind the counter: the dormitory keys on their board, the staff mail cubbies, the station's
+## carved sign with the seal, the clock, a framed safety notice, and the sign-in rule.
+func _behind_counter() -> void:
+	var zw := Z0 + 0.03
+	# Key board: three rows of six hooks, each with a key on a coloured plastic fob.
+	G.block(-2.75, -1.15, 1.25, 1.95, Z0, zw, _wood)
+	_text("DORMITORY KEYS", Vector3(-1.95, 1.89, zw + 0.005), 0.0, 0.0018, Color(0.9, 0.8, 0.55), 40)
+	var fob_cols := [Color(0.75, 0.15, 0.12), Color(0.15, 0.35, 0.65), Color(0.15, 0.5, 0.3), Color(0.85, 0.55, 0.15)]
+	var gone := [3, 8, 13, 16]          # rooms checked out right now: empty hooks
+	for row in 3:
+		for col in 6:
+			var n := row * 6 + col
+			var hx := -2.6 + col * 0.25
+			var hy := 1.75 - row * 0.2
+			_cyl(0.005, 0.005, 0.04, Vector3(hx, hy, zw + 0.02), _brass).rotation_degrees.x = 90.0
+			if n in gone:
+				continue
+			_box(Vector3(0.012, 0.06, 0.004), Vector3(hx, hy - 0.04, zw + 0.035), _brass)
+			var fob := _box(Vector3(0.035, 0.07, 0.008), Vector3(hx, hy - 0.11, zw + 0.035), _flat(fob_cols[n % 4], 0.35))
+			fob.rotation_degrees.z = 0.0
+			_text("D%d" % (101 + n), Vector3(hx, hy - 0.11, zw + 0.041), 0.0, 0.0006, Color(1, 1, 1), 32)
+	# Staff mail: a pine box of pigeonholes, a few with notes in them.
+	var cx0 := -0.95
+	var cx1 := 0.35
+	G.block(cx0, cx1, 1.2, 2.0, Z0, Z0 + 0.28, _wood)
+	var hole := _flat(Color(0.12, 0.08, 0.05), 0.9)
+	var note := _flat(Color(0.95, 0.93, 0.86), 0.9)
+	for r in 3:
+		for c in 4:
+			var x := cx0 + 0.06 + c * 0.31 + 0.13
+			var y := 1.29 + r * 0.25 + 0.1
+			_box(Vector3(0.26, 0.2, 0.01), Vector3(x, y, Z0 + 0.282), hole)
+			if (r * 4 + c) % 3 == 0:
+				_box(Vector3(0.18, 0.12, 0.004), Vector3(x, y - 0.03, Z0 + 0.29), note).rotation_degrees.z = 6.0
+	_text("STAFF MAIL", Vector3(-0.3, 2.04, Z0 + 0.285), 0.0, 0.0014, Color(0.9, 0.8, 0.55), 40)
+	# The station's carved sign, with the F.A.L.C.O.N. seal.
+	G.block(-2.75, -0.05, 2.08, 2.42, Z0, zw + 0.02, _wood)
+	_text("F.A.L.C.O.N. FIELD STATION", Vector3(-1.25, 2.29, zw + 0.026), 0.0, 0.0024, Color(0.95, 0.82, 0.55), 64)
+	_text("VISITOR RECEPTION", Vector3(-1.25, 2.17, zw + 0.026), 0.0, 0.0014, Color(0.85, 0.72, 0.48), 48)
+	var sign_seal := MeshInstance3D.new()
+	var ssq := QuadMesh.new()
+	ssq.size = Vector2(0.3, 0.3)
+	sign_seal.mesh = ssq
+	var ssm := StandardMaterial3D.new()
+	ssm.albedo_texture = load(LOBBY + "seal.png")
+	ssm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	sign_seal.material_override = ssm
+	sign_seal.position = Vector3(-2.55, 2.25, zw + 0.028)
+	level.add_child(sign_seal)
+	_prop(O + "wall_clock.glb", Vector3(1.25, 2.05, Z0), 0.0)
+	_text("ALL VISITORS\nMUST SIGN IN", Vector3(1.25, 1.7, zw + 0.005), 0.0, 0.0015, Color(0.2, 0.12, 0.06), 40)
+	# A framed notice: the seal and the one rule that matters.
+	G.block(0.72, 1.42, 1.08, 1.6, Z0, zw + 0.02, _wood)
+	var seal := MeshInstance3D.new()
+	var sq := QuadMesh.new()
+	sq.size = Vector2(0.4, 0.4)
+	seal.mesh = sq
+	var sm := StandardMaterial3D.new()
+	sm.albedo_texture = load(LOBBY + "seal.png")
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	seal.material_override = sm
+	seal.position = Vector3(1.07, 1.36, zw + 0.026)
+	level.add_child(seal)
+	_text("IF YOU HEAR IT, FREEZE", Vector3(1.07, 1.13, zw + 0.026), 0.0, 0.0010, Color(0.95, 0.9, 0.8), 32)
 
 
-func _columns() -> void:
-	var dark := _flat(Color(0.12, 0.1, 0.09), 0.25)
-	for p in [Vector2(-4.0, -1.4), Vector2(-4.0, 2.6), Vector2(2.4, -1.4), Vector2(2.4, 2.6)]:
-		G.block(p.x - 0.36, p.x + 0.36, 0.0, 0.14, p.y - 0.36, p.y + 0.36, dark)
-		G.block(p.x - 0.3, p.x + 0.3, 0.14, H, p.y - 0.3, p.y + 0.3, _marble)
-		G.block(p.x - 0.32, p.x + 0.32, 1.05, 1.1, p.y - 0.32, p.y + 0.32, _brass)
-		G.block(p.x - 0.33, p.x + 0.33, H - 0.24, H - 0.18, p.y - 0.33, p.y + 0.33, _brass)
+## Along the west wall: the soda machine, the coffee station and the rack of F.A.L.C.O.N. pamphlets.
+func _west_wall() -> void:
+	var xw := X0 + 0.03
+	# The soda machine: red cabinet, a lit front panel, a column of buttons.
+	G.block(xw, xw + 0.72, 0.0, 1.8, -1.75, -0.95, _flat(Color(0.7, 0.08, 0.06), 0.35, 0.2))
+	var panel := _box(Vector3(0.004, 1.0, 0.48), Vector3(xw + 0.725, 1.15, -1.42), _glow(Color(1.0, 0.95, 0.85), 1.25))
+	panel.rotation_degrees.y = 0.0
+	_text("ICE\nCOLD\nSODA", Vector3(xw + 0.73, 1.2, -1.42), 90.0, 0.0026, Color(0.8, 0.06, 0.05), 64)
+	for i in 6:
+		_box(Vector3(0.02, 0.06, 0.1), Vector3(xw + 0.73, 1.45 - i * 0.12, -1.09), _glow(Color(0.95, 0.85, 0.6), 0.9))
+	_box(Vector3(0.02, 0.12, 0.3), Vector3(xw + 0.73, 0.35, -1.42), _flat(Color(0.05, 0.05, 0.05), 0.5))
+	# Free coffee: a little cabinet with a coffee maker, its pot, cups and sugar.
+	G.block(xw, xw + 0.5, 0.0, 0.88, -0.25, 0.75, _wood)
+	_box(Vector3(0.24, 0.34, 0.22), Vector3(xw + 0.17, 1.05, 0.0), _flat(Color(0.06, 0.06, 0.06), 0.4))
+	var pot := _flat(Color(0.25, 0.12, 0.05), 0.1)
+	pot.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pot.albedo_color = Color(0.3, 0.14, 0.06, 0.85)
+	_cyl(0.06, 0.07, 0.14, Vector3(xw + 0.3, 0.95, 0.0), pot)
+	_box(Vector3(0.01, 0.01, 0.01), Vector3(xw + 0.29, 0.89, 0.1), _glow(Color(1.0, 0.1, 0.05), 1.5))
+	var cup := _flat(Color(0.97, 0.96, 0.93), 0.8)
+	for i in 4:
+		_cyl(0.035, 0.03, 0.09, Vector3(xw + 0.3, 0.925 + i * 0.03, 0.42), cup)
+	_cyl(0.04, 0.04, 0.1, Vector3(xw + 0.22, 0.93, 0.6), _brass)
+	_text("COFFEE\nSTAFF & VISITORS", Vector3(X0 + 0.035, 1.55, 0.25), 90.0, 0.0018, Color(0.35, 0.15, 0.05), 48)
+	# F.A.L.C.O.N. pamphlets for visitors and new staff.
+	G.block(xw, xw + 0.04, 0.95, 1.75, 1.05, 1.85, _wood)
+	_text("TAKE ONE", Vector3(xw + 0.045, 1.81, 1.45), 90.0, 0.0016, Color(0.25, 0.12, 0.05), 40)
+	var cols := [Color(0.2, 0.55, 0.75), Color(0.85, 0.6, 0.15), Color(0.3, 0.6, 0.3), Color(0.8, 0.25, 0.2), Color(0.9, 0.85, 0.7), Color(0.45, 0.3, 0.6)]
+	var names := ["WATER\nSAFETY", "YOUR\nFIRST DAY", "LIMINAL\nENTITIES", "IF YOU\nARE TAKEN", "STAFF\nBENEFITS", "WET\nFOOTPRINTS?"]
+	for r in 3:
+		G.block(xw + 0.04, xw + 0.1, 1.0 + r * 0.25, 1.03 + r * 0.25, 1.05, 1.85, _wood)
+		for c in 3:
+			var i := (r * 3 + c) % 6
+			var z := 1.18 + c * 0.25
+			var b := _box(Vector3(0.012, 0.2, 0.1), Vector3(xw + 0.07, 1.13 + r * 0.25, z), _flat(cols[i], 0.6))
+			b.rotation_degrees.z = -8.0
+			_text(names[i], Vector3(xw + 0.08, 1.15 + r * 0.25, z), 90.0, 0.0006, Color(0.05, 0.05, 0.05), 32)
+	_prop(O + "hanging_picture_frame_02.glb", Vector3(X0, 1.7, -2.6), 90.0).scale = Vector3.ONE * 0.8
 
 
-## The waiting area by the east wall: a patterned sofa facing the TV, two armchairs, a marble coffee
-## table on a rug, with the tape and a few magazines on it.
-func _waiting_area() -> void:
+## An orange cone fireplace in the corner, on a stone hearth, with a fire flickering in it.
+func _fireplace() -> void:
+	var f := FIREPLACE
+	_box(Vector3(1.15, 0.06, 1.15), f + Vector3(0, 0.03, 0), _flat(Color(0.32, 0.3, 0.28), 0.9))
+	var enamel := _flat(Color(0.92, 0.36, 0.08), 0.22, 0.15)
+	_cyl(0.42, 0.42, 0.36, f + Vector3(0, 0.24, 0), enamel)                     # the bowl
+	_cyl(0.11, 0.42, 0.72, f + Vector3(0, 0.78, 0), enamel)                     # the cone
+	_cyl(0.1, 0.1, H - 1.14, f + Vector3(0, 1.14 + (H - 1.14) * 0.5, 0), _flat(Color(0.1, 0.1, 0.1), 0.5, 0.6))
+	for leg in [Vector3(0.28, 0, 0.18), Vector3(-0.28, 0, 0.18), Vector3(0, 0, -0.32)]:
+		_cyl(0.02, 0.02, 0.06, f + leg + Vector3(0, 0.09, 0), _flat(Color(0.1, 0.1, 0.1), 0.5, 0.6))
+	# The opening faces into the room (north-east), with the fire inside.
+	var face := Vector3(0.75, 0, -0.65).normalized()
+	var mouth := MeshInstance3D.new()
+	var mq := QuadMesh.new()
+	mq.size = Vector2(0.42, 0.32)
+	mouth.mesh = mq
+	_fire_mat = _glow(Color(1.0, 0.45, 0.12), 1.4)
+	mouth.material_override = _fire_mat
+	mouth.basis = Basis.looking_at(-face, Vector3.UP)
+	mouth.position = f + face * 0.43 + Vector3(0, 0.36, 0)
+	level.add_child(mouth)
+	_fire_light = _light(f + face * 0.7 + Vector3(0, 0.45, 0), Color(1.0, 0.5, 0.18), 1.1, 4.0)
+
+
+## The TV nook by the east wall: a couch facing the TV, a leather armchair, a coffee table on a plaid
+## rug with the tape and some magazines, a lamp on a tall side table, plants.
+func _tv_nook() -> void:
 	var rug := MeshInstance3D.new()
 	var rq := QuadMesh.new()
-	rq.size = Vector2(3.4, 4.25)
+	rq.size = Vector2(2.6, 3.3)
 	rug.mesh = rq
 	var rm := StandardMaterial3D.new()
-	rm.albedo_texture = load(LOBBY + "rug.jpg")
+	rm.albedo_texture = load(LOBBY + "plaid_color.jpg")
+	rm.normal_enabled = true
+	rm.normal_texture = load(LOBBY + "plaid_normal.jpg")
+	rm.uv1_scale = Vector3(3.0, 3.8, 1.0)
 	rm.roughness = 0.95
 	rug.material_override = rm
 	rug.rotation_degrees.x = -90.0
-	rug.position = Vector3(5.25, 0.006, 1.5)
+	rug.position = Vector3(2.55, 0.006, -0.6)
 	level.add_child(rug)
-	_prop(P + "sofa_03.glb", Vector3(4.05, 0.0, 1.5), 90.0)
-	_prop(P + "greenchair_01.glb", Vector3(5.5, 0.0, -0.45), 25.0)
-	_prop(P + "greenchair_01.glb", Vector3(5.5, 0.0, 3.45), 155.0)
-	_prop(P + "coffee_table_round_01.glb", COFFEE_TABLE, 0.0)
-	level._hidden_block(COFFEE_TABLE.x - 0.45, COFFEE_TABLE.x + 0.45, 0.0, 0.49, COFFEE_TABLE.z - 0.45, COFFEE_TABLE.z + 0.45)
-	_prop(P + "side_table_tall_01.glb", Vector3(3.95, 0.0, 3.45), 0.0)
-	_prop(P + "antique_ceramic_vase_01.glb", Vector3(3.95, 0.76, 3.45), 0.0)
-	_prop(P + "potted_plant_01.glb", Vector3(6.45, 0.0, -0.5), 0.0)
-	_prop(P + "potted_plant_01.glb", Vector3(6.45, 0.0, 3.6), 120.0)
-	# Magazines on the coffee table.
-	for m in [[Vector3(5.6, 0.495, 1.85), 20.0, Color(0.75, 0.2, 0.18)], [Vector3(5.66, 0.502, 1.8), -8.0, Color(0.2, 0.42, 0.62)],
-			[Vector3(5.0, 0.495, 1.05), 70.0, Color(0.85, 0.75, 0.3)]]:
-		var mag := MeshInstance3D.new()
-		var mb := BoxMesh.new()
-		mb.size = Vector3(0.21, 0.006, 0.28)
-		mag.mesh = mb
-		mag.material_override = _flat(m[2], 0.4)
-		mag.position = m[0]
-		mag.rotation_degrees.y = m[1]
-		level.add_child(mag)
+	_prop(P + "sofa_03.glb", Vector3(1.5, 0.0, -0.6), 90.0)
+	_prop("res://assets/props/intro_armchair.glb", Vector3(2.75, 0.0, 1.55), 149.0)
+	_prop(P + "coffeetable_01.glb", COFFEE_TABLE, 90.0)
+	level._hidden_block(COFFEE_TABLE.x - 0.45, COFFEE_TABLE.x + 0.45, 0.0, 0.52, COFFEE_TABLE.z - 0.7, COFFEE_TABLE.z + 0.7)
+	for m in [[Vector3(2.75, 0.526, -1.05), 15.0, Color(0.75, 0.2, 0.18)], [Vector3(2.8, 0.532, -1.0), -10.0, Color(0.2, 0.45, 0.6)]]:
+		_box(Vector3(0.21, 0.006, 0.28), m[0], _flat(m[2], 0.4), m[1])
+	# A table lamp on a tall side table at the end of the couch: the vase is its base.
+	_prop(P + "side_table_tall_01.glb", Vector3(1.45, 0.0, 1.15), 0.0)
+	_prop(P + "antique_ceramic_vase_01.glb", Vector3(1.45, 0.76, 1.15), 0.0).scale = Vector3.ONE * 0.8
+	var shade := _cyl(0.12, 0.2, 0.24, Vector3(1.45, 1.27, 1.15), _glow(Color(1.0, 0.86, 0.62), 1.1))
+	shade.material_override.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_light(Vector3(1.45, 1.2, 1.15), Color(1.0, 0.78, 0.5), 0.8, 3.5)
+	_prop(P + "potted_plant_01.glb", Vector3(3.55, 0.0, 2.95), 0.0)
+	_prop(P + "potted_plant_01.glb", Vector3(3.55, 0.0, -3.0), 120.0)
+	_prop(O + "hanging_picture_frame_01.glb", Vector3(X1, 1.7, 1.6), -90.0).scale = Vector3.ONE * 0.7
 	# The TV set, turned to face the room from the east wall.
 	var corner := Node3D.new()
 	corner.name = "TVCorner"
@@ -456,51 +534,26 @@ func _waiting_area() -> void:
 	vcr_body.position = OfficeRoom.VCR + Vector3(0, 0.05, 0)
 	vcr_body.add_child(cs)
 	corner.add_child(vcr_body)
-	level._hidden_block(X1 - 0.6, X1, 0.0, 0.83, 0.84, 2.16)        # the cabinet, to stand things on
-	level._spawn_item("tape", "Tape", COFFEE_TABLE + Vector3(-0.15, 0.51, -0.25))
+	level._hidden_block(X1 - 0.6, X1, 0.0, 0.83, -1.26, 0.06)        # the cabinet, to stand things on
+	level._spawn_item("tape", "Tape", COFFEE_TABLE + Vector3(-0.1, 0.53, 0.25))
 
 
-func _decor() -> void:
-	_prop(P + "sofa_02.glb", Vector3(-6.45, 0.0, 3.6), 90.0)                       # by the elevators
-	_prop(P + "potted_plant_01.glb", Vector3(-6.45, 0.0, -1.0), 40.0)
-	_prop(P + "potted_plant_01.glb", Vector3(-6.4, 0.0, 5.35), 200.0)
-	_prop(P + "potted_plant_01.glb", Vector3(6.4, 0.0, -5.35), 300.0)
-	_prop(P + "side_table_tall_01.glb", Vector3(-6.6, 0.0, 5.0), 0.0)
-	var o := "res://assets/props/office/"
-	_prop(o + "wall_clock.glb", Vector3(-4.6, 2.45, Z0), 0.0)
-	_prop(o + "hanging_picture_frame_02.glb", Vector3(X0, 1.85, 3.6), 90.0)
-	_prop(o + "hanging_picture_frame_01.glb", Vector3(X1, 1.8, -3.8), -90.0).scale = Vector3.ONE * 0.9
-	_prop(o + "fire_alarm.glb", Vector3(1.9, 1.45, Z1), 180.0)
-	# Brass sconces by the desk and either side of the TV; the ones by the TV glow.
-	_prop(P + "industrial_wall_sconce.glb", Vector3(-2.6, 2.05, Z0), 0.0)
-	_prop(P + "industrial_wall_sconce.glb", Vector3(1.6, 2.05, Z0), 0.0)
-	_prop(P + "industrial_wall_sconce.glb", Vector3(X1, 1.95, -0.25), -90.0)
-	_prop(P + "industrial_wall_sconce.glb", Vector3(X1, 1.95, 3.25), -90.0)
-	for z in [-0.25, 3.25]:
-		var l := OmniLight3D.new()
-		l.light_color = Color(1.0, 0.75, 0.45)
-		l.light_energy = 0.5
-		l.omni_range = 3.2
-		l.position = Vector3(X1 - 0.35, 1.8, z)
-		level.add_child(l)
-
-
-## The felt letter board on the north wall: the room code and who's here.
+## The felt letter board: the room code and who's here.
 func _letter_board() -> void:
-	var at := Vector3(4.6, 1.75, Z0 + 0.04)
-	G.block(at.x - 0.95, at.x + 0.95, at.y - 0.68, at.y + 0.68, Z0, Z0 + 0.03, _steel)
+	var at := Vector3(2.9, 1.55, Z0 + 0.04)
+	G.block(at.x - 0.75, at.x + 0.75, at.y - 0.52, at.y + 0.52, Z0, Z0 + 0.03, _wood)
 	var felt := MeshInstance3D.new()
 	var fq := QuadMesh.new()
-	fq.size = Vector2(1.8, 1.26)
+	fq.size = Vector2(1.4, 0.94)
 	felt.mesh = fq
 	felt.material_override = _flat(Color(0.03, 0.03, 0.035), 0.95)
 	felt.position = at
 	level.add_child(felt)
 	info = Label3D.new()
 	info.position = at + Vector3(0, 0, 0.005)
-	info.pixel_size = 0.0021
+	info.pixel_size = 0.0017
 	info.font_size = 40
-	info.width = 800
+	info.width = 780
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.modulate = Color(0.95, 0.94, 0.9)
 	info.outline_size = 0
@@ -510,6 +563,13 @@ func _letter_board() -> void:
 # --- Every frame ---------------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	_t += delta
+	if _fan:
+		_fan.rotation.y += delta * 1.6
+	if _fire_light:
+		var f := 0.85 + 0.15 * sin(_t * 9.0) + 0.1 * sin(_t * 23.0 + 1.3) + 0.06 * sin(_t * 41.0)
+		_fire_light.light_energy = 1.1 * f
+		_fire_mat.albedo_color = Color(1.0, 0.45, 0.12) * (1.2 + 0.3 * f)
 	_info_t -= delta
 	if _info_t <= 0.0:
 		_info_t = 0.5
@@ -540,9 +600,9 @@ func _update_info() -> void:
 		var ips := Net.local_addresses()
 		if not ips.is_empty():
 			code = "ON THIS WI-FI  %s\n" % ips[0]
-	var start := "THE HOST RINGS THE BELL AT THE FRONT DESK TO START" if Net.is_host() or not Net.is_online() \
+	var start := "RING THE BELL AT THE DESK TO START" if Net.is_host() or not Net.is_online() \
 		else "WAITING FOR %s TO RING THE BELL" % host_name
-	info.text = "WELCOME TO F.A.L.C.O.N.\n\n%sHERE (%d/%d): %s\n\n%s\n\nTHE TAPE IS ON THE COFFEE TABLE" % [
+	info.text = "WELCOME TO THE FIELD STATION\n\n%sHERE (%d/%d): %s\n\n%s\n\nTHE TAPE IS ON THE COFFEE TABLE" % [
 		code, names.size(), Net.MAX_PLAYERS, ", ".join(names), start]
 
 

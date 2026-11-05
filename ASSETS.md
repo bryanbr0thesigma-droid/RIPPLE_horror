@@ -165,26 +165,29 @@ tape up and presses play is Godot XR Tools' glove (MIT), tinted to the player's 
 
 ## The lobby
 
-The multiplayer lobby (`game/level/lobby_room.gd`): the ground floor of a 90s office building.
+The multiplayer lobby (`game/level/lobby_room.gd`): the visitor reception of a F.A.L.C.O.N. field
+station, built like a cozy old roadside lodge (after references to 90s motor lodges and motel
+offices: knotty pine, red carpet, a counter with a bell and a key board, a cone fireplace, a neon
+sign in the window).
 
 | File | What | Source | Author | License |
 |---|---|---|---|---|
-| `game/assets/lobby/tiles_*` | The checkered marble floor | [ambientCG, Tiles 074](https://ambientcg.com/view?id=Tiles074) | Lennart Demes | CC0 |
-| `game/assets/lobby/marble_*` | The front desk top and the columns | [ambientCG, Marble 014](https://ambientcg.com/view?id=Marble014) | Lennart Demes | CC0 |
-| `game/assets/lobby/wood_*` | Wainscoting, the front desk, frames | [ambientCG, Wood 051](https://ambientcg.com/view?id=Wood051) | Lennart Demes | CC0 |
-| `game/assets/props/lobby/sofa_03.glb` | The waiting area's sofa | [Poly Haven, Sofa 03](https://polyhaven.com/a/sofa_03) | Fran Calvente | CC0 |
-| `game/assets/props/lobby/sofa_02.glb` | The leather sofa by the elevators | [Poly Haven, Sofa 02](https://polyhaven.com/a/sofa_02) | Kirill Sannikov | CC0 |
-| `game/assets/props/lobby/greenchair_01.glb` | The armchairs | [Poly Haven, Green Chair 01](https://polyhaven.com/a/GreenChair_01) | Kirill Sannikov | CC0 |
-| `game/assets/props/lobby/coffee_table_round_01.glb` | The coffee table | [Poly Haven, Coffee Table Round 01](https://polyhaven.com/a/coffee_table_round_01) | Ulan Cabanilla | CC0 |
-| `game/assets/props/lobby/industrial_wall_sconce.glb` | The wall sconces | [Poly Haven, Industrial Wall Sconce](https://polyhaven.com/a/industrial_wall_sconce) | Ulan Cabanilla | CC0 |
+| `game/assets/lobby/pine_*` | The knotty pine walls and counter (turned to vertical boards) | [Poly Haven, Coated Pine](https://polyhaven.com/a/coated_pine) | Charlotte Baglioni, Rico Cilliers | CC0 |
+| `game/assets/lobby/carpet_*` | The red carpet | [ambientCG, Carpet 015](https://ambientcg.com/view?id=Carpet015) | Lennart Demes | CC0 |
+| `game/assets/lobby/plaid_*` | The plaid rug (green colourway) | [Poly Haven, Fabric Pattern 07](https://polyhaven.com/a/fabric_pattern_07) | Rob Tuytel | CC0 |
+| `game/assets/lobby/stucco_*` | The stucco ceiling | [Poly Haven, White Stucco](https://polyhaven.com/a/white_stucco) | Amal Kumar | CC0 |
+| `game/assets/lobby/wood_*` | Beams, skirting, the counter top, frames | [ambientCG, Wood 051](https://ambientcg.com/view?id=Wood051) | Lennart Demes | CC0 |
+| `game/assets/props/lobby/sofa_03.glb` | The couch | [Poly Haven, Sofa 03](https://polyhaven.com/a/sofa_03) | Fran Calvente | CC0 |
+| `game/assets/props/lobby/coffeetable_01.glb` | The coffee table | [Poly Haven, Coffee Table 01](https://polyhaven.com/a/CoffeeTable_01) | Fernando Quinn | CC0 |
+| `game/assets/props/lobby/ceiling_fan.glb` | The ceiling fan | [Poly Haven, Ceiling Fan](https://polyhaven.com/a/ceiling_fan) | Ulan Cabanilla | CC0 |
 | `game/assets/props/lobby/potted_plant_01.glb` | The plants | [Poly Haven, Potted Plant 01](https://polyhaven.com/a/potted_plant_01) | Rico Cilliers | CC0 |
-| `game/assets/props/lobby/potted_plant_04.glb`, `side_table_tall_01.glb`, `antique_ceramic_vase_01.glb` | The desk plant, the tall side tables, the vase | [Poly Haven](https://polyhaven.com/models) | James Ray Cock | CC0 |
-| `game/assets/lobby/rug.jpg` | The waiting area's rug (a 90s hotel pattern) | drawn for RIPPLE in code | — | ours |
-| `game/assets/lobby/seal.png` | The F.A.L.C.O.N. seal behind the desk | cut from the tape's label (see above) | — | CC0 parts |
+| `game/assets/props/lobby/potted_plant_04.glb`, `side_table_tall_01.glb`, `antique_ceramic_vase_01.glb` | The counter plant, the lamp table, the lamp's base | [Poly Haven](https://polyhaven.com/models) | James Ray Cock | CC0 |
+| `game/assets/lobby/seal.png` | The F.A.L.C.O.N. seal on the station sign and the framed notice | cut from the tape's label (see above) | — | CC0 parts |
 | `game/assets/audio/desk_bell.ogg` | The service bell's ding | synthesized for RIPPLE | — | ours |
 
-The office pieces, the TV set, the elevators, columns, desk, doors, windows and blinds are reused or
-made in the game from simple shapes.
+The leather armchair, the TV set, pictures and clock are reused from the office. The counter, key
+board, cubbies, signs, fireplace, soda machine, coffee station, brochure rack, window, blinds and
+neon sign are made in the game from simple shapes.
 
 ## Code libraries
 
