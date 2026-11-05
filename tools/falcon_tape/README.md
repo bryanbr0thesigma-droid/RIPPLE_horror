@@ -18,6 +18,10 @@ ffmpeg -i out/falcon_tape.mp4 -i out/falcon_tape_audio.wav -map 0:v -map 1:a -vf
   -c:v libtheora -q:v 6 -c:a libvorbis -q:a 3 -ac 1 -shortest game/assets/video/falcon_tape.ogv
 ```
 
+The cassette's labels are in `media/labels/`: `label_top.png` for the face of the cassette
+(78 x 46 mm) and `label_spine.png` for the spine (146 x 19 mm), both drawn by `labels.py`. Print
+them at those sizes.
+
 ## What's in it
 
 - **The Wader:** silhouettes rendered from the game's own creature model (`silhouettes/`), the
@@ -44,6 +48,8 @@ ffmpeg -i out/falcon_tape.mp4 -i out/falcon_tape_audio.wav -map 0:v -map 1:a -vf
 - `silhouettes.html`, `silhouettes.mjs`, `pack_silhouettes.py`: render the creature side-on with
   three.js in headless Chromium and pack the frames. `render_svgs.mjs` and `pack_people.py` turn
   the downloaded SVGs into PNGs.
+- `labels.py`: draws the cassette's two labels (`python3 labels.py <out_dir>`, which also writes
+  a side-by-side `labels_preview.png`).
 
 ## Build
 
