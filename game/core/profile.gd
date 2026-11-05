@@ -16,6 +16,7 @@ var volume := 0.85
 var music := 0.6
 var codes: Array = []        # secret codes typed in (they unlock hidden suits)
 var intro_seen := false      # the first-boot tape has played
+var tutorial_done := false   # finished the training annex
 
 
 func _ready() -> void:
@@ -31,6 +32,7 @@ func _ready() -> void:
 		music = cfg.get_value("settings", "music", 0.6)
 		codes = cfg.get_value("player", "codes", [])
 		intro_seen = cfg.get_value("player", "intro_seen", false)
+		tutorial_done = cfg.get_value("player", "tutorial_done", false)
 	if not suit_unlocked(suit):
 		suit = 0
 	if player_name == "":
@@ -48,6 +50,7 @@ func save() -> void:
 	cfg.set_value("player", "color", color)
 	cfg.set_value("player", "codes", codes)
 	cfg.set_value("player", "intro_seen", intro_seen)
+	cfg.set_value("player", "tutorial_done", tutorial_done)
 	cfg.set_value("settings", "snap_turn", snap_turn)
 	cfg.set_value("settings", "show_body", show_body)
 	cfg.set_value("settings", "volume", volume)

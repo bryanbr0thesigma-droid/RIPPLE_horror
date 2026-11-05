@@ -275,6 +275,8 @@ func _physics_process(delta: float) -> void:
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")
 func _state(head: Transform3D, lh: Transform3D, rh: Transform3D, feet: Vector3, flags: int) -> void:
+	if not is_inside_tree():          # arriving while the lobby is swapped for the game
+		return
 	if multiplayer.get_remote_sender_id() != peer_id:
 		return
 	net_feet = feet

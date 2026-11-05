@@ -65,7 +65,7 @@ func _ready() -> void:
 	_status.text = Game.menu_message
 	Net.hosts_changed.connect(_refresh_hosts)
 	Net.session_failed.connect(_on_failed)
-	Net.session_started.connect(func(): Game.start_level())
+	Net.session_started.connect(func(): Game.enter_session())
 	show_page("main")
 
 
@@ -106,7 +106,8 @@ func _build_play(parent: Control) -> void:
 		_room_label.text = "_"
 		show_page("room")))
 	p.add_child(_button("Host on this Wi-Fi", _host))
-	p.add_child(_button("Play solo", _host))
+	p.add_child(_button("Play solo", _solo))
+	p.add_child(_button("Tutorial: the training annex", func(): Game.start_tutorial()))
 	p.add_child(_label("Games on your Wi-Fi", 20, INK))
 	_hosts_box = VBoxContainer.new()
 	_hosts_box.add_theme_constant_override("separation", 8)
@@ -419,7 +420,17 @@ func show_page(page_name: String) -> void:
 		_status.text = ""
 
 
+func _solo() -> void:
+	Game.use_lobby = false
+	Profile.save()
+	Net.local_info.vr = Game.vr_mode
+	if Net.host() == OK:
+		_connecting_label.text = "Starting your game..."
+		show_page("connecting")
+
+
 func _host() -> void:
+	Game.use_lobby = true
 	Profile.save()
 	Net.local_info.vr = Game.vr_mode
 	if Net.host() == OK:
@@ -428,6 +439,7 @@ func _host() -> void:
 
 
 func _host_online() -> void:
+	Game.use_lobby = true
 	Profile.save()
 	Net.local_info.vr = Game.vr_mode
 	if Net.host_online() == OK:

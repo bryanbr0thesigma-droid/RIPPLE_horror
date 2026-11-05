@@ -11,6 +11,8 @@ const INTRO_SCENE := "res://intro/intro.tscn"
 var vr_mode := false
 var xr_interface: XRInterface
 var level: Node = null          # the running level (level.gd)
+var level_mode := "game"        # what the next level scene builds: "game", "lobby" or "tutorial"
+var use_lobby := false          # hosting from the menu: everyone waits in the lobby first
 var menu_message := ""          # shown on the menu after leaving a game
 
 ## Command-line options after "--": --desktop, --host, --join=IP, --name=NAME, --autotest=NAME
@@ -81,8 +83,25 @@ func intro_due() -> bool:
 	return not Profile.intro_seen
 
 
-func start_level() -> void:
+func start_level(mode := "game") -> void:
+	level_mode = mode
+	if mode != "tutorial":
+		Net.phase = mode
 	get_tree().change_scene_to_file.call_deferred(LEVEL_SCENE)
+
+
+## The training annex, on your own (no one can join).
+func start_tutorial() -> void:
+	Net.local_info.vr = vr_mode
+	Net.host_offline()
+	start_level("tutorial")
+
+
+## After hosting or joining: the host goes to the lobby (or straight into the game when playing
+## solo); a joining player waits for the host to say which (Net._welcome).
+func enter_session() -> void:
+	if Net.is_host():
+		start_level("lobby" if use_lobby else "game")
 
 
 func go_to_menu(reason := "") -> void:

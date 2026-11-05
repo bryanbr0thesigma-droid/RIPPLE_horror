@@ -38,6 +38,9 @@ var _broadcaster: PacketPeerUDP
 var _listener: PacketPeerUDP
 var _broadcast_timer := 0.0
 var _expected_disconnect := false
+## Host: "lobby" while everyone waits in the office, "game" once the host has started.
+var phase := "game"
+var _switching := false        # host: everyone is moving from the lobby to the game
 
 
 func _ready() -> void:
@@ -141,6 +144,42 @@ func host_online(forced_room := "") -> Error:
 	return OK
 
 
+## A private session for the tutorial: offline, nobody can join, but the level runs as the host.
+func host_offline() -> Error:
+	leave(true)
+	_peer = OfflineMultiplayerPeer.new()
+	multiplayer.multiplayer_peer = _peer
+	players = {1: local_info.duplicate()}
+	ready_peers = []
+	players_changed.emit()
+	return OK
+
+
+## Host: everyone in the lobby goes into the game.
+func start_game() -> void:
+	if not is_host() or phase == "game":
+		return
+	phase = "game"
+	_switching = true
+	ready_peers = []
+	for pid in players:
+		if pid != 1:
+			rpc_id(pid, "_go_game")
+	Game.start_level("game")
+
+
+@rpc("authority", "call_remote", "reliable")
+func _go_game() -> void:
+	ready_peers.clear()
+	Game.start_level("game")
+
+
+## Host -> a player who just joined: where everyone is (the lobby or the game).
+@rpc("authority", "call_remote", "reliable")
+func _welcome(where: String) -> void:
+	Game.start_level("lobby" if where == "lobby" else "game")
+
+
 ## Join an online game by its room code.
 func join_online(code: String) -> Error:
 	leave(true)
@@ -195,7 +234,11 @@ func leave(quiet := false) -> void:
 ## Called by the level once it has finished building on this peer.
 func level_loaded() -> void:
 	if is_host():
+		_switching = false
 		_mark_ready(1)
+		for id in ready_peers.duplicate():     # anyone who got there first
+			if id != 1 and Game.level:
+				Game.level.on_peer_ready(id)
 		_announce_code.call_deferred()
 	else:
 		rpc_id(1, "_client_level_ready")
@@ -206,7 +249,7 @@ func _mark_ready(id: int) -> void:
 		ready_peers.append(id)
 	_broadcast_ready()
 	ready_peers_changed.emit()
-	if Game.level:
+	if Game.level and not _switching:
 		Game.level.on_peer_ready(id)
 
 
@@ -241,6 +284,7 @@ func _register(info: Dictionary) -> void:
 	for pid in players:
 		if pid != 1:
 			rpc_id(pid, "_set_players", players)
+	rpc_id(id, "_welcome", phase)
 	players_changed.emit()
 
 

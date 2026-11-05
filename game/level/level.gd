@@ -19,7 +19,11 @@ const ItemScripts := {
 	"throwable": preload("res://items/throwable.gd"),
 	"flashlight": preload("res://items/flashlight.gd"),
 	"bag": preload("res://items/bag.gd"),
+	"tape": preload("res://items/tape.gd"),
 }
+const LobbyScript := preload("res://level/lobby_room.gd")
+const TutorialScript := preload("res://level/tutorial_course.gd")
+const IN_VCR := -999          # an item's "stowed" value while it's inside the lobby's VCR
 const SFX := {
 	"splash_big": preload("res://assets/audio/splash_big.ogg"),
 	"splash_small": preload("res://assets/audio/splash_small.ogg"),
@@ -41,6 +45,10 @@ const FLOOR := -0.95
 const CHANNEL_FLOOR := -1.8
 
 var G: LevelGeometry
+## "game" (the Shallow Halls, with the creature), "tutorial" (the training annex, no creature) or
+## "lobby" (the office where players wait for the host to start). Set from Game.level_mode.
+var mode := "game"
+var world_env: WorldEnvironment
 var players: Dictionary = {}      # peer id -> Player
 var items: Dictionary = {}        # name -> NetItem
 var creature: Node3D
@@ -55,6 +63,7 @@ var state := {
 	"gen": 0,               # 0 off, 1 starting up, 2 running
 	"cover": false,
 	"all_escaped": false,
+	"vhs": false,           # lobby: the tape is playing
 }
 var escaped: Dictionary = {}      # host: peer id -> bool
 
@@ -81,6 +90,11 @@ var distiller_slot := Vector3(18.5, 0.68, -8.85)   # on top of the distiller mac
 var charger_point := Vector3(23.15, 1.0, -6.6)
 var lever_point := Vector3(17.05, 1.2, -33.0)
 var creature_spawn := Vector3(8.0, FLOOR, -38.0)
+# Where the mechanics are (the tutorial builds them elsewhere, see the _make_* builders).
+var generator_noise_pos := Vector3(10.5, SURFACE, -42.0)
+var generator_zone_pos := Vector3(10.5, SURFACE, -44.0)
+var cover_origin := Vector3(18.0, -0.06, -36.0)   # the retracted cover's west end
+var cover_len := 18.0
 
 ## Rooms: ambience, checkpoints, exit. Rect2 is x, z, width, depth.
 var zones := [
@@ -113,17 +127,30 @@ func _ready() -> void:
 		var node := Node3D.new()
 		node.name = n
 		add_child(node)
+	mode = Game.level_mode
 	G = LevelGeometry.new(self)
 	_environment()
-	_build_start_room()
-	_build_hall_a()
-	_build_staff_room()
-	_build_hall_b()
-	_build_hall_c()
-	_build_exit()
-	_build_items()
-	_build_navigation()
-	_build_creature()
+	match mode:
+		"lobby":
+			var lobby: Node = LobbyScript.new()
+			lobby.name = "Lobby"
+			add_child(lobby)
+			lobby.build(self)
+		"tutorial":
+			var course: Node = TutorialScript.new()
+			course.name = "Tutorial"
+			add_child(course)
+			course.build(self)
+		_:
+			_build_start_room()
+			_build_hall_a()
+			_build_staff_room()
+			_build_hall_b()
+			_build_hall_c()
+			_build_exit()
+			_build_items()
+			_build_navigation()
+			_build_creature()
 	_build_audio()
 	_build_lidar_dots()
 	Gore.warm_up()
@@ -158,6 +185,7 @@ func _environment() -> void:
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
+	world_env = we
 
 
 func _build_start_room() -> void:
@@ -237,9 +265,22 @@ func _build_staff_room() -> void:
 	G.wall_lamp(Vector3(24, 2.4, -3.5), Vector3.LEFT, 1.3, 9.5)
 	G.chair(Vector3(20.5, 0, -3.15), 0)
 	G.chair(Vector3(21.6, 0, -3.2), 12)
+	_make_staff_door(Vector3.ZERO)
+	# The table (Round 24: "Old Metal Table" by berkgedik, CC BY). It keeps an invisible box for
+	# standing things on.
+	_hidden_block(20.06, 21.94, 0.0, 0.85, -2.47, -1.53)
+	_prop("res://assets/props/staff_desk.glb", Vector3(21.0, 0.0, -2.0), 90.0)
+	_make_charger(Vector3.ZERO)
+	_make_distiller(Vector3.ZERO)
+
+
+## The locked door (the key opens it), in a wall running north-south, opening east. `o` moves it
+## from where it is in the Shallow Halls (the staff room's west wall at x 16, z -5).
+func _make_staff_door(o: Vector3) -> void:
+	lock_point = Vector3(15.88, 0.95, -4.54) + o
 	# The approved metal door (CC BY, tboiston): frame in the wall, leaf hinged on its far edge.
 	var door: Node3D = preload("res://assets/props/staff_door.glb").instantiate()
-	door.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(16.0, 0.0, -5.0))
+	door.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(16.0, 0.0, -5.0) + o)
 	$Props.add_child(door)
 	staff_leaf = door.find_child("Leaf", true, false)
 	staff_door = StaticBody3D.new()
@@ -253,22 +294,31 @@ func _build_staff_room() -> void:
 	dcs.position = Vector3(-0.54, 1.03, 0.0)
 	staff_door.add_child(dcs)
 	staff_leaf.add_child(staff_door)
-	var lock := G.block(15.86, 15.9, 0.9, 1.0, -4.6, -4.48, G.mat_rail, 0, $Props)
+	var lock := G.block(15.86 + o.x, 15.9 + o.x, 0.9, 1.0, -4.6 + o.z, -4.48 + o.z, G.mat_rail, 0, $Props)
 	lock.name = "Lock"
-	# The table (Round 24: "Old Metal Table" by berkgedik, CC BY) and the lidar charger's stand (Round
-	# 24: Poly Haven's tool cart, CC0). Each keeps an invisible box for standing things on.
-	_hidden_block(20.06, 21.94, 0.0, 0.85, -2.47, -1.53)
-	_prop("res://assets/props/staff_desk.glb", Vector3(21.0, 0.0, -2.0), 90.0)
-	_hidden_block(22.85, 23.55, 0.0, 0.9, -7.19, -6.01)
-	_prop("res://assets/props/tool_cart.glb", Vector3(23.2, 0.0, -6.6), 90.0)
+
+
+## The lidar charger's stand (Round 24: Poly Haven's tool cart, CC0), with an invisible box to stand
+## things on. `o` moves it from the staff room.
+func _make_charger(o: Vector3) -> void:
+	charger_point = Vector3(23.15, 1.0, -6.6) + o
+	_hidden_block(22.85 + o.x, 23.55 + o.x, 0.0, 0.9, -7.19 + o.z, -6.01 + o.z)
+	_prop("res://assets/props/tool_cart.glb", Vector3(23.2, 0.0, -6.6) + o, 90.0)
+	_add_prop_label("LIDAR CHARGER\nneeds power", Vector3(23.15, 1.35, -5.78) + o)
+
+
+## The distiller: the machine the canteen stands on, and the rusted tanks behind it. `o` moves it
+## from the staff room's back wall.
+func _make_distiller(o: Vector3) -> void:
+	distiller_slot = Vector3(18.5, 0.68, -8.85) + o
 	# The distiller machine, where the canteen goes (Round 24: "Machinery device" by maxpsr, CC BY,
 	# the same artist as the tanks behind it). The canteen sits on top of it.
-	_hidden_block(17.85, 19.15, 0.0, 0.6, -9.95, -8.25)
-	_prop("res://assets/props/distiller_machine.glb", Vector3(18.5, 0.0, -9.1), 90.0)
+	_hidden_block(17.85 + o.x, 19.15 + o.x, 0.0, 0.6, -9.95 + o.z, -8.25 + o.z)
+	_prop("res://assets/props/distiller_machine.glb", Vector3(18.5, 0.0, -9.1) + o, 90.0)
 	# The distiller itself: rusted tanks along the back wall, piped to the stand where the canteen
 	# goes (approved in Round 22: "Rusted liquid storages" by maxpsr, CC BY).
 	var tanks: Node3D = preload("res://assets/props/distiller.glb").instantiate()
-	tanks.position = Vector3(20.95, 0.0, -9.38)
+	tanks.position = Vector3(20.95, 0.0, -9.38) + o
 	$Props.add_child(tanks)
 	var tank_body := StaticBody3D.new()
 	tank_body.collision_layer = LevelGeometry.L_WORLD
@@ -279,9 +329,8 @@ func _build_staff_room() -> void:
 	tcs.position = Vector3(0, 0.625, 0)
 	tank_body.add_child(tcs)
 	tanks.add_child(tank_body)
-	_add_prop_label("DISTILLER\nset a canteen here", Vector3(18.5, 1.1, -8.2))
-	_add_prop_label("LIDAR CHARGER\nneeds power", Vector3(23.15, 1.35, -5.78))
-	distiller_audio = _loop_audio(preload("res://assets/audio/distiller_loop.ogg"), Vector3(18.6, 1.0, -9.1), -10.0)
+	_add_prop_label("DISTILLER\nset a canteen here", Vector3(18.5, 1.1, -8.2) + o)
+	distiller_audio = _loop_audio(preload("res://assets/audio/distiller_loop.ogg"), Vector3(18.6, 1.0, -9.1) + o, -10.0)
 
 
 func _build_hall_b() -> void:
@@ -329,11 +378,16 @@ func _build_hall_b() -> void:
 	_build_generator()
 
 
-func _build_generator() -> void:
-	var g := G.block(9.5, 11.5, 0.0, 1.0, -45.6, -44.8, G.mat_metal, LevelGeometry.L_WORLD, $Props)
+## The generator (fed mineral water through its funnel) and its power lever. `o` moves it from the
+## dark sector's platform.
+func _build_generator(o := Vector3.ZERO) -> void:
+	funnel_point = Vector3(10.5, 1.15, -44.4) + o
+	generator_noise_pos = Vector3(10.5, SURFACE, -42.0) + o
+	generator_zone_pos = Vector3(10.5, SURFACE, -44.0) + o
+	var g := G.block(9.5 + o.x, 11.5 + o.x, 0.0 + o.y, 1.0 + o.y, -45.6 + o.z, -44.8 + o.z, G.mat_metal, LevelGeometry.L_WORLD, $Props)
 	g.name = "Generator"
 	var power_lever: Node3D = preload("res://assets/props/power_lever.glb").instantiate()   # CC BY, Amine.Elouneg
-	power_lever.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(8.7, 0.0, -45.3))
+	power_lever.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(8.7, 0.0, -45.3) + o)
 	$Props.add_child(power_lever)
 	# Funnel on top: the canteen's stream has to land in it.
 	var funnel := Area3D.new()
@@ -366,7 +420,7 @@ func _build_generator() -> void:
 	var dark := StandardMaterial3D.new()
 	dark.albedo_color = Color(0.05, 0.06, 0.06)
 	frame.material_override = dark
-	frame.position = Vector3(11.3, 0.5, -44.78)
+	frame.position = Vector3(11.3, 0.5, -44.78) + o
 	$Props.add_child(frame)
 	generator_glass = MeshInstance3D.new()
 	var gb := BoxMesh.new()
@@ -378,10 +432,11 @@ func _build_generator() -> void:
 	gm.emission = Color(0.1, 0.5, 0.55)
 	gm.emission_energy_multiplier = 0.6
 	generator_glass.material_override = gm
-	generator_glass.position = Vector3(11.3, 0.5, -44.76)
+	generator_glass.position = Vector3(11.3, 0.5, -44.76) + o
+	generator_glass.set_meta("base_y", generator_glass.position.y)
 	$Props.add_child(generator_glass)
-	_add_prop_label("GENERATOR\npour mineral water in the funnel", Vector3(10.5, 1.55, -44.7))
-	generator_audio = _loop_audio(preload("res://assets/audio/generator_hum.ogg"), Vector3(10.5, 0.8, -45.2), -4.0)
+	_add_prop_label("GENERATOR\npour mineral water in the funnel", Vector3(10.5, 1.55, -44.7) + o)
+	generator_audio = _loop_audio(preload("res://assets/audio/generator_hum.ogg"), Vector3(10.5, 0.8, -45.2) + o, -4.0)
 
 
 func _build_hall_c() -> void:
@@ -399,7 +454,15 @@ func _build_hall_c() -> void:
 	G.light(Vector3(27, 4.6, -40), 1.3, 15.0, Color(0.9, 0.95, 1.0))
 	G.pipe_run(Vector3(38, 4.0, -22), Vector3(38, 4.0, -46), Vector3.LEFT)
 	G.wet_sign(Vector3(17.4, 0, -39.4), 45)
-	# The retractable pool cover, retracted against the west ledge.
+	_make_pool_cover(Vector3.ZERO, 18.0)
+	_make_lever(Vector3.ZERO, "POOL COVER\npull the lever (needs power)")
+
+
+## The retractable pool cover, retracted against a west ledge; it rolls out east `length` metres.
+## `o` moves it from Hall C.
+func _make_pool_cover(o: Vector3, length: float) -> void:
+	cover_origin = Vector3(18.0, -0.06, -36.0) + o
+	cover_len = length
 	cover_bridge = AnimatableBody3D.new()
 	cover_bridge.name = "PoolCover"
 	cover_bridge.collision_layer = LevelGeometry.L_DYNAMIC
@@ -407,7 +470,7 @@ func _build_hall_c() -> void:
 	cover_bridge.sync_to_physics = false
 	var mi := MeshInstance3D.new()
 	var bm := BoxMesh.new()
-	bm.size = Vector3(18, 0.12, 2.4)
+	bm.size = Vector3(length, 0.12, 2.4)
 	mi.mesh = bm
 	var cm := StandardMaterial3D.new()
 	cm.albedo_color = Color(0.2, 0.32, 0.5)
@@ -420,11 +483,15 @@ func _build_hall_c() -> void:
 	cs.shape = sh
 	cover_bridge.add_child(cs)
 	$Props.add_child(cover_bridge)
-	# The lever on the west ledge.
-	# The approved lever in its red box (CC BY, gunnarcorrea) on a post; its handle moves.
-	G.block(16.75, 17.25, 0.0, 0.9, -33.25, -32.75, G.mat_metal, LevelGeometry.L_WORLD, $Props)
+
+
+## The approved lever in its red box (CC BY, gunnarcorrea) on a post; its handle moves. `o` moves it
+## from Hall C's west ledge. (The pool cover's lever, and the lobby's start lever.)
+func _make_lever(o: Vector3, label: String) -> void:
+	lever_point = Vector3(17.05, 1.2, -33.0) + o
+	G.block(16.75 + o.x, 17.25 + o.x, 0.0, 0.9, -33.25 + o.z, -32.75 + o.z, G.mat_metal, LevelGeometry.L_WORLD, $Props)
 	var lever: Node3D = preload("res://assets/props/cover_lever.glb").instantiate()
-	lever.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(17.0, 0.9, -33.0))
+	lever.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(17.0, 0.9, -33.0) + o)
 	$Props.add_child(lever)
 	lever_arm = lever.find_child("Handle", true, false)
 	lever_arm.rotation_degrees = Vector3(-35, 0, 0)
@@ -432,7 +499,7 @@ func _build_hall_c() -> void:
 	handle.name = "LeverHandle"
 	$Props.add_child(handle)
 	handle.global_position = lever_point
-	_add_prop_label("POOL COVER\npull the lever (needs power)", Vector3(17.0, 1.75, -33.0), 90)
+	_add_prop_label(label, Vector3(17.0, 1.75, -33.0) + o, 90)
 
 
 func _build_exit() -> void:
@@ -557,7 +624,8 @@ func _build_audio() -> void:
 		var amb: AudioStreamOggVorbis = AMBIENCE[k]
 		amb.loop = true
 	var music := AudioStreamPlayer.new()
-	var ms: AudioStreamOggVorbis = preload("res://assets/audio/music_under_surface.ogg")
+	var ms: AudioStreamOggVorbis = preload("res://assets/audio/music_melted_piano.ogg") if mode == "lobby" \
+		else preload("res://assets/audio/music_under_surface.ogg")
 	ms.loop = true
 	music.stream = ms
 	music.bus = "Music"
@@ -630,10 +698,11 @@ func _process(delta: float) -> void:
 	for it in items.values():
 		if it.has_method("is_distilling") and it.is_distilling():
 			distilling = true
-	if distilling and not distiller_audio.playing:
-		distiller_audio.play()
-	elif not distilling and distiller_audio.playing:
-		distiller_audio.stop()
+	if distiller_audio:
+		if distilling and not distiller_audio.playing:
+			distiller_audio.play()
+		elif not distilling and distiller_audio.playing:
+			distiller_audio.stop()
 
 
 func _physics_process(delta: float) -> void:
@@ -654,14 +723,14 @@ func _place_cover() -> void:
 	var mesh: MeshInstance3D = cover_bridge.get_child(0)
 	var cs: CollisionShape3D = cover_bridge.get_child(1)
 	mesh.scale = Vector3(a, 1, 1)
-	(cs.shape as BoxShape3D).size = Vector3(maxf(18.0 * a, 0.05), 0.12, 2.4)
-	cover_bridge.position = Vector3(18.0 + 9.0 * a, -0.06, -36.0)
+	(cs.shape as BoxShape3D).size = Vector3(maxf(cover_len * a, 0.05), 0.12, 2.4)
+	cover_bridge.position = cover_origin + Vector3(cover_len * 0.5 * a, 0.0, 0.0)
 	cover_bridge.visible = cover_amount > 0.002
 	cs.disabled = cover_amount < 0.05
 
 
 func _update_ambience(delta: float) -> void:
-	if not local_player:
+	if not local_player or mode == "lobby":    # the lobby is a quiet office
 		return
 	var p: Vector3 = local_player.body_position()
 	var want := "halls"
@@ -700,7 +769,7 @@ func _host_tick(delta: float) -> void:
 		gen_noise_timer -= delta
 		if gen_noise_timer <= 0.0:
 			gen_noise_timer = 1.0
-			NoiseBus.make(Vector3(10.5, SURFACE, -42.0), 0.3, "generator", false)
+			NoiseBus.make(generator_noise_pos, 0.3, "generator", false)
 		if gen_timer <= 0.0:
 			set_state("gen", 2)
 			broadcast_message("The generator is running. The lights are on in the dark sector.")
@@ -740,17 +809,27 @@ func _apply_state(key: String) -> void:
 				generator_audio.stream = preload("res://assets/audio/generator_hum.ogg")
 				generator_audio.stream.loop = true
 				generator_audio.play()
-			NoiseBus.cover_zones = [{"pos": Vector3(10.5, SURFACE, -44.0), "radius": 8.0, "mask": 0.6, "active": on}]
+			NoiseBus.cover_zones = [{"pos": generator_zone_pos, "radius": 8.0, "mask": 0.6, "active": on}]
 		"fuel":
 			if generator_glass:
 				var f: float = clampf(state.fuel / 2.0, 0.0, 1.0)
 				generator_glass.scale = Vector3(1, maxf(f, 0.01), 1)
-				generator_glass.position.y = 0.5 - 0.33 * (1.0 - f)
+				generator_glass.position.y = float(generator_glass.get_meta("base_y", 0.5)) - 0.33 * (1.0 - f)
 		"key_used":
 			if state.key_used and items.has("Key"):
 				items["Key"].retire()
+		"vhs":
+			if has_node("Lobby"):
+				get_node("Lobby").on_vhs(state.vhs)
 		"all_escaped":
-			if state.all_escaped:
+			if state.all_escaped and mode == "tutorial":
+				Game.notify("Training complete. You're ready for the Shallow Halls.")
+				get_tree().create_timer(4.0).timeout.connect(func():
+					if Game.level == self:
+						Profile.tutorial_done = true
+						Profile.save()
+						Game.go_to_menu("Training complete. You're ready for the Shallow Halls."))
+			elif state.all_escaped:
 				Game.notify("Everyone escaped! Back to the title in a few seconds.")
 				get_tree().create_timer(8.0).timeout.connect(func():
 					if Game.level == self:
@@ -837,6 +916,20 @@ func _srv_request(action: String, args: Array) -> void:
 					gen_noise_timer = 0.0
 					set_state("gen", 1)
 					broadcast_message("The generator is starting up%s." % (" fast (distilled water)" if distilled_part > 0.5 else ""))
+		"lever" when mode == "lobby":
+			play_sfx("clank", lever_point)
+			if sender == 1:
+				broadcast_message("Starting the game...")
+				get_tree().create_timer(1.0).timeout.connect(Net.start_game)
+			else:
+				broadcast_message("Only the host can start the game.")
+		"vhs_in":
+			var tape_item = items.get("Tape")
+			if mode == "lobby" and tape_item and not state.vhs and tape_item.stowed == 0:
+				_set_item_stowed_at("Tape", IN_VCR, get_node("Lobby").SLOT)
+				Net.send(self, &"_set_item_stowed_at", ["Tape", IN_VCR, get_node("Lobby").SLOT])
+				play_sfx("clank", get_node("Lobby").SLOT)
+				set_state("vhs", true)
 		"lever":
 			play_sfx("clank", lever_point)
 			if state.gen == 2 and not state.cover:
@@ -897,7 +990,7 @@ func on_peer_ready(id: int) -> void:
 		var item_list := []
 		for it in items.values():
 			item_list.append(it.snapshot())
-		rpc_id(id, "_snapshot", state, item_list, creature.snapshot())
+		rpc_id(id, "_snapshot", state, item_list, creature.snapshot() if creature else [])
 		for pid in players:
 			var p = players[pid]
 			rpc_id(id, "_spawn_player", pid, Net.players.get(pid, {}), p.global_position)
@@ -917,7 +1010,8 @@ func _snapshot(world: Dictionary, item_list: Array, creature_state: Array) -> vo
 		var it = items.get(entry[0])
 		if it:
 			it.apply_snapshot(entry)
-	creature.apply_snapshot(creature_state)
+	if creature and not creature_state.is_empty():
+		creature.apply_snapshot(creature_state)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -995,7 +1089,8 @@ func player_caught(id: int, screech := 0, kind := 0) -> void:
 func _caught(id: int, screech: int, kind: int) -> void:
 	var p = players.get(id)
 	if p:
-		creature.play_kill(p, screech, kind)
+		if creature:
+			creature.play_kill(p, screech, kind)
 		p.on_caught(kind)
 		if p.info.get("dummy", false):
 			p.net_alive = false

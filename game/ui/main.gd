@@ -52,7 +52,11 @@ func _ready() -> void:
 	_pedestal()
 	menu.character_changed.connect(_refresh_preview)
 	_refresh_preview()
-	if Game.args.has("host"):
+	Game.use_lobby = Game.args.has("lobby")       # quick starts go straight into the game
+	if Game.args.has("tutorial"):
+		Game.args.erase("tutorial")              # once: finishing it comes back to the title
+		Game.start_tutorial()
+	elif Game.args.has("host"):
 		Net.local_info.vr = Game.vr_mode
 		Net.host()
 	elif Game.args.has("join"):

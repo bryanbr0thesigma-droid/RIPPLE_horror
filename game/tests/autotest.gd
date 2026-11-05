@@ -37,6 +37,7 @@ func _run() -> void:
 	if scenario == "intro":
 		# The first-boot tape: it plays, skipping ends it, and the menu opens with it marked seen.
 		Profile.intro_seen = false
+		Profile.tutorial_done = false
 		Game.play_intro()
 		await wait(4.0)
 		var intro = get_tree().current_scene
@@ -58,7 +59,8 @@ func _run() -> void:
 		intro._finish()
 		await wait(4.0)
 		check(Profile.intro_seen, "after the tape it is marked as seen")
-		check(get_tree().current_scene != null and get_tree().current_scene.scene_file_path == Game.MENU_SCENE, "then the title menu opens")
+		var annex := await wait_for(func(): return Game.level != null and Game.level.mode == "tutorial", 10.0)
+		check(annex, "on the first launch it fades into the training annex")
 		check(not Game.intro_due(), "it won't play by itself again")
 		_finish()
 		return
@@ -115,6 +117,16 @@ func _run() -> void:
 			await _kill_movie()
 		"body":
 			await _body_test()
+		"tutorial":
+			await _tutorial_test()
+		"lobby":
+			await _lobby_test()
+		"lobby_host":
+			await _lobby_host()
+		"lobby_client":
+			await _lobby_client()
+		"tutorial_shot", "lobby_shot":
+			await _room_shots()
 		"body_shot":
 			await _body_shot()
 	_finish()
@@ -123,6 +135,96 @@ func _run() -> void:
 func _finish() -> void:
 	print("AUTOTEST done ", scenario, " failures=", failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## The training annex: everything works, nothing lives in the water, and the exit finishes it.
+func _tutorial_test() -> void:
+	var L = Game.level
+	Profile.tutorial_done = false
+	check(L.mode == "tutorial", "the training annex loaded")
+	check(L.creature == null and get_tree().get_nodes_in_group("creature").is_empty(), "nothing lives in its water (no creature)")
+	var all_items := true
+	for n in ["Flashlight", "Bottle1", "Bottle3", "Lidar", "Key", "Canteen1", "Canteen2"]:
+		all_items = all_items and L.items.has(n)
+	check(all_items, "it has the flashlight, bottles, lidar, key and canteens")
+	check(L.lock_point.x > 24.0 and L.charger_point.x > 17.0 and L.distiller_slot.x > 31.0 and L.funnel_point.x > 31.0 and L.lever_point.x > 41.0,
+		"its door, charger, distiller, generator and lever are in the annex")
+	var tut = L.get_node("Tutorial")
+	NoiseBus.my_noise.emit(0.8)
+	await wait(0.1)
+	check(tut._noise > 0.5, "the noise meter lights up when you make noise")
+	L.request("unlock")
+	await wait(0.5)
+	check(L.state.staff_door, "the key's door opens")
+	L.request("fuel", [1.0, true])
+	L.request("fuel", [1.0, true])
+	check(L.state.gen == 1, "two canteens start the generator")
+	var running := await wait_for(func(): return L.state.gen == 2, 15.0)
+	check(running and L.hall_b_lights.size() > 0 and L.hall_b_lights[0].visible, "it runs, and the cover room's lights come on")
+	L.request("lever")
+	await wait(0.3)
+	check(L.state.cover, "with power, the lever rolls the pool cover out")
+	_rig().teleport(Vector3(56.5, 0.05, 0.0))
+	var done := await wait_for(func(): return get_tree().current_scene != null and get_tree().current_scene.scene_file_path == Game.MENU_SCENE, 20.0)
+	check(done and Profile.tutorial_done, "walking out the exit finishes the training and goes to the title")
+
+
+## The lobby: the tape plays in the VCR, and the host's START lever begins the game.
+func _lobby_test() -> void:
+	var L = Game.level
+	check(L.mode == "lobby", "hosting from the menu opens the lobby")
+	check(L.creature == null and get_tree().get_nodes_in_group("creature").is_empty(), "no creature in the lobby")
+	var lobby = L.get_node("Lobby")
+	check(L.items.has("Tape") and lobby.info.text.find("Here (1/") >= 0, "the tape is on the table and the sign lists who's here")
+	var tape = L.items["Tape"]
+	tape.global_position = lobby.SLOT + Vector3(0, 0.02, 0.05)     # dropped on the VCR
+	var playing := await wait_for(func(): return L.state.vhs, 5.0)
+	check(playing and lobby.playing and tape.stowed == L.IN_VCR, "the tape goes into the VCR and plays on the TV")
+	await wait(1.0)
+	check(lobby.video.is_playing(), "the video is running")
+	L.request("lever")
+	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.local_player != null, 20.0)
+	check(started, "the host pulls START and the game begins")
+	check(started and Game.level.creature != null, "the game has the creature")
+
+
+## Pictures of each tutorial room (or the lobby), from the desktop camera.
+func _room_shots() -> void:
+	var out := str(Game.args.get("out", "user://"))
+	var r := _rig()
+	var views := []
+	if Game.level.mode == "tutorial":
+		views = [[Vector3(3.5, 0.05, 2.6), 0.15], [Vector3(7.6, 0.05, 2.9), -0.55], [Vector3(17.6, 0.05, 2.9), -0.65],
+			[Vector3(24.7, 0.05, 1.8), -1.25], [Vector3(31.8, 0.05, -1.2), -1.25], [Vector3(41.5, 0.05, 2.9), -1.0], [Vector3(53.8, 0.05, 2.6), -0.85]]
+	else:
+		views = [[Vector3(0.0, 0.05, 2.5), 0.0], [Vector3(-1.6, 0.05, -1.8), -2.4], [Vector3(2.4, 0.05, 2.5), 0.9]]
+	for i in views.size():
+		r.teleport(views[i][0])
+		r.set("_yaw", views[i][1])
+		r.set("_pitch", -0.12)
+		await wait(1.0)
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("%s/%s_%d.png" % [out, Game.level.mode, i])
+
+
+func _lobby_host() -> void:
+	var L = Game.level
+	check(L.mode == "lobby", "host: in the lobby")
+	var ok := await wait_for(func(): return L.players.size() >= 2, 30.0)
+	check(ok, "host: the other player arrives in the lobby")
+	await wait(2.0)
+	L.request("lever")
+	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.players.size() >= 2, 30.0)
+	check(started, "host: the game starts with both players")
+	await wait(4.0)
+
+
+func _lobby_client() -> void:
+	var ok := await wait_for(func(): return Game.level != null and Game.level.mode == "lobby" and Game.level.players.size() >= 2, 30.0)
+	check(ok, "client: joined into the lobby and sees the host")
+	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.players.size() >= 2, 40.0)
+	check(started, "client: moved into the game along with the host")
+	await wait(2.0)
 
 
 ## Your own body (full-body IK), its walking feet, and hands pushing the soft-body springs.
