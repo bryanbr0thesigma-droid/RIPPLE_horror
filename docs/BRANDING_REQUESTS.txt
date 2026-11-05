@@ -1,0 +1,202 @@
+RIPPLE - ART AND BRANDING REQUESTS
+==================================
+
+Everything below is art I can drop straight into the game. Nothing here is required to play;
+right now each spot shows plain placeholder text or a blank surface. Items are grouped by where
+they show up, then by priority. The fake companies the art needs are listed in PART 1.
+
+
+HOW TO DELIVER
+--------------
+
+- Format: PNG. Use the exact pixel sizes given (they are powers of two or simple ratios so the
+  headset handles them well). Bigger is fine if it is the same shape; I will scale it down.
+- Transparency: only where it says "transparent background". Everything else should be a solid,
+  full-bleed image (no transparent edges).
+- File names: use the names given in [brackets], so I know what goes where.
+- Where to put them: send them in the chat, or commit them to  game/assets/branding/  on the
+  claude/admiring-ride-o5042e branch (or any branch) and tell me.
+- Project rule: no AI-generated art. Make it yourself, or build it from CC0 / CC BY sources
+  (tell me the sources for CC BY so I can credit them).
+- Readability in VR: text on a sign of about 1 m wide should be at least about 1/12 of the
+  image height to be readable from a couple of metres. Use high contrast. Small print is fine as
+  decoration, but nobody will be able to read it.
+- Era and style: late 80s to mid 90s, slightly worn, government-issue. Think photocopied
+  pamphlets, enamel signs, felt letter boards, laminated notices.
+
+
+F.A.L.C.O.N. HOUSE STYLE (from the tape's labels, so everything matches)
+------------------------------------------------------------------------
+
+  Navy   #12205C   main colour: bands, headings, the seal's ring
+  Gold   #ECC446   accents: the seal's inner ring, rules, highlights
+  Cream  #E9E4D4   paper and backgrounds
+  Red    #B21E24   warnings, "RESTRICTED", bars
+
+  Full name:  Federal Agency for Liminal Classification & Occult Nature
+  Wordmark:   F.A.L.C.O.N.   (spaced capitals, bold sans serif, as on the tape label)
+  Seal:       the peregrine falcon in a navy ring with gold rims (game/assets/lobby/seal.png)
+  Existing:   Training Division; "Orientation Tape 07-W"; "Liminal Entity L-7, 'The Wader'"
+
+
+================================================================================================
+PART 1 - FAKE COMPANIES AND BRANDS NEEDED
+================================================================================================
+
+Give each one a name and a logo (and a slogan if you like). Each logo is used again in PART 2.
+
+1. F.A.L.C.O.N. (exists; just needs clean logo files)
+   a) [falcon_logo_full.png]      2048 x 1024, transparent background.
+      Horizontal lockup: the seal on the left, "F.A.L.C.O.N." and the full name to the right.
+      Used on: the station's carved sign, posters, pamphlets, the door glass.
+   b) [falcon_logo_onecolor.png]  1024 x 1024, transparent background, white only.
+      A one-colour version of the seal and wordmark (no gradients), for lettering on glass and
+      as the shape I trace for the neon sign.
+   c) The NAME OF THIS FIELD STATION. One line, e.g. "Field Station 7", "Station Pinewater",
+      "Outpost 12 - Visitor Reception". It goes on the carved sign, the letter board and the
+      neon in the window.
+
+2. A SODA BRAND (the vending machine in the lobby)
+   Name, logo, and a can design colour. 90s soda energy: big logo, a slogan, bubbles, a splash.
+   Bonus if the name is a quiet joke about water or the pools, but it should not be a real brand.
+
+3. A COFFEE BRAND (the coffee station)
+   Name and logo for the coffee can and the coffee maker. Cheap diner or office coffee.
+
+4. A MAGAZINE (on the coffee table)
+   A made-up 90s magazine title: a travel, outdoors, home or news magazine. 2 or 3 issues.
+
+5. OPTIONAL: an ELECTRONICS BRAND for the TV and VCR
+   The TV and VCR models carry their own small lettering; a fictional brand logo (wide, about
+   512 x 128, transparent) could replace it on both. Low priority.
+
+
+================================================================================================
+PART 2 - THE LOBBY (field station visitor reception)  - highest priority
+================================================================================================
+
+L1. SODA MACHINE FRONT PANEL                     [soda_front.png]   512 x 1024, solid
+    The lit front of the machine (0.48 m wide, 1.0 m tall on the machine). Shows the soda brand's
+    logo big, a can or bottle, the slogan, maybe "ICE COLD". Keep the right-hand 1/6 plain:
+    that is where the selection buttons sit.
+    Optional: [soda_side.png] 512 x 1024 for the machine's side (a big logo on red or similar).
+
+L2. PAMPHLET COVERS (the "TAKE ONE" rack)      6 files, 256 x 512 each, solid
+    Tri-fold pamphlet fronts, photocopied look, F.A.L.C.O.N. seal or logo on each.
+    Current titles (rename freely):
+      [pamphlet_1.png]  WATER SAFETY            (ties in with the tape)
+      [pamphlet_2.png]  YOUR FIRST DAY          (welcome to the agency)
+      [pamphlet_3.png]  LIMINAL ENTITIES        (a field guide; the Wader could be on it)
+      [pamphlet_4.png]  IF YOU ARE TAKEN        (darkly funny instructions)
+      [pamphlet_5.png]  STAFF BENEFITS          (dental, pension, "grief counselling")
+      [pamphlet_6.png]  WET FOOTPRINTS?         ("report them to your supervisor")
+
+L3. WALL POSTERS                               2 to 4 files, 768 x 1024, solid
+    For the bare knotty pine walls (east wall over the TV nook, north wall by the clock, beside
+    the door). F.A.L.C.O.N. notices or propaganda, e.g.:
+      [poster_1.png]  "IF YOU HEAR IT COMING, FREEZE"  (safety poster)
+      [poster_2.png]  recruitment: "F.A.L.C.O.N. NEEDS YOU" / "SEE WHAT OTHERS CAN'T"
+      [poster_3.png]  "QUIET HANDS SAVE LIVES"  (no splashing)
+      [poster_4.png]  a station map, or "VISITOR RULES" (sign in, stay with your escort, ...)
+
+L4. MAGAZINE COVERS (on the coffee table)      2 or 3 files, 512 x 680, solid
+    [magazine_1.png] ... the magazine from PART 1, different issues. Headlines can be strange
+    in a deadpan way ("10 Pools You Should Never Swim In", "Is Your Hallway Too Long?").
+
+L5. COFFEE CAN LABEL                           [coffee_label.png]  512 x 256, solid
+    Wraps around a coffee can on the coffee station. The coffee brand from PART 1.
+
+L6. STATION SIGN BOARD (behind the counter)    [station_sign.png]  1024 x 256, solid
+    Replaces the carved sign's plain text: the station name, "VISITOR RECEPTION", the seal.
+    Woodburned / carved-wood look, or painted enamel. It is 2.7 m wide, so keep it bold.
+
+L7. FRAMED NOTICE (behind the counter)         [notice.png]  512 x 512, solid
+    Currently the seal and "IF YOU HEAR IT, FREEZE". Could be a framed certificate
+    ("This station is certified ... L-7 containment ...") or a staff photo board.
+
+L8. OPTIONAL SMALL THINGS
+    [keyfob.png]       128 x 256   the dormitory key tags (plastic diamond fob, "D-___",
+                                   F.A.L.C.O.N. stamped on it). One design; I colour them.
+    [signin_page.png]  512 x 512   the open visitors' sign-in book: ruled columns
+                                   (NAME / VISITING / TIME IN / TIME OUT) with a few
+                                   handwritten entries. Nice if one entry is unsettling.
+    [mail_note.png]    256 x 256   a note in the staff mail cubbies (memo paper, F.A.L.C.O.N.
+                                   letterhead, a scribbled message).
+    [door_decal.png]   512 x 512   transparent; white lettering for the entrance glass
+                                   (currently "F.A.L.C.O.N. VISITOR ENTRANCE"). Reads from
+                                   outside, so draw it normally; I mirror it.
+    [neon_design.png]  1024 x 512  transparent; the window neon's shape if you want something
+                                   other than text (logo outline, a falcon). Thin, even lines.
+    [clock_face.png]   512 x 512   transparent; a clock face with the seal for the wall clock.
+    [rug_logo.png]     512 x 512   transparent; a woven seal to sit on the plaid rug or a
+                                   doormat at the entrance.
+
+
+================================================================================================
+PART 3 - THE TRAINING ANNEX (tutorial)  - medium priority
+================================================================================================
+
+T1. SIGN TEMPLATE                              [training_sign.png]  1024 x 640, solid
+    The tutorial's wall signs are plain text on the tiles right now. A blank F.A.L.C.O.N.
+    "Training Division" sign (navy header band with the seal and a title area, cream body,
+    a red stripe) lets me lay each room's text on top. One template covers all seven rooms.
+
+T2. ROOM TITLES (optional)                     7 files, 1024 x 256, transparent
+    Big headers for each room if you want them hand-made instead of typed:
+      1 CONTROLS   2 WATER IS LOUD   3 THROW / LIDAR   4 THE DARK   5 POWER
+      6 THE POOL COVER   7 IF YOU HEAR IT COMING, FREEZE
+
+T3. "NOISE" METER LABEL (optional)             [noise_meter.png]  512 x 256, transparent
+    A panel face for the noise meter in room 2 (gauge markings: QUIET ... LOUD ... DANGER).
+
+
+================================================================================================
+PART 4 - THE SHALLOW HALLS (the main level)  - lower priority
+================================================================================================
+
+S1. WARNING SIGNS                              3 to 5 files, 512 x 512, solid
+    For the pool halls: "NO DIVING", "NO RUNNING", "AUTHORISED STAFF ONLY", "DEEP WATER",
+    in a worn F.A.L.C.O.N. facility style (the tape uses ISO-style pictograms, so they can
+    match it).
+
+S2. EQUIPMENT LABELS                           512 x 256 each, solid
+    [label_generator.png]  "GENERATOR - MINERAL WATER ONLY"
+    [label_distiller.png]  "DISTILLER"
+    [label_charger.png]    "LIDAR CHARGER"
+    [label_cover.png]      "POOL COVER"
+    These replace the floating text labels on those machines with stencilled plates.
+
+S3. EXIT SIGN                                  [exit_sign.png]  512 x 256, solid
+    Over the fire exit at the end.
+
+S4. LEVEL NAME PLAQUE                          [halls_plaque.png]  1024 x 640, solid
+    The start room's plaque (currently a block of text): "THE SHALLOW HALLS" with the rules.
+
+
+================================================================================================
+PART 5 - TITLE SCREEN AND MENU (optional)
+================================================================================================
+
+M1. GAME LOGO                                  [ripple_logo.png]  2048 x 1024, transparent
+    The RIPPLE title logo for the title screen (it is plain text now).
+
+M2. MENU PANEL HEADER                          [menu_header.png]  1024 x 256, transparent
+    A header strip for the menu panel (could carry the F.A.L.C.O.N. seal, as if the menu were
+    an agency terminal).
+
+
+================================================================================================
+QUICK CHECKLIST (most useful first)
+================================================================================================
+
+  [ ] Station name (one line of text)
+  [ ] falcon_logo_full.png, falcon_logo_onecolor.png
+  [ ] Soda brand + soda_front.png
+  [ ] pamphlet_1..6.png
+  [ ] poster_1..2.png (up to 4)
+  [ ] Magazine name + magazine_1..2.png
+  [ ] Coffee brand + coffee_label.png
+  [ ] station_sign.png, notice.png
+  [ ] training_sign.png
+  [ ] Warning signs and equipment labels for the Shallow Halls
+  [ ] Anything optional you feel like making
