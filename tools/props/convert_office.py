@@ -1,15 +1,18 @@
-# The first-boot intro's office furniture (Poly Haven, CC0), kept at real size, simplified for the
-# Quest, small textures. Floor pieces stand on their base, centred; wall pieces have their origin
-# at the middle of their back, so they sit flush on a wall.
-#   blender -b --python convert_office.py -- <poly haven dir> <game dir>
+# Furniture from Poly Haven (CC0) for the first-boot office ("office") and the multiplayer lobby
+# ("lobby"), kept at real size, simplified for the Quest, small textures. Floor pieces stand on
+# their base, centred; wall pieces have their origin at the middle of their back, so they sit flush
+# on a wall.
+#   blender -b --python convert_office.py -- <poly haven dir> <game dir> [office|lobby]
 import bpy, sys, os
 from mathutils import Vector, Matrix
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-PH, GAME = sys.argv[sys.argv.index('--') + 1:][:2]
-OUT = os.path.join(GAME, 'assets', 'props', 'office')
+ARGS = sys.argv[sys.argv.index('--') + 1:]
+PH, GAME = ARGS[:2]
+GROUP = ARGS[2] if len(ARGS) > 2 else 'office'
+OUT = os.path.join(GAME, 'assets', 'props', GROUP)
 
 # id: (mode, max triangles)
-ITEMS = {
+OFFICE = {
     'metal_office_desk': ('floor', 7000), 'mid_century_lounge_chair': ('floor', 6200),
     'desk_lamp_arm_01': ('floor', 5000), 'office_notepads': ('floor', 700), 'vintage_stapler': ('floor', 1500),
     'clipboard': ('floor', 2000), 'standing_picture_frame_01': ('floor', 1700),
@@ -18,6 +21,12 @@ ITEMS = {
     'wall_clock': ('wall', 3700), 'hanging_picture_frame_01': ('wall', 2600), 'hanging_picture_frame_02': ('wall', 3700),
     'fire_alarm': ('wall', 2800),
 }
+LOBBY = {
+    'sofa_03': ('floor', 8000), 'sofa_02': ('floor', 3000), 'GreenChair_01': ('floor', 4300),
+    'coffee_table_round_01': ('floor', 4100), 'potted_plant_01': ('floor', 9000), 'potted_plant_04': ('floor', 6000),
+    'side_table_tall_01': ('floor', 6500), 'antique_ceramic_vase_01': ('floor', 4000), 'industrial_wall_sconce': ('wall', 5000),
+}
+ITEMS = LOBBY if GROUP == 'lobby' else OFFICE
 
 
 def fresh(path):

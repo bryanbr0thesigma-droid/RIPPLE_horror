@@ -175,7 +175,7 @@ func _lobby_test() -> void:
 	check(L.mode == "lobby", "hosting from the menu opens the lobby")
 	check(L.creature == null and get_tree().get_nodes_in_group("creature").is_empty(), "no creature in the lobby")
 	var lobby = L.get_node("Lobby")
-	check(L.items.has("Tape") and lobby.info.text.find("Here (1/") >= 0, "the tape is on the table and the sign lists who's here")
+	check(L.items.has("Tape") and lobby.info.text.find("HERE (1/") >= 0, "the tape is on the table and the sign lists who's here")
 	var tape = L.items["Tape"]
 	tape.global_position = lobby.SLOT + Vector3(0, 0.02, 0.05)     # dropped on the VCR
 	var playing := await wait_for(func(): return L.state.vhs, 5.0)
@@ -197,7 +197,8 @@ func _room_shots() -> void:
 		views = [[Vector3(3.5, 0.05, 2.6), 0.15], [Vector3(7.6, 0.05, 2.9), -0.55], [Vector3(17.6, 0.05, 2.9), -0.65],
 			[Vector3(24.7, 0.05, 1.8), -1.25], [Vector3(31.8, 0.05, -1.2), -1.25], [Vector3(41.5, 0.05, 2.9), -1.0], [Vector3(53.8, 0.05, 2.6), -0.85]]
 	else:
-		views = [[Vector3(0.0, 0.05, 2.5), 0.0], [Vector3(-1.6, 0.05, -1.8), -2.4], [Vector3(2.4, 0.05, 2.5), 0.9]]
+		views = [[Vector3(0.0, 0.05, 4.8), 0.0], [Vector3(1.0, 0.05, 1.5), -1.5708], [Vector3(-2.0, 0.05, -2.6), 2.5],
+			[Vector3(4.2, 0.05, -4.2), 1.0], [Vector3(-5.0, 0.05, 1.0), 1.5708], [Vector3(3.6, 0.05, 1.5), -1.5708]]
 	for i in views.size():
 		r.teleport(views[i][0])
 		r.set("_yaw", views[i][1])

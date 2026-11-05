@@ -30,6 +30,7 @@ const SFX := {
 	"plop": preload("res://assets/audio/plop.ogg"),
 	"clank": preload("res://assets/audio/clank.ogg"),
 	"door": preload("res://assets/audio/door.ogg"),
+	"ding": preload("res://assets/audio/desk_bell.ogg"),
 	"screech": preload("res://assets/audio/creature_charge.ogg"),
 }
 const AMBIENCE := {
@@ -917,7 +918,7 @@ func _srv_request(action: String, args: Array) -> void:
 					set_state("gen", 1)
 					broadcast_message("The generator is starting up%s." % (" fast (distilled water)" if distilled_part > 0.5 else ""))
 		"lever" when mode == "lobby":
-			play_sfx("clank", lever_point)
+			play_sfx("ding", lever_point)
 			if sender == 1:
 				broadcast_message("Starting the game...")
 				get_tree().create_timer(1.0).timeout.connect(Net.start_game)

@@ -163,6 +163,29 @@ them, and the low sun's light across the room.
 Converted by `tools/props/convert_approved.py` (real size, Quest-friendly). The hand that picks the
 tape up and presses play is Godot XR Tools' glove (MIT), tinted to the player's suit.
 
+## The lobby
+
+The multiplayer lobby (`game/level/lobby_room.gd`): the ground floor of a 90s office building.
+
+| File | What | Source | Author | License |
+|---|---|---|---|---|
+| `game/assets/lobby/tiles_*` | The checkered marble floor | [ambientCG, Tiles 074](https://ambientcg.com/view?id=Tiles074) | Lennart Demes | CC0 |
+| `game/assets/lobby/marble_*` | The front desk top and the columns | [ambientCG, Marble 014](https://ambientcg.com/view?id=Marble014) | Lennart Demes | CC0 |
+| `game/assets/lobby/wood_*` | Wainscoting, the front desk, frames | [ambientCG, Wood 051](https://ambientcg.com/view?id=Wood051) | Lennart Demes | CC0 |
+| `game/assets/props/lobby/sofa_03.glb` | The waiting area's sofa | [Poly Haven, Sofa 03](https://polyhaven.com/a/sofa_03) | Fran Calvente | CC0 |
+| `game/assets/props/lobby/sofa_02.glb` | The leather sofa by the elevators | [Poly Haven, Sofa 02](https://polyhaven.com/a/sofa_02) | Kirill Sannikov | CC0 |
+| `game/assets/props/lobby/greenchair_01.glb` | The armchairs | [Poly Haven, Green Chair 01](https://polyhaven.com/a/GreenChair_01) | Kirill Sannikov | CC0 |
+| `game/assets/props/lobby/coffee_table_round_01.glb` | The coffee table | [Poly Haven, Coffee Table Round 01](https://polyhaven.com/a/coffee_table_round_01) | Ulan Cabanilla | CC0 |
+| `game/assets/props/lobby/industrial_wall_sconce.glb` | The wall sconces | [Poly Haven, Industrial Wall Sconce](https://polyhaven.com/a/industrial_wall_sconce) | Ulan Cabanilla | CC0 |
+| `game/assets/props/lobby/potted_plant_01.glb` | The plants | [Poly Haven, Potted Plant 01](https://polyhaven.com/a/potted_plant_01) | Rico Cilliers | CC0 |
+| `game/assets/props/lobby/potted_plant_04.glb`, `side_table_tall_01.glb`, `antique_ceramic_vase_01.glb` | The desk plant, the tall side tables, the vase | [Poly Haven](https://polyhaven.com/models) | James Ray Cock | CC0 |
+| `game/assets/lobby/rug.jpg` | The waiting area's rug (a 90s hotel pattern) | drawn for RIPPLE in code | — | ours |
+| `game/assets/lobby/seal.png` | The F.A.L.C.O.N. seal behind the desk | cut from the tape's label (see above) | — | CC0 parts |
+| `game/assets/audio/desk_bell.ogg` | The service bell's ding | synthesized for RIPPLE | — | ours |
+
+The office pieces, the TV set, the elevators, columns, desk, doors, windows and blinds are reused or
+made in the game from simple shapes.
+
 ## Code libraries
 
 Not art, but shipped in the game, all allowing commercial use:
