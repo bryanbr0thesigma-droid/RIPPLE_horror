@@ -16,19 +16,22 @@ fonts (the other fonts are in `fonts/`).
 
 ## The names
 
+The field station is **Pinewater Field Station** (visitor reception). The everyday brands are
+cheap knock-offs, the kind you'd find in a 90s break room: the names and colours nod at the real
+thing, but the lettering and artwork are drawn here and no real logo is copied.
+
 | | |
 |---|---|
-| Field station | **Pinewater Field Station** (visitor reception) |
-| Soda | **DEEP END**: "Take the plunge!" / "Refreshingly bottomless." |
-| Coffee | **HIGH & DRY** Coffee: fine ground, "Always on dry ground." |
-| Magazine | **VACANCY**: America's roadside travel monthly (July 1993, October 1993, February 1994) |
-| Electronics | **TELLURIC** |
+| Soda | **Chlora-Cola**: "Enjoy", "It's the wet thing!", a lane rope under the script |
+| Coffee | **Floater's**: Pool Grown, Classic Soak, "The best part of wakin' up is Floater's in your cup." |
+| Magazine | **Liminal Geographic**, in a yellow frame (July 1993, October 1993, February 1994) |
+| Electronics | **SORNY** |
 
 ## Files
 
 - `kit.py`: house colours, fonts, paper / photocopy / wear textures, the seal (from the tape's
   `gfx.py`), the one-colour seal, ISO-style prohibition and warning signs, pictograms.
-- `brands.py`: PART 1, the F.A.L.C.O.N. logo files and the made-up brands (soda machine panels,
+- `brands.py`: PART 1, the F.A.L.C.O.N. logo files and the knock-off brands (soda machine panels,
   coffee label, magazines, electronics logo).
 - `lobby.py`: PART 2, pamphlets, posters, the station sign, the certificate, key fob, sign-in book,
   memo, door decal, neon, clock face and rug.

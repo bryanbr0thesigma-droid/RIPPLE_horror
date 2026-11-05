@@ -25,15 +25,16 @@ needed; their licence files are in `fonts/`.
 | Liberation Sans / Serif (system) | most text | Red Hat / Ascender | SIL OFL 1.1 |
 | Inter Black (system) | posters, room titles, RIPPLE logo | Rasmus Andersson | SIL OFL 1.1 |
 | FreeMono (system) | small print | GNU FreeFont | GPL with font exception |
-| Titan One | DEEP END soda | Rodrigo Fuenzalida | SIL OFL 1.1 |
-| Pacifico | soda slogan, HIGH & DRY coffee | Vernon Adams | SIL OFL 1.1 |
-| Abril Fatface | VACANCY magazine, the certificate | TypeTogether | SIL OFL 1.1 |
-| Alfa Slab One | the station sign, the coffee | JM Solé | SIL OFL 1.1 |
+| Pacifico | the Chlora-Cola script | Vernon Adams | SIL OFL 1.1 |
+| Abril Fatface | Floater's coffee, the certificate | TypeTogether | SIL OFL 1.1 |
+| Alfa Slab One | the station sign | JM Solé | SIL OFL 1.1 |
 | Stardos Stencil | equipment plates | Vernon Adams | SIL OFL 1.1 |
 | Sacramento | the neon | Astigmatic | SIL OFL 1.1 |
 | Kalam, Reenie Beanie, Shadows Into Light, Nothing You Could Do | handwriting | Indian Type Foundry; James Grieshaber; Kimberly Geswein | SIL OFL 1.1 |
 
-## Made-up names
+## Knock-off brands
 
-Pinewater Field Station, DEEP END soda, HIGH & DRY coffee, VACANCY magazine and TELLURIC electronics
-are invented for the game. None of them copies a real brand's logo, colours or packaging.
+Chlora-Cola, Floater's, Liminal Geographic and SORNY are parodies made up for the game. Their names
+and colour schemes nod at real brands, but nothing is copied: the lettering, logos and artwork are
+drawn by these scripts (in the open fonts above), and none of them uses a real brand's logo,
+typeface, mascot or artwork. Pinewater Field Station is invented.

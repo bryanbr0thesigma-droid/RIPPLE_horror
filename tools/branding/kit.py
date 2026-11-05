@@ -37,7 +37,6 @@ FONTS = {
     "serifi": f"{SYS}/liberation/LiberationSerif-Italic.ttf",
     "mono": f"{SYS}/freefont/FreeMonoBold.ttf",
     "black": "/usr/share/fonts/opentype/inter/Inter-Black.otf",
-    "soda": f"{HERE}/fonts/TitanOne-Regular.ttf",
     "script": f"{HERE}/fonts/Pacifico-Regular.ttf",
     "fat": f"{HERE}/fonts/AbrilFatface-Regular.ttf",
     "hand1": f"{HERE}/fonts/ReenieBeanie.ttf",
