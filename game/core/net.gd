@@ -55,6 +55,11 @@ func is_online() -> bool:
 	return _peer != null
 
 
+## The tutorial's private session (nobody can join).
+func is_offline_session() -> bool:
+	return _peer is OfflineMultiplayerPeer
+
+
 func is_host() -> bool:
 	return _peer != null and multiplayer.is_server()
 

@@ -68,7 +68,7 @@ func _room_controls() -> void:
 	_shell(0, 7, {"e": DOOR})
 	G.light(Vector3(3.5, H - 0.15, 0.0), 1.2, 9.0)
 	_sign("F.A.L.C.O.N. TRAINING ANNEX\n\nPractice only: nothing lives in this water.\n\nMOVE: left stick (VR) or W A S D.\nTURN: right stick, or the mouse.\nGRAB: grip (VR) or E.\nUSE what you're holding: trigger, or left mouse.\nDROP: let go, or Q.", Vector3(3.5, 1.75, Z0 + 0.03), 0.0)
-	_sign("Pick up the FLASHLIGHT on the table. It only lights while you squeeze the trigger (or hold left mouse).\n\nBACKPACK: reach over your shoulder and let go (VR), or press B. It holds 3 things. Reach back there (or press B with empty hands) to take one out.", Vector3(0.03, 1.7, 0.0), 90.0)
+	_sign("Pick up the FLASHLIGHT on the table. It only lights while you squeeze the trigger (or hold left mouse).\n\nBACKPACK: reach over your shoulder and let go (VR), or press B. It holds 3 things. Reach back there (or press B with empty hands) to take one out.", Vector3(0.03, 1.7, 0.0), 90.0, 0.0019)
 	_table(Vector3(3.5, 0.0, -2.6))
 	level._spawn_item("flashlight", "Flashlight", Vector3(3.5, 0.92, -2.6))
 
