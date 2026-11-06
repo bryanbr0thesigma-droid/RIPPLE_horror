@@ -1,6 +1,8 @@
 extends Node
 ## Co-op session: hosting, joining (on the local network by address, or online by room code),
-## LAN discovery, and who has the level loaded.
+## LAN discovery, and who has the level loaded. Online comes two ways: room codes over WebRTC
+## (OnlineRoom, 6 characters), or direct for closed playtests (DirectLink: UPnP opens the host's
+## port and the 8-character code is the host's public address).
 ##
 ## The host is authoritative for the creature and the world state. Every peer simulates its own
 ## player and the items it holds. Messages only go to peers that have finished loading the level
@@ -32,6 +34,7 @@ var local_info := {"name": "Player", "color": Color(0.9, 0.55, 0.15), "vr": fals
 
 var _peer: MultiplayerPeer
 var _room: OnlineRoom
+var _direct: DirectLink
 ## The online room code while hosting or in an online game ("" otherwise).
 var room_code := ""
 var _broadcaster: PacketPeerUDP
@@ -115,10 +118,10 @@ func host() -> Error:
 	return OK
 
 
-func join(address: String) -> Error:
+func join(address: String, port := PORT) -> Error:
 	leave(true)
 	var enet := ENetMultiplayerPeer.new()
-	var err := enet.create_client(address.strip_edges(), PORT)
+	var err := enet.create_client(address.strip_edges(), port)
 	if err != OK:
 		session_failed.emit("Could not start connecting to %s" % address)
 		return err
@@ -147,6 +150,39 @@ func host_online(forced_room := "") -> Error:
 	players_changed.emit()
 	session_started.emit()
 	return OK
+
+
+## Host a game friends join over the internet straight to you (closed playtests): UPnP asks your
+## router to open the game's port, and the room code is your public address (room_code_changed
+## fires once it's known, within a few seconds). Friends on your Wi-Fi can still join as usual.
+func host_direct() -> Error:
+	var err := host()
+	if err != OK:
+		return err
+	_direct = DirectLink.new()
+	if Game.args.has("direct-ip"):               # tests: pretend this is the public address
+		_direct.forced_ip = str(Game.args["direct-ip"])
+	_direct.finished.connect(func(code: String, warning: String):
+		room_code = code
+		room_code_changed.emit()
+		if warning != "":
+			online_problem.emit(warning)
+			Game.notify(warning)
+		_announce_code())
+	_direct.start(PORT, self)
+	return OK
+
+
+## Join a direct game by its 8-character code.
+func join_direct(code: String) -> Error:
+	var d := DirectLink.decode(code)
+	if d.is_empty():
+		session_failed.emit("That code doesn't look right. Check it with the host (8 characters).")
+		return FAILED
+	var err := join(d.ip, PORT + int(d.offset))
+	if err == OK:
+		room_code = DirectLink.pretty(OnlineRoom.clean(code))
+	return err
 
 
 ## A private session for the tutorial: offline, nobody can join, but the level runs as the host.
@@ -185,8 +221,10 @@ func _welcome(where: String) -> void:
 	Game.start_level("lobby" if where == "lobby" else "game")
 
 
-## Join an online game by its room code.
+## Join an online game by its room code (6 characters), or a direct game by its 8-character code.
 func join_online(code: String) -> Error:
+	if OnlineRoom.clean(code).length() == 8:
+		return join_direct(code)
 	leave(true)
 	_room = _new_room()
 	_room.failed.connect(func(reason: String):
@@ -208,7 +246,7 @@ func _announce_code() -> void:
 
 
 func is_online_room() -> bool:
-	return _room != null
+	return _room != null or _direct != null
 
 
 func _new_room() -> OnlineRoom:
@@ -223,6 +261,9 @@ func leave(quiet := false) -> void:
 	if _room:
 		_room.close()
 		_room = null
+	if _direct:
+		_direct.close()              # closes the port on the router again
+		_direct = null
 	room_code = ""
 	if _peer:
 		_expected_disconnect = true
@@ -376,6 +417,8 @@ func stop_listening() -> void:
 func _process(delta: float) -> void:
 	if _room:
 		_room.poll(delta)
+	if _direct:
+		_direct.poll()
 	if _broadcaster:
 		_broadcast_timer -= delta
 		if _broadcast_timer <= 0.0:

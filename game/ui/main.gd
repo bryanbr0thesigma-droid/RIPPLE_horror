@@ -62,6 +62,9 @@ func _ready() -> void:
 	elif Game.args.has("join"):
 		Net.local_info.vr = Game.vr_mode
 		Net.join(str(Game.args.join))
+	elif Game.args.has("host-direct"):
+		Net.local_info.vr = Game.vr_mode
+		Net.host_direct()
 	elif Game.args.has("host-online"):
 		Net.local_info.vr = Game.vr_mode
 		Net.host_online(str(Game.args.get("room", "")))

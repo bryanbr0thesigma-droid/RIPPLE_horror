@@ -106,6 +106,7 @@ func _build_play(parent: Control) -> void:
 	var p := _page("play", parent)
 	p.add_child(_label("Play", 40, ACCENT))
 	p.add_child(_button("Host online (room code)", _host_online))
+	p.add_child(_button("Host a playtest (direct, UPnP)", _host_direct, 22))
 	p.add_child(_button("Join online with a code", func():
 		_room_text = ""
 		_room_label.text = "_"
@@ -124,7 +125,7 @@ func _build_play(parent: Control) -> void:
 func _build_room(parent: Control) -> void:
 	var p := _page("room", parent)
 	p.add_child(_label("Join online", 36, ACCENT))
-	p.add_child(_label("Type the room code the host sees (6 characters).", 18, DIM))
+	p.add_child(_label("Type the code the host sees (6 characters, or 8 for a playtest).", 18, DIM))
 	_room_label = _label("_", 44, INK)
 	p.add_child(_room_label)
 	var v := VBoxContainer.new()
@@ -156,7 +157,7 @@ func _build_room(parent: Control) -> void:
 func _room_key(k: String) -> void:
 	if k == "<":
 		_room_text = _room_text.substr(0, maxi(_room_text.length() - 1, 0))
-	elif _room_text.length() < 6:
+	elif _room_text.length() < 8:
 		_room_text += k
 	_room_label.text = _room_text if _room_text != "" else "_"
 
@@ -452,9 +453,23 @@ func _host_online() -> void:
 		show_page("connecting")
 
 
+func _host_direct() -> void:
+	Game.use_lobby = true
+	Profile.save()
+	Net.local_info.vr = Game.vr_mode
+	if Net.host_direct() == OK:
+		_connecting_label.text = "Starting your game. Opening a port on your router for friends..."
+		show_page("connecting")
+
+
 func _join_online(code: String) -> void:
-	if OnlineRoom.clean(code).length() != 6:
-		_status.text = "The room code is 6 characters."
+	var n := OnlineRoom.clean(code).length()
+	if n != 6 and n != 8:
+		_status.text = "The code is 6 characters (or 8 for a playtest)."
+		show_page("play")
+		return
+	if n == 8 and DirectLink.decode(code).is_empty():
+		_status.text = "That playtest code doesn't look right. Check it with the host."
 		show_page("play")
 		return
 	Profile.save()

@@ -371,6 +371,16 @@ Everything else is coordination through the level.
   for a direct connection (tested with simulated home routers, `tools/nat_sim.sh`), the
   game falls back to a TURN relay (ExpressTURN's free tier, 1 TB a month; its login is a
   repository secret written into release builds).
+  **Closed playtests (direct):** "Host a playtest (direct, UPnP)" runs the normal ENet server
+  and asks the host's router (UPnP) to forward the game's UDP port (7777, or the next free one up
+  to 7792). The code friends type is the host's public address and port in 8 characters with a
+  check against typos (`K7QX-M2AB`, `game/core/direct_link.gd`), so nothing sits between the
+  players: no broker, no relay. If the router won't open the port, the host is told to forward
+  UDP 7777 by hand (the address comes from a public lookup, api.ipify.org); behind CGNAT or a
+  second router it can't work, and the host is pointed to room codes. The port is closed again
+  when the host leaves (and the router's lease runs out after 4 hours anyway).
+  **Commercial release:** Epic Online Services (P2P with its relays, lobbies, device-ID login so
+  nobody needs an Epic account), replacing the public brokers and the free TURN tier.
 - **Voice chat:** Godot has no built-in voice chat, so this needs an addon or a custom
   setup with microphone capture. Still to be chosen.
 - **Host-authoritative creature:** the creature AI runs on the host. Each player's
