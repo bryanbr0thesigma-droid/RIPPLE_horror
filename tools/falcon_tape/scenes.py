@@ -692,7 +692,8 @@ def bars(c, t, sc):
     for x0, x1, col in ((0, 114, (0, 33, 76)), (114, 228, (255, 255, 255)), (228, 342, (50, 0, 106)), (342, 640, (19, 19, 19))):
         c.rect(x0, 360, x1, 480, fill=col)
     c.rect(220, 140, 420, 180, fill=(10, 10, 10))
-    c.text(320, 160, "F.A.L.C.O.N.  07-W", 16, WHITE, "sans", "mm", 0, track=2)
+    import gfx
+    c.text(320, 160, f"F.A.L.C.O.N.  {gfx.TAPE_ID}", 16, WHITE, "sans", "mm", 0, track=2)
 
 
 def leader(c, t, sc):
