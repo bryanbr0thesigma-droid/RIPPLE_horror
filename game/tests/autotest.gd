@@ -125,7 +125,7 @@ func _run() -> void:
 			await _lobby_host()
 		"lobby_client":
 			await _lobby_client()
-		"tutorial_shot", "lobby_shot":
+		"tutorial_shot", "lobby_shot", "halls_shot":
 			await _room_shots()
 		"body_shot":
 			await _body_shot()
@@ -195,14 +195,18 @@ func _room_shots() -> void:
 	var views := []
 	if Game.level.mode == "tutorial":
 		views = [[Vector3(3.5, 0.05, 2.6), 0.15], [Vector3(7.6, 0.05, 2.9), -0.55], [Vector3(17.6, 0.05, 2.9), -0.65],
-			[Vector3(24.7, 0.05, 1.8), -1.25], [Vector3(31.8, 0.05, -1.2), -1.25], [Vector3(41.5, 0.05, 2.9), -1.0], [Vector3(53.8, 0.05, 2.6), -0.85]]
+			[Vector3(19.5, 0.05, 0.5), -1.75], [Vector3(29.5, 0.05, 0.5), 1.45], [Vector3(31.8, 0.05, -1.2), -1.25], [Vector3(41.5, 0.05, 2.9), -1.0], [Vector3(53.8, 0.05, 2.6), -0.85]]
+	elif Game.level.mode == "game":       # the Shallow Halls' signs and plates
+		views = [[Vector3(4, 0.05, 5.0), PI], [Vector3(4, 0.05, -1.7), PI], [Vector3(14.4, 0.05, -2.4), -1.1],
+			[Vector3(0.5, 0.05, -18.7), -0.4, 0.3], [Vector3(20.8, 0.05, -4.2), 0.0, -0.3], [Vector3(10.3, -0.9, -42.6), 0.0, -0.1],
+			[Vector3(17.85, 0.05, -34.4), 2.74, -0.3], [Vector3(39.5, 0.05, -35.0), -1.4, 0.15]]
 	else:
 		views = [[Vector3(-0.6, 0.05, 3.0), -0.1], [Vector3(0.1, 0.05, -0.4), -1.5708], [Vector3(0.6, 0.05, 0.4), 2.3],
 			[Vector3(-1.1, 0.05, 0.1), 0.05], [Vector3(1.2, 0.05, -0.3), 1.5708], [Vector3(0.3, 0.05, -1.0), 3.1416]]
 	for i in views.size():
 		r.teleport(views[i][0])
 		r.set("_yaw", views[i][1])
-		r.set("_pitch", -0.12)
+		r.set("_pitch", views[i][2] if views[i].size() > 2 else -0.12)
 		await wait(1.0)
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("%s/%s_%d.png" % [out, Game.level.mode, i])

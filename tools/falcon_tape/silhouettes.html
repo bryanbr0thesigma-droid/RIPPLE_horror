@@ -1,0 +1,73 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body style="margin:0;background:#000">
+<script type="module">
+// Renders the game's creature as flat white-on-black cutouts for the tape's silhouettes.
+// Driven by silhouettes.mjs through window.shot().
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const W = 800, H = 800;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H);
+renderer.setClearColor(0x000000, 1);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const flat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+let model, mixer, clips = {};
+
+const params = new URLSearchParams(location.search);
+const gltf = await new GLTFLoader().loadAsync('./' + (params.get('model') || 'creature.glb'));
+model = gltf.scene;
+model.traverse(o => { if (o.isMesh) { o.material = flat; o.frustumCulled = false; } });
+scene.add(model);
+mixer = new THREE.AnimationMixer(model);
+for (const c of gltf.animations) clips[c.name.replace('metarig|', '')] = c;
+let action = null;
+
+function bounds() {
+  const box = new THREE.Box3();
+  model.updateMatrixWorld(true);
+  model.traverse(o => {
+    if (o.isSkinnedMesh) { o.computeBoundingBox(); const b = o.boundingBox.clone().applyMatrix4(o.matrixWorld); box.union(b); }
+  });
+  return box;
+}
+
+// anim: clip name; t: seconds; yaw: degrees around the model (0 = facing the camera);
+// frame: [cx, cy, cz, halfHeight] in model units (fixed, so a sequence doesn't jump), or null to fit the body.
+const rest = {};
+model.traverse(o => { if (o.isBone) rest[o.name] = o.rotation.clone(); });
+// pose: {boneName: [x, y, z]} radians added to the bone's rest rotation (for models without clips)
+window.shot = (anim, t, yaw, frame, pose) => {
+  if (clips[anim]) {
+    if (!action || action.getClip() !== clips[anim]) {
+      mixer.stopAllAction();
+      action = mixer.clipAction(clips[anim]);
+      action.play();
+    }
+    action.time = t % clips[anim].duration;
+    mixer.update(0);
+  }
+  model.traverse(o => {
+    if (o.isBone && rest[o.name]) {
+      o.rotation.copy(rest[o.name]);
+      const p = pose && pose[o.name];
+      if (p) { o.rotation.x += p[0]; o.rotation.y += p[1]; o.rotation.z += p[2]; }
+    }
+  });
+  const b = bounds();
+  const c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3());
+  let cx = c.x, cy = c.y, cz = c.z, hh = Math.max(s.y, s.x, s.z) * 0.6;
+  if (frame) [cx, cy, cz, hh] = frame;
+  const cam = new THREE.OrthographicCamera(-hh, hh, hh, -hh, -100, 100);
+  const a = yaw * Math.PI / 180;
+  cam.position.set(cx + Math.sin(a) * 10, cy, cz + Math.cos(a) * 10);
+  cam.lookAt(cx, cy, cz);
+  renderer.render(scene, cam);
+  return { png: renderer.domElement.toDataURL('image/png'), box: [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z] };
+};
+window.durations = Object.fromEntries(Object.entries(clips).map(([k, v]) => [k, v.duration]));
+window.ready = true;
+</script></body></html>

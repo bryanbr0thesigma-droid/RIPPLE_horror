@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cj8gcw5kcy5y8"
-path="res://.godot/imported/seal.png-1ad8790830c9999fc01751f3bb2d6035.ctex"
+uid="uid://bor008euf137j"
+path="res://.godot/imported/poster_1.png-2ae0a60b88df016f6706894281ee2b8a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/lobby/seal.png"
-dest_files=["res://.godot/imported/seal.png-1ad8790830c9999fc01751f3bb2d6035.ctex"]
+source_file="res://assets/branding/poster_1.png"
+dest_files=["res://.godot/imported/poster_1.png-2ae0a60b88df016f6706894281ee2b8a.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

@@ -82,8 +82,13 @@ func _page(page_name: String, parent: Control) -> VBoxContainer:
 
 func _build_main(parent: Control) -> void:
 	var p := _page("main", parent)
-	p.add_child(_label("RIPPLE", 64, ACCENT))
-	p.add_child(_label("Demo: The Shallow Halls", 22, DIM))
+	var header := TextureRect.new()          # the agency's terminal header (tools/branding)
+	header.texture = load("res://assets/branding/menu_header.png")
+	header.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	header.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	header.custom_minimum_size = Vector2(0, 112)
+	p.add_child(header)
+	p.add_child(_label("RIPPLE  ·  Demo: The Shallow Halls", 22, DIM))
 	p.add_child(_spacer(18))
 	p.add_child(_button("Play", func(): show_page("play"), 30))
 	p.add_child(_button("Character", func(): show_page("character"), 30))

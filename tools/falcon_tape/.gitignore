@@ -1,0 +1,7 @@
+__pycache__/
+voice/
+out/
+frames/
+node_modules/
+package*.json
+creature.glb

@@ -12,8 +12,8 @@ extends Node3D
 
 const INTRO := preload("res://intro/intro.gd")
 const LOBBY := "res://assets/lobby/"
+const BRAND := "res://assets/branding/"         # the station's art (tools/branding)
 const P := "res://assets/props/lobby/"
-const O := "res://assets/props/office/"
 const X0 := -4.0
 const X1 := 4.0
 const Z0 := -3.5
@@ -46,6 +46,8 @@ var _fire_mat: StandardMaterial3D
 var _pine: StandardMaterial3D
 var _wood: StandardMaterial3D
 var _brass: StandardMaterial3D
+var _clock_h: Node3D
+var _clock_m: Node3D
 
 
 func build(lv: Node3D) -> void:
@@ -149,6 +151,57 @@ func _text(t: String, pos: Vector3, yaw: float, size: float, col: Color, font :=
 	return l
 
 
+## A flat picture from the station's art: a quad facing +z, turned by rot (degrees). glow > 0 makes
+## it self-lit (unshaded, that bright); cut keeps only its opaque pixels (for transparent art).
+func _pic(file: String, size: Vector2, pos: Vector3, rot := Vector3.ZERO, glow := 0.0, cut := false, parent: Node3D = null) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = size
+	mi.mesh = q
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load(BRAND + file)
+	m.roughness = 0.85
+	if glow > 0.0:
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = Color(glow, glow, glow)
+	if cut:
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		m.alpha_scissor_threshold = 0.4
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = pos
+	mi.rotation_degrees = rot
+	(parent if parent else level).add_child(mi)
+	return mi
+
+
+## A can with a paper label all the way round (u runs round it, the middle of the label faces +x),
+## and a tin lid.
+func _label_can(r: float, h: float, pos: Vector3, file: String) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 24
+	for i in n:
+		for k in [[i, 0.0], [i + 1, 0.0], [i + 1, 1.0], [i, 0.0], [i + 1, 1.0], [i, 1.0]]:
+			var u: float = float(k[0]) / n
+			var a := u * TAU
+			var d := Vector3(-cos(a), 0.0, sin(a))      # u = 0.5 faces +x; reading on goes to -z
+			st.set_normal(d)
+			st.set_uv(Vector2(u, 1.0 - k[1]))
+			st.add_vertex(d * r + Vector3(0, h * k[1], 0))
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load(BRAND + file)
+	m.roughness = 0.6
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	mi.position = pos - Vector3(0, h * 0.5, 0)
+	level.add_child(mi)
+	_cyl(r * 0.99, r * 0.99, 0.006, pos + Vector3(0, h * 0.5, 0), _flat(Color(0.75, 0.75, 0.72), 0.3, 1.0))
+
+
 func _light(pos: Vector3, c: Color, energy: float, rng: float) -> OmniLight3D:
 	var l := OmniLight3D.new()
 	l.position = pos
@@ -216,8 +269,10 @@ func _front() -> void:
 	G.block(-3.33, -2.27, 2.05, 2.13, zf0, zf1, _wood)
 	G.block(-3.25, -2.35, 0.0, 0.3, zf0 + 0.02, zf1, _wood)
 	_cyl(0.015, 0.015, 0.16, Vector3(-2.47, 1.0, zf0 - 0.03), _brass)
-	var door_l := _text("F.A.L.C.O.N.\nVISITOR ENTRANCE", Vector3(-2.8, 1.55, Z1 - 0.03), 0.0, 0.0018, Color(0.95, 0.93, 0.85), 48)
-	door_l.double_sided = true
+	_pic("door_decal.png", Vector2(0.6, 0.6), Vector3(-2.8, 1.2, Z1 - 0.03), Vector3.ZERO, 0.0, true)
+	# A coir doormat inside the door, with the seal woven into it.
+	_box(Vector3(0.95, 0.012, 0.62), Vector3(-2.8, 0.006, 3.05), _flat(Color(0.28, 0.2, 0.12), 0.95))
+	_pic("rug_logo.png", Vector2(0.5, 0.5), Vector3(-2.8, 0.0125, 3.05), Vector3(-90, 0, 0), 0.0, true)
 	# The window: frame, mullion, sill.
 	G.block(-1.68, 2.88, 0.77, 0.85, zf0 - 0.08, zf1, _wood)
 	G.block(-1.68, 2.88, 2.15, 2.23, zf0, zf1, _wood)
@@ -225,7 +280,7 @@ func _front() -> void:
 		G.block(x, x + 0.08, 0.85, 2.15, zf0, zf1, _wood)
 	# Venetian blinds over door and window, slats tilted: stripes of dusk between them.
 	var slat_mat := _flat(Color(0.9, 0.86, 0.76), 0.75)
-	for b in [[-3.25, -2.35, 1.0, 2.0], [-1.6, 2.8, 1.2, 2.12]]:
+	for b in [[-3.25, -2.35, 1.58, 2.0], [-1.6, 2.8, 1.2, 2.12]]:      # the door's are half up
 		var slat := BoxMesh.new()
 		slat.size = Vector3(b[1] - b[0], 0.003, 0.045)
 		var y: float = b[3]
@@ -238,13 +293,10 @@ func _front() -> void:
 			level.add_child(m)
 			y -= 0.038
 	# The station's neon sign, hanging in the window and facing the road: backwards from here.
-	_box(Vector3(1.5, 0.42, 0.02), Vector3(1.4, 1.6, Z1 - 0.16), _flat(Color(0.05, 0.05, 0.05), 0.6))
-	var neon := _text("F.A.L.C.O.N.\nFIELD STATION", Vector3(1.4, 1.6, Z1 - 0.17), 0.0, 0.0028, Color(0.35, 0.85, 2.2), 64)
-	neon.shaded = false
-	neon.double_sided = true
-	neon.outline_size = 10
-	neon.outline_modulate = Color(0.2, 0.55, 1.0, 0.5)
-	var open := _text("OPEN 24 HRS", Vector3(1.4, 1.3, Z1 - 0.17), 0.0, 0.0018, Color(2.2, 0.3, 0.2), 64)
+	_box(Vector3(1.5, 0.78, 0.02), Vector3(1.4, 1.68, Z1 - 0.16), _flat(Color(0.05, 0.05, 0.05), 0.6))
+	var neon := _pic("neon_design.png", Vector2(1.4, 0.7), Vector3(1.4, 1.68, Z1 - 0.172), Vector3.ZERO, 1.0, true)
+	neon.material_override.albedo_color = Color(0.35, 0.85, 2.2)
+	var open := _text("OPEN 24 HRS", Vector3(1.4, 1.15, Z1 - 0.17), 0.0, 0.0018, Color(2.2, 0.3, 0.2), 64)
 	open.shaded = false
 	open.double_sided = true
 	_light(Vector3(1.4, 1.6, Z1 - 0.5), Color(0.3, 0.55, 1.0), 0.7, 3.0)
@@ -296,11 +348,8 @@ func _counter() -> void:
 	G.block(-2.9, 0.6, 0.0, 0.1, -1.64, -1.6, _wood)
 	G.block(-2.9, 0.6, 0.0, 0.78, -2.6, -2.2, _wood)                # the clerk's shelf
 	# The visitors' sign-in book, open.
-	_box(Vector3(0.42, 0.012, 0.3), Vector3(-2.0, 1.076, -1.86), _flat(Color(0.3, 0.12, 0.08), 0.7), 8.0)
-	var page := _flat(Color(0.93, 0.9, 0.82), 0.9)
-	for s in [-1.0, 1.0]:
-		var p := _box(Vector3(0.19, 0.006, 0.27), Vector3(-2.0 + s * 0.1, 1.086, -1.86), page, 8.0)
-		p.rotation_degrees.z = -s * 4.0
+	_box(Vector3(0.37, 0.012, 0.35), Vector3(-2.0, 1.076, -1.86), _flat(Color(0.3, 0.12, 0.08), 0.7), 8.0)
+	_pic("signin_page.png", Vector2(0.33, 0.33), Vector3(-2.0, 1.0835, -1.86), Vector3(-90, 8, 0))
 	_cyl(0.004, 0.004, 0.14, Vector3(-1.85, 1.09, -1.75), _flat(Color(0.1, 0.1, 0.2), 0.4)).rotation_degrees = Vector3(90, 30, 0)
 	# Banker's lamp: brass base and stem, green glass shade, a warm pool of light.
 	_cyl(0.07, 0.08, 0.025, Vector3(-2.6, 1.083, -1.95), _brass)
@@ -363,9 +412,9 @@ func _behind_counter() -> void:
 			if n in gone:
 				continue
 			_box(Vector3(0.012, 0.06, 0.004), Vector3(hx, hy - 0.04, zw + 0.035), _brass)
-			var fob := _box(Vector3(0.035, 0.07, 0.008), Vector3(hx, hy - 0.11, zw + 0.035), _flat(fob_cols[n % 4], 0.35))
-			fob.rotation_degrees.z = 0.0
-			_text("D%d" % (101 + n), Vector3(hx, hy - 0.11, zw + 0.041), 0.0, 0.0006, Color(1, 1, 1), 32)
+			_box(Vector3(0.035, 0.07, 0.008), Vector3(hx, hy - 0.11, zw + 0.035), _flat(fob_cols[n % 4], 0.35))
+			var tag := _pic("keyfob.png", Vector2(0.035, 0.07), Vector3(hx, hy - 0.11, zw + 0.0395))
+			tag.material_override.albedo_color = fob_cols[n % 4].lightened(0.2)
 	# Staff mail: a pine box of pigeonholes, a few with notes in them.
 	var cx0 := -0.95
 	var cx1 := 0.35
@@ -377,38 +426,42 @@ func _behind_counter() -> void:
 			var x := cx0 + 0.06 + c * 0.31 + 0.13
 			var y := 1.29 + r * 0.25 + 0.1
 			_box(Vector3(0.26, 0.2, 0.01), Vector3(x, y, Z0 + 0.282), hole)
-			if (r * 4 + c) % 3 == 0:
+			if r == 1 and c == 2:            # a memo for Dave, sticking out
+				_pic("mail_note.png", Vector2(0.15, 0.15), Vector3(x, y - 0.01, Z0 + 0.29), Vector3(0, 0, -5))
+			elif (r * 4 + c) % 3 == 0:
 				_box(Vector3(0.18, 0.12, 0.004), Vector3(x, y - 0.03, Z0 + 0.29), note).rotation_degrees.z = 6.0
 	_text("STAFF MAIL", Vector3(-0.3, 2.04, Z0 + 0.285), 0.0, 0.0014, Color(0.9, 0.8, 0.55), 40)
-	# The station's carved sign, with the F.A.L.C.O.N. seal.
-	G.block(-2.75, -0.05, 2.08, 2.42, Z0, zw + 0.02, _wood)
-	_text("F.A.L.C.O.N. FIELD STATION", Vector3(-1.25, 2.29, zw + 0.026), 0.0, 0.0024, Color(0.95, 0.82, 0.55), 64)
-	_text("VISITOR RECEPTION", Vector3(-1.25, 2.17, zw + 0.026), 0.0, 0.0014, Color(0.85, 0.72, 0.48), 48)
-	var sign_seal := MeshInstance3D.new()
-	var ssq := QuadMesh.new()
-	ssq.size = Vector2(0.3, 0.3)
-	sign_seal.mesh = ssq
-	var ssm := StandardMaterial3D.new()
-	ssm.albedo_texture = load(LOBBY + "seal.png")
-	ssm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	sign_seal.material_override = ssm
-	sign_seal.position = Vector3(-2.55, 2.25, zw + 0.028)
-	level.add_child(sign_seal)
-	_prop(O + "wall_clock.glb", Vector3(1.25, 2.05, Z0), 0.0)
+	# The station's carved sign over the key board.
+	G.block(-2.86, -1.04, 1.99, 2.45, Z0, zw - 0.01, _wood)
+	_pic("station_sign.png", Vector2(1.8, 0.45), Vector3(-1.95, 2.22, zw - 0.008))
+	_wall_clock(Vector3(1.25, 2.05, Z0))
 	_text("ALL VISITORS\nMUST SIGN IN", Vector3(1.25, 1.7, zw + 0.005), 0.0, 0.0015, Color(0.2, 0.12, 0.06), 40)
-	# A framed notice: the seal and the one rule that matters.
-	G.block(0.72, 1.42, 1.08, 1.6, Z0, zw + 0.02, _wood)
-	var seal := MeshInstance3D.new()
-	var sq := QuadMesh.new()
-	sq.size = Vector2(0.4, 0.4)
-	seal.mesh = sq
-	var sm := StandardMaterial3D.new()
-	sm.albedo_texture = load(LOBBY + "seal.png")
-	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	seal.material_override = sm
-	seal.position = Vector3(1.07, 1.36, zw + 0.026)
-	level.add_child(seal)
-	_text("IF YOU HEAR IT, FREEZE", Vector3(1.07, 1.13, zw + 0.026), 0.0, 0.0010, Color(0.95, 0.9, 0.8), 32)
+	# The station's framed L-7 containment certificate.
+	G.block(0.79, 1.35, 1.06, 1.62, Z0, zw + 0.02, _wood)
+	_pic("notice.png", Vector2(0.5, 0.5), Vector3(1.07, 1.34, zw + 0.021))
+
+
+## A wall clock with the agency's face, telling the real time.
+func _wall_clock(at: Vector3) -> void:
+	var rim := _cyl(0.17, 0.17, 0.045, at + Vector3(0, 0, 0.0225), _flat(Color(0.12, 0.08, 0.05), 0.4))
+	rim.rotation_degrees.x = 90.0
+	_pic("clock_face.png", Vector2(0.31, 0.31), at + Vector3(0, 0, 0.0455), Vector3.ZERO, 0.0, true)
+	var black := _flat(Color(0.05, 0.05, 0.06), 0.4)
+	var hands: Array[Node3D] = []
+	for h in [[0.085, 0.012, 0.047], [0.125, 0.007, 0.049]]:
+		var pivot := Node3D.new()
+		pivot.position = at + Vector3(0, 0, h[2])
+		level.add_child(pivot)
+		var hand := MeshInstance3D.new()
+		var b := BoxMesh.new()
+		b.size = Vector3(h[1], h[0], 0.002)
+		hand.mesh = b
+		hand.material_override = black
+		hand.position = Vector3(0, h[0] * 0.5 - 0.012, 0)
+		pivot.add_child(hand)
+		hands.append(pivot)
+	_clock_h = hands[0]
+	_clock_m = hands[1]
 
 
 ## Along the west wall: the soda machine, the coffee station and the rack of F.A.L.C.O.N. pamphlets.
@@ -416,12 +469,13 @@ func _west_wall() -> void:
 	var xw := X0 + 0.03
 	# The soda machine: red cabinet, a lit front panel, a column of buttons.
 	G.block(xw, xw + 0.72, 0.0, 1.8, -1.75, -0.95, _flat(Color(0.7, 0.08, 0.06), 0.35, 0.2))
-	var panel := _box(Vector3(0.004, 1.0, 0.48), Vector3(xw + 0.725, 1.15, -1.42), _glow(Color(1.0, 0.95, 0.85), 1.25))
-	panel.rotation_degrees.y = 0.0
-	_text("ICE\nCOLD\nSODA", Vector3(xw + 0.73, 1.2, -1.42), 90.0, 0.0026, Color(0.8, 0.06, 0.05), 64)
+	# Its lit Chlora-Cola front; the selection buttons sit on the plain strip down its right side.
+	_pic("soda_front.png", Vector2(0.48, 0.96), Vector3(xw + 0.722, 1.15, -1.42), Vector3(0, 90, 0), 1.15)
 	for i in 6:
-		_box(Vector3(0.02, 0.06, 0.1), Vector3(xw + 0.73, 1.45 - i * 0.12, -1.09), _glow(Color(0.95, 0.85, 0.6), 0.9))
+		_box(Vector3(0.02, 0.06, 0.055), Vector3(xw + 0.73, 1.45 - i * 0.12, -1.62), _glow(Color(0.95, 0.85, 0.6), 0.9))
 	_box(Vector3(0.02, 0.12, 0.3), Vector3(xw + 0.73, 0.35, -1.42), _flat(Color(0.05, 0.05, 0.05), 0.5))
+	_pic("soda_side.png", Vector2(0.7, 1.4), Vector3(xw + 0.36, 0.95, -0.947))
+	_pic("soda_side.png", Vector2(0.7, 1.4), Vector3(xw + 0.36, 0.95, -1.753), Vector3(0, 180, 0))
 	# Free coffee: a little cabinet with a coffee maker, its pot, cups and sugar.
 	G.block(xw, xw + 0.5, 0.0, 0.88, -0.25, 0.75, _wood)
 	_box(Vector3(0.24, 0.34, 0.22), Vector3(xw + 0.17, 1.05, 0.0), _flat(Color(0.06, 0.06, 0.06), 0.4))
@@ -433,22 +487,23 @@ func _west_wall() -> void:
 	var cup := _flat(Color(0.97, 0.96, 0.93), 0.8)
 	for i in 4:
 		_cyl(0.035, 0.03, 0.09, Vector3(xw + 0.3, 0.925 + i * 0.03, 0.42), cup)
-	_cyl(0.04, 0.04, 0.1, Vector3(xw + 0.22, 0.93, 0.6), _brass)
+	_label_can(0.05, 0.15, Vector3(xw + 0.24, 0.955, 0.6), "coffee_label.png")      # Floater's
 	_text("COFFEE\nSTAFF & VISITORS", Vector3(X0 + 0.035, 1.55, 0.25), 90.0, 0.0018, Color(0.35, 0.15, 0.05), 48)
 	# F.A.L.C.O.N. pamphlets for visitors and new staff.
 	G.block(xw, xw + 0.04, 0.95, 1.75, 1.05, 1.85, _wood)
 	_text("TAKE ONE", Vector3(xw + 0.045, 1.81, 1.45), 90.0, 0.0016, Color(0.25, 0.12, 0.05), 40)
-	var cols := [Color(0.2, 0.55, 0.75), Color(0.85, 0.6, 0.15), Color(0.3, 0.6, 0.3), Color(0.8, 0.25, 0.2), Color(0.9, 0.85, 0.7), Color(0.45, 0.3, 0.6)]
-	var names := ["WATER\nSAFETY", "YOUR\nFIRST DAY", "LIMINAL\nENTITIES", "IF YOU\nARE TAKEN", "STAFF\nBENEFITS", "WET\nFOOTPRINTS?"]
+	# WATER SAFETY, YOUR FIRST DAY, LIMINAL ENTITIES, IF YOU ARE TAKEN, STAFF BENEFITS, WET FOOTPRINTS?
+	var paper := _flat(Color(0.9, 0.88, 0.82), 0.8)
 	for r in 3:
 		G.block(xw + 0.04, xw + 0.1, 1.0 + r * 0.25, 1.03 + r * 0.25, 1.05, 1.85, _wood)
 		for c in 3:
 			var i := (r * 3 + c) % 6
 			var z := 1.18 + c * 0.25
-			var b := _box(Vector3(0.012, 0.2, 0.1), Vector3(xw + 0.07, 1.13 + r * 0.25, z), _flat(cols[i], 0.6))
+			var b := _box(Vector3(0.012, 0.2, 0.1), Vector3(xw + 0.07, 1.13 + r * 0.25, z), paper)
 			b.rotation_degrees.z = -8.0
-			_text(names[i], Vector3(xw + 0.08, 1.15 + r * 0.25, z), 90.0, 0.0006, Color(0.05, 0.05, 0.05), 32)
-	_prop(O + "hanging_picture_frame_02.glb", Vector3(X0, 1.7, -2.6), 90.0).scale = Vector3.ONE * 0.8
+			_pic("pamphlet_%d.png" % (i + 1), Vector2(0.1, 0.2), Vector3(0.0065, 0, 0), Vector3(0, 90, 0), 0.0, false, b)
+	# Visitor rules, by the end of the counter.
+	_pic("poster_4.png", Vector2(0.6, 0.8), Vector3(X0 + 0.006, 1.55, -2.75), Vector3(0, 90, 0))
 
 
 ## An orange cone fireplace in the corner, on a stone hearth, with a fire flickering in it.
@@ -496,8 +551,9 @@ func _tv_nook() -> void:
 	_prop("res://assets/props/intro_armchair.glb", Vector3(2.75, 0.0, 1.55), 149.0)
 	_prop(P + "coffeetable_01.glb", COFFEE_TABLE, 90.0)
 	level._hidden_block(COFFEE_TABLE.x - 0.45, COFFEE_TABLE.x + 0.45, 0.0, 0.52, COFFEE_TABLE.z - 0.7, COFFEE_TABLE.z + 0.7)
-	for m in [[Vector3(2.75, 0.526, -1.05), 15.0, Color(0.75, 0.2, 0.18)], [Vector3(2.8, 0.532, -1.0), -10.0, Color(0.2, 0.45, 0.6)]]:
-		_box(Vector3(0.21, 0.006, 0.28), m[0], _flat(m[2], 0.4), m[1])
+	# Three old issues of Liminal Geographic, the right way up for whoever's on the couch.
+	for m in [[3, Vector3(2.75, 0.5245, -1.05), 15.0], [1, Vector3(2.8, 0.527, -0.97), -10.0], [2, Vector3(2.68, 0.5245, -0.1), 4.0]]:
+		_pic("magazine_%d.png" % m[0], Vector2(0.21, 0.279), m[1], Vector3(-90, -90.0 + m[2], 0))
 	# A table lamp on a tall side table at the end of the couch: the vase is its base.
 	_prop(P + "side_table_tall_01.glb", Vector3(1.45, 0.0, 1.15), 0.0)
 	_prop(P + "antique_ceramic_vase_01.glb", Vector3(1.45, 0.76, 1.15), 0.0).scale = Vector3.ONE * 0.8
@@ -506,7 +562,11 @@ func _tv_nook() -> void:
 	_light(Vector3(1.45, 1.2, 1.15), Color(1.0, 0.78, 0.5), 0.8, 3.5)
 	_prop(P + "potted_plant_01.glb", Vector3(3.55, 0.0, 2.95), 0.0)
 	_prop(P + "potted_plant_01.glb", Vector3(3.55, 0.0, -3.0), 120.0)
-	_prop(O + "hanging_picture_frame_01.glb", Vector3(X1, 1.7, 1.6), -90.0).scale = Vector3.ONE * 0.7
+	# Agency posters: the safety rule over the TV corner, recruiting over the armchair, and the
+	# no-splashing one by the window.
+	_pic("poster_1.png", Vector2(0.6, 0.8), Vector3(X1 - 0.006, 1.55, -2.3), Vector3(0, -90, 0))
+	_pic("poster_2.png", Vector2(0.6, 0.8), Vector3(X1 - 0.006, 1.6, 1.6), Vector3(0, -90, 0))
+	_pic("poster_3.png", Vector2(0.6, 0.8), Vector3(3.45, 1.55, Z1 - 0.006), Vector3(0, 180, 0))
 	# The TV set, turned to face the room from the east wall.
 	var corner := Node3D.new()
 	corner.name = "TVCorner"
@@ -566,6 +626,11 @@ func _process(delta: float) -> void:
 	_t += delta
 	if _fan:
 		_fan.rotation.y += delta * 1.6
+	if _clock_m:
+		var now := Time.get_time_dict_from_system()
+		var mins: float = now.minute + now.second / 60.0
+		_clock_m.rotation.z = -TAU * mins / 60.0
+		_clock_h.rotation.z = -TAU * (fmod(now.hour, 12.0) + mins / 60.0) / 12.0
 	if _fire_light:
 		var f := 0.85 + 0.15 * sin(_t * 9.0) + 0.1 * sin(_t * 23.0 + 1.3) + 0.06 * sin(_t * 41.0)
 		_fire_light.light_energy = 1.1 * f

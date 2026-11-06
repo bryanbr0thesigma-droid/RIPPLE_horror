@@ -111,20 +111,26 @@ func _pedestal() -> void:
 
 
 func _title_text() -> void:
-	var t := Label3D.new()
-	t.text = "RIPPLE"
-	t.font_size = 220
-	t.pixel_size = 0.006
-	t.outline_size = 0
-	t.modulate = Color(0.55, 0.88, 0.95)
-	t.position = Vector3(0, 3.2, -13.95)
+	# The RIPPLE logo (tools/branding), its reflection rippling under it.
+	var t := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(6.4, 3.2)
+	t.mesh = q
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load("res://assets/branding/ripple_logo.png")
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(0.95, 1.05, 1.1)
+	m.disable_fog = true
+	t.material_override = m
+	t.position = Vector3(0, 3.25, -13.95)
 	add_child(t)
 	var sub := Label3D.new()
 	sub.text = "THE SHALLOW HALLS  ·  DEMO"
 	sub.font_size = 64
 	sub.pixel_size = 0.005
 	sub.modulate = Color(0.5, 0.6, 0.62)
-	sub.position = Vector3(0, 2.15, -13.95)
+	sub.position = Vector3(0, 1.75, -13.94)
 	add_child(sub)
 
 

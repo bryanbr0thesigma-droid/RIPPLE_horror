@@ -14,10 +14,14 @@ const Z0 := -3.5               # every room runs z -3.5..3.5
 const Z1 := 3.5
 const DOOR := [[-1.0, 1.0, 2.4]]
 const LOCKED := [[-0.64, 0.64, 2.15]]
+const BRAND := "res://assets/branding/"
+const NAVY := Color(0.07, 0.125, 0.36)
+const CREAM := Color(0.93, 0.9, 0.82)
 
 var level: Node3D
 var G: LevelGeometry
 var meter: Array[MeshInstance3D] = []
+var needle: Node3D
 var _noise := 0.0
 
 
@@ -54,8 +58,72 @@ func _shell(x0: float, x1: float, doors: Dictionary) -> void:
 	G.ceiling(x0, x1, Z0, Z1, H)
 
 
-func _sign(text: String, pos: Vector3, facing: float, size := 0.0024) -> void:
-	G.plaque(text, pos, facing, size)
+## A Training Division sign (the agency's template board, w metres wide): the title in its navy
+## header, the text as big as fits in its cream body. pos is the board's centre on the wall.
+func _sign(title: String, body: String, pos: Vector3, facing: float, w := 2.6) -> void:
+	var h := w / 1.6
+	var board := Node3D.new()
+	board.position = pos
+	board.rotation_degrees.y = facing
+	level.add_child(board)
+	board.add_child(_pic("training_sign.png", Vector2(w, h)))
+	var font: Font = ThemeDB.fallback_font
+	# The title: one line in the header, right of the seal (x 18..97 %, y 9..26 % of the template).
+	var t := _label(title, 64, CREAM)
+	var tsize := h * 0.1 / 64.0
+	tsize = minf(tsize, w * 0.76 / maxf(font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 64).x, 1.0))
+	t.pixel_size = tsize
+	t.position = Vector3(w * 0.075, h * 0.325, 0.004)
+	board.add_child(t)
+	# The text: the body box is x 3..97 %, y 35..89 %; shrink the lettering until it fits.
+	var bw := w * 0.87
+	var bh := h * 0.48
+	var size := 0.0024
+	for i in 20:
+		var hpx := font.get_multiline_string_size(body, HORIZONTAL_ALIGNMENT_CENTER, bw / size, 48).y
+		if hpx * size <= bh:
+			break
+		size *= 0.94
+	var b := _label(body, 48, NAVY)
+	b.pixel_size = size
+	b.width = bw / size
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.position = Vector3(0, -h * 0.119, 0.004)
+	board.add_child(b)
+
+
+func _label(text: String, font_size: int, col: Color) -> Label3D:
+	var l := Label3D.new()
+	l.text = text
+	l.font_size = font_size
+	l.modulate = col
+	l.outline_size = 0
+	return l
+
+
+## A flat picture from the agency's art: a quad facing +z, turned by yaw (degrees).
+func _pic(file: String, size: Vector2, pos := Vector3.ZERO, yaw := 0.0, cut := false) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = size
+	mi.mesh = q
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load(BRAND + file)
+	m.roughness = 0.75
+	if cut:
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		m.alpha_scissor_threshold = 0.4
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = pos
+	mi.rotation_degrees.y = yaw
+	return mi
+
+
+## The room's hand-lettered title over the doorway into it (n = 1..7), facing the way you come.
+## (Walls between two rooms are two walls thick: their faces are 0.3 m off the room's edge.)
+func _room_title(n: int, pos: Vector3, yaw: float) -> void:
+	level.add_child(_pic("room_title_%d.png" % n, Vector2(1.6, 0.4), pos, yaw, true))
 
 
 func _table(at: Vector3) -> void:
@@ -67,8 +135,10 @@ func _room_controls() -> void:
 	G.floor_slab(0, 7, Z0, Z1)
 	_shell(0, 7, {"e": DOOR})
 	G.light(Vector3(3.5, H - 0.15, 0.0), 1.2, 9.0)
-	_sign("F.A.L.C.O.N. TRAINING ANNEX\n\nPractice only: nothing lives in this water.\n\nMOVE: left stick (VR) or W A S D.\nTURN: right stick, or the mouse.\nGRAB: grip (VR) or E.\nUSE what you're holding: trigger, or left mouse.\nDROP: let go, or Q.", Vector3(3.5, 1.75, Z0 + 0.03), 0.0)
-	_sign("Pick up the FLASHLIGHT on the table. It only lights while you squeeze the trigger (or hold left mouse).\n\nBACKPACK: reach over your shoulder and let go (VR), or press B. It holds 3 things. Reach back there (or press B with empty hands) to take one out.", Vector3(0.03, 1.7, 0.0), 90.0, 0.0019)
+	_sign("WELCOME TO THE TRAINING ANNEX", "Practice only: nothing lives in this water.\n\nMOVE: left stick (VR) or W A S D.\nTURN: right stick, or the mouse.\nGRAB: grip (VR) or E.\nUSE what you're holding: trigger, or left mouse.\nDROP: let go, or Q.", Vector3(3.5, 1.9, Z0 + 0.03), 0.0, 3.2)
+	_sign("FLASHLIGHT AND BACKPACK", "Pick up the FLASHLIGHT on the table. It only lights while you squeeze the trigger (or hold left mouse).\n\nBACKPACK: reach over your shoulder and let go (VR), or press B. It holds 3 things. Reach back there (or press B with empty hands) to take one out.", Vector3(0.03, 1.62, 0.0), 90.0, 2.6)
+	_room_title(1, Vector3(0.03, 2.82, 0.0), 90.0)
+	_room_title(2, Vector3(6.67, 2.8, 0.0), -90.0)
 	_table(Vector3(3.5, 0.0, -2.6))
 	level._spawn_item("flashlight", "Flashlight", Vector3(3.5, 0.92, -2.6))
 
@@ -83,16 +153,24 @@ func _room_water() -> void:
 	G.light(Vector3(10.0, H - 0.15, 0.0), 1.1, 9.0)
 	G.light(Vector3(14.0, H - 0.15, 0.0), 1.1, 9.0)
 	G.wet_sign(Vector3(7.5, 0.0, -2.8), 30.0)
-	_sign("WATER IS LOUD\n\nThe Wader hunts by sound. Climb down a ladder: dropping in is loud. Wade slowly. Rushing, splashing, and moving your hands through the water all make noise.\n\nWatch the meter. Try to cross without lighting it up.", Vector3(9.6, 1.95, Z0 + 0.03), 0.0)
+	_sign("WATER IS LOUD", "The Wader hunts by sound. Climb down a ladder: dropping in is loud. Wade slowly. Rushing, splashing, and moving your hands through the water all make noise.\n\nWatch the meter. Try to cross without lighting it up.", Vector3(9.6, 1.95, Z0 + 0.03), 0.0, 3.0)
+	_room_title(3, Vector3(16.67, 2.8, 0.0), -90.0)
 	# The noise meter: twelve lamps, green to red, lit by the noise you make.
-	var label := Label3D.new()
-	label.text = "NOISE"
-	label.pixel_size = 0.004
-	label.font_size = 48
-	label.modulate = Color(0.12, 0.13, 0.14)
-	label.outline_size = 0
-	label.position = Vector3(14.0, 2.55, Z0 + 0.03)
-	level.add_child(label)
+	# Over them the agency's gauge, its needle following the lamps.
+	level.add_child(_pic("noise_meter.png", Vector2(1.0, 0.5), Vector3(14.0, 2.62, Z0 + 0.03), 0.0, true))
+	needle = Node3D.new()
+	needle.position = Vector3(14.0, 2.62 - 0.184, Z0 + 0.04)
+	level.add_child(needle)
+	var nm := MeshInstance3D.new()
+	var nb := BoxMesh.new()
+	nb.size = Vector3(0.012, 0.21, 0.004)
+	nm.mesh = nb
+	var nmat := StandardMaterial3D.new()
+	nmat.albedo_color = Color(0.08, 0.08, 0.09)
+	nm.material_override = nmat
+	nm.position = Vector3(0, 0.105, 0)
+	needle.add_child(nm)
+	needle.rotation.z = deg_to_rad(70.0)
 	for i in 12:
 		var m := MeshInstance3D.new()
 		var b := BoxMesh.new()
@@ -119,8 +197,9 @@ func _room_throw() -> void:
 	G.pool(18, 23, 1.0, Z1, FLOOR, SURFACE)
 	_shell(17, 24, {"w": DOOR, "e": DOOR})
 	G.light(Vector3(20.5, H - 0.15, -0.5), 1.2, 9.0)
-	_sign("THROW\n\nA splash somewhere else draws it there. Throw a bottle into the water: swing and let go (VR), or hold left mouse and release (desktop).", Vector3(18.6, 1.9, Z0 + 0.03), 0.0, 0.0021)
-	_sign("LIDAR\n\nTake the lidar off its charger. Point it and squeeze: it paints dots on whatever is in front of you, even in the dark. Only you see them. The battery runs down; it recharges here once there's power.", Vector3(23.97, 1.85, -1.0), -90.0, 0.0021)
+	_sign("THROW", "A splash somewhere else draws it there. Throw a bottle into the water: swing and let go (VR), or hold left mouse and release (desktop).", Vector3(18.6, 1.9, Z0 + 0.03), 0.0, 2.4)
+	_sign("LIDAR", "Take the lidar off its charger. Point it and squeeze: it paints dots on whatever is in front of you, even in the dark. Only you see them. The battery runs down; it recharges here once there's power.", Vector3(23.67, 1.75, -2.3), -90.0, 2.0)
+	_room_title(4, Vector3(23.67, 2.8, 0.0), -90.0)
 	_table(Vector3(19.6, 0.0, -2.6))
 	for i in 3:
 		level._spawn_item("throwable", "Bottle%d" % (i + 1), Vector3(19.0 + i * 0.55, 0.95, -2.6))
@@ -138,7 +217,8 @@ func _room_dark() -> void:
 	em.light_energy = 0.45
 	em.omni_range = 3.5
 	level.get_node("Lights").add_child(em)
-	_sign("THE DARK\n\nThe key to the next door is somewhere in here. Use the lidar to find it, then hold the key up to the lock on the door.", Vector3(24.03, 1.8, -1.6), 90.0, 0.0021)
+	_sign("THE DARK", "The key to the next door is somewhere in here. Use the lidar to find it, then hold the key up to the lock on the door.", Vector3(24.33, 1.75, -2.3), 90.0, 2.0)
+	_room_title(5, Vector3(30.67, 2.75, 0.0), -90.0)
 	var crate := StandardMaterial3D.new()
 	crate.albedo_color = Color(0.32, 0.26, 0.18)
 	crate.roughness = 0.9
@@ -164,7 +244,8 @@ func _room_power() -> void:
 	_table(Vector3(38.2, 0.0, 2.4))
 	level._spawn_item("canteen", "Canteen1", Vector3(37.8, 0.95, 2.4))
 	level._spawn_item("canteen", "Canteen2", Vector3(38.6, 0.95, 2.4))
-	_sign("POWER\n\nFill a canteen in the darker mineral water (dip it in, by the ladder), then tip it into the generator's funnel. It takes two canteens.\n\nStand a canteen on the distiller for a while first and the generator starts faster. A generator is loud while it starts up.", Vector3(36.6, 1.95, Z1 - 0.03), 180.0, 0.0021)
+	_sign("POWER", "Fill a canteen in the darker mineral water (dip it in, by the ladder), then tip it into the generator's funnel. It takes two canteens.\n\nStand a canteen on the distiller for a while first and the generator starts faster. A generator is loud while it starts up.", Vector3(36.6, 1.95, Z1 - 0.03), 180.0, 3.0)
+	_room_title(6, Vector3(40.67, 2.8, 0.0), -90.0)
 
 
 func _room_cover() -> void:
@@ -175,7 +256,7 @@ func _room_cover() -> void:
 	G.ladder(Vector3(42, FLOOR, 2.6), Vector3(1, 0, 0), 0.0)
 	G.ladder(Vector3(52, FLOOR, -2.6), Vector3(-1, 0, 0), 0.0)
 	level._make_pool_cover(Vector3(42.0 - 18.0, 0.0, 36.0), 10.0)
-	level._make_lever(Vector3(41.5 - 17.0, 0.0, -2.2 + 33.0), "POOL COVER\npull the lever (needs power)")
+	level._make_lever(Vector3(41.5 - 17.0, 0.0, -2.2 + 33.0))
 	# The lights here run off the generator.
 	for p in [Vector3(44.5, H - 0.1, -1.8), Vector3(49.5, H - 0.1, 1.8)]:
 		level.hall_b_fittings.append(G.fitting(p, Color(0.85, 0.95, 1.0)))
@@ -187,15 +268,16 @@ func _room_cover() -> void:
 	em.light_energy = 0.45
 	em.omni_range = 3.5
 	level.get_node("Lights").add_child(em)
-	_sign("THE POOL COVER\n\nThe lights and this lever run off the generator. With the power on, pull the lever and the cover rolls out across the pool: cross without touching the water.", Vector3(41.03, 1.85, 1.6), 90.0, 0.0021)
+	_sign("THE POOL COVER", "The lights and this lever run off the generator. With the power on, pull the lever and the cover rolls out across the pool: cross without touching the water.", Vector3(41.33, 1.75, 2.3), 90.0, 2.0)
+	_room_title(7, Vector3(52.67, 2.8, 0.0), -90.0)
 
 
 func _room_final() -> void:
 	G.floor_slab(53, 59, Z0, Z1)
 	_shell(53, 59, {"w": DOOR})
 	G.light(Vector3(56.0, H - 0.15, 0.0), 1.2, 9.0, Color(0.85, 1.0, 0.85))
-	_sign("IF YOU HEAR IT COMING, FREEZE\n\nIt knows roughly where you are and feels around with its arm. Don't move at all, not even your hands, until it's gone.", Vector3(55.0, 1.95, Z0 + 0.03), 0.0, 0.0021)
-	_sign("WITH FRIENDS\n\nGive things by taking them from each other's hands. Shove a teammate with F (desktop). If it gets you, you're a ghost until a teammate reaches a dry room, or carries your bag into one.\n\nWalk to the exit doors to finish.", Vector3(55.0, 1.95, Z1 - 0.03), 180.0, 0.0021)
+	_sign("IF YOU HEAR IT COMING, FREEZE", "It knows roughly where you are and feels around with its arm. Don't move at all, not even your hands, until it's gone.", Vector3(55.0, 1.95, Z0 + 0.03), 0.0, 2.6)
+	_sign("WITH FRIENDS", "Give things by taking them from each other's hands. Shove a teammate with F (desktop). If it gets you, you're a ghost until a teammate reaches a dry room, or carries your bag into one.\n\nWalk to the exit doors to finish.", Vector3(55.0, 1.95, Z1 - 0.03), 180.0, 2.6)
 	var doors: Node3D = preload("res://assets/props/exit_doors.glb").instantiate()
 	doors.position = Vector3(58.92, 0.0, 0.0)
 	level.get_node("Props").add_child(doors)
@@ -212,3 +294,5 @@ func _process(delta: float) -> void:
 	var lit := int(round(_noise * meter.size()))
 	for i in meter.size():
 		(meter[i].material_override as StandardMaterial3D).emission_energy_multiplier = 1.6 if i < lit else 0.0
+	if needle:
+		needle.rotation.z = lerp_angle(needle.rotation.z, deg_to_rad(70.0 - 140.0 * _noise), minf(delta * 12.0, 1.0))

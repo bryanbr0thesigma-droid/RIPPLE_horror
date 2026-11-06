@@ -211,7 +211,8 @@ func _build_start_room() -> void:
 	dark.transform = Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(7.97, 1.12, 3.2))
 	$Props.add_child(dark)
 	G.block(7.3, 8.0, 0.0, 2.4, 2.4, 4.0, null, LevelGeometry.L_WORLD, $Props).visible = false
-	G.plaque("RIPPLE test level\n\nSomething lives in the water and hunts by sound. Falling in is loud. Wading fast is loud. Moving your hands in the water makes noise.\n\nIf you hear it coming, freeze. It knows roughly where you are and feels around with its arm. Don't move at all.\n\nFind the key, get into the staff room, power the generator with the darker mineral water (2 canteens), and get across the last pool.", Vector3(4, 1.7, 7.95), 180, 0.0022)
+	_plate("halls_plaque.png", Vector2(1.6, 1.0), Vector3(4, 1.95, 7.97), 180)
+	G.plaque("Find the key, get into the staff room, power the generator with the darker mineral water (2 canteens), and get across the last pool.", Vector3(4, 1.12, 7.95), 180, 0.0019)
 
 
 func _build_hall_a() -> void:
@@ -246,7 +247,9 @@ func _build_hall_a() -> void:
 	G.floor_slab(2, 4.5, -22, -20)
 	G.walls(2, 4.5, -22, -20, 0.0, 2.6, {"n": [[2.0, 4.5, 3.0]], "s": [[2.0, 4.5, 3.0]]})
 	G.ceiling(2, 4.5, -22, -20, 2.6)
-	G.plaque("STAFF ONLY", Vector3(15.98, 2.6, -5.0), -90, 0.006)
+	_plate("sign_staff_only.png", Vector2(0.6, 0.6), Vector3(15.67, 2.6, -5.0), -90)        # the staff room's wall is 30 cm thick
+	_plate("sign_no_diving.png", Vector2(0.55, 0.55), Vector3(1.8, 1.8, -0.33), 180)
+	_plate("sign_no_running.png", Vector2(0.55, 0.55), Vector3(6.2, 1.8, -0.33), 180)
 	# Dressing: wet floor signs, poolside chairs, pipes along the walls.
 	G.wet_sign(Vector3(-5.0, 0, -0.35), 30)
 	G.wet_sign(Vector3(13.0, 0, -0.9), -20)
@@ -255,7 +258,7 @@ func _build_hall_a() -> void:
 	G.pipe_run(Vector3(-8, 3.6, -20), Vector3(16, 3.6, -20), Vector3.BACK)
 	G.pipe_run(Vector3(-8, 3.35, -20), Vector3(16, 3.35, -20), Vector3.BACK, true)
 	G.pipe_run(Vector3(-8, 3.85, 0), Vector3(-8, 3.85, -20), Vector3.RIGHT)
-	G.plaque("WET FLOOR", Vector3(3.25, 2.75, -20.01), 0, 0.005)
+	_plate("sign_deep_water.png", Vector2(0.5, 0.5), Vector3(3.25, 2.95, -19.67), 0)
 
 
 func _build_staff_room() -> void:
@@ -305,7 +308,7 @@ func _make_charger(o: Vector3) -> void:
 	charger_point = Vector3(23.15, 1.0, -6.6) + o
 	_hidden_block(22.85 + o.x, 23.55 + o.x, 0.0, 0.9, -7.19 + o.z, -6.01 + o.z)
 	_prop("res://assets/props/tool_cart.glb", Vector3(23.2, 0.0, -6.6) + o, 90.0)
-	_add_prop_label("LIDAR CHARGER\nneeds power", Vector3(23.15, 1.35, -5.78) + o)
+	_plate("label_charger.png", Vector2(0.36, 0.18), Vector3(23.15, 0.99, -6.06) + o, 0.0, -15.0)
 
 
 ## The distiller: the machine the canteen stands on, and the rusted tanks behind it. `o` moves it
@@ -330,7 +333,7 @@ func _make_distiller(o: Vector3) -> void:
 	tcs.position = Vector3(0, 0.625, 0)
 	tank_body.add_child(tcs)
 	tanks.add_child(tank_body)
-	_add_prop_label("DISTILLER\nset a canteen here", Vector3(18.5, 1.1, -8.2) + o)
+	_plate("label_distiller.png", Vector2(0.4, 0.2), Vector3(18.5, 0.32, -8.24) + o)
 	distiller_audio = _loop_audio(preload("res://assets/audio/distiller_loop.ogg"), Vector3(18.6, 1.0, -9.1) + o, -10.0)
 
 
@@ -436,7 +439,7 @@ func _build_generator(o := Vector3.ZERO) -> void:
 	generator_glass.position = Vector3(11.3, 0.5, -44.76) + o
 	generator_glass.set_meta("base_y", generator_glass.position.y)
 	$Props.add_child(generator_glass)
-	_add_prop_label("GENERATOR\npour mineral water in the funnel", Vector3(10.5, 1.55, -44.7) + o)
+	_plate("label_generator.png", Vector2(0.5, 0.25), Vector3(10.3, 0.62, -44.79) + o)
 	generator_audio = _loop_audio(preload("res://assets/audio/generator_hum.ogg"), Vector3(10.5, 0.8, -45.2) + o, -4.0)
 
 
@@ -456,7 +459,7 @@ func _build_hall_c() -> void:
 	G.pipe_run(Vector3(38, 4.0, -22), Vector3(38, 4.0, -46), Vector3.LEFT)
 	G.wet_sign(Vector3(17.4, 0, -39.4), 45)
 	_make_pool_cover(Vector3.ZERO, 18.0)
-	_make_lever(Vector3.ZERO, "POOL COVER\npull the lever (needs power)")
+	_make_lever(Vector3.ZERO)
 
 
 ## The retractable pool cover, retracted against a west ledge; it rolls out east `length` metres.
@@ -488,7 +491,7 @@ func _make_pool_cover(o: Vector3, length: float) -> void:
 
 ## The approved lever in its red box (CC BY, gunnarcorrea) on a post; its handle moves. `o` moves it
 ## from Hall C's west ledge. (The pool cover's lever, and the lobby's start lever.)
-func _make_lever(o: Vector3, label: String) -> void:
+func _make_lever(o: Vector3) -> void:
 	lever_point = Vector3(17.05, 1.2, -33.0) + o
 	G.block(16.75 + o.x, 17.25 + o.x, 0.0, 0.9, -33.25 + o.z, -32.75 + o.z, G.mat_metal, LevelGeometry.L_WORLD, $Props)
 	var lever: Node3D = preload("res://assets/props/cover_lever.glb").instantiate()
@@ -500,7 +503,7 @@ func _make_lever(o: Vector3, label: String) -> void:
 	handle.name = "LeverHandle"
 	$Props.add_child(handle)
 	handle.global_position = lever_point
-	_add_prop_label(label, Vector3(17.0, 1.75, -33.0) + o, 90)
+	_plate("label_cover.png", Vector2(0.4, 0.2), Vector3(17.255, 0.62, -33.0) + o, 90)
 
 
 func _build_exit() -> void:
@@ -513,7 +516,8 @@ func _build_exit() -> void:
 	var exit_doors: Node3D = preload("res://assets/props/exit_doors.glb").instantiate()
 	exit_doors.position = Vector3(43.92, 0.0, -36.0)
 	$Props.add_child(exit_doors)
-	G.plaque("EXIT\nYou made it. Wait here for the others.", Vector3(43.85, 2.7, -36), -90, 0.004)
+	_plate("exit_sign.png", Vector2(0.6, 0.3), Vector3(43.85, 2.62, -36), -90, 0.0, 1.3)
+	G.plaque("You made it. Wait here for the others.", Vector3(41.0, 1.8, -32.03), 180, 0.003)
 
 
 ## A box you can stand things on, without its grey look (a model shows instead).
@@ -532,16 +536,25 @@ func _prop(path: String, pos: Vector3, yaw_deg: float) -> Node3D:
 	return n
 
 
-func _add_prop_label(text: String, pos: Vector3, yaw := 0.0) -> void:
-	var l := Label3D.new()
-	l.text = text
-	l.pixel_size = 0.0025
-	l.font_size = 40
-	l.position = pos
-	l.rotation_degrees = Vector3(0, yaw, 0)
-	l.modulate = Color(0.85, 0.9, 0.9)
-	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	$Props.add_child(l)
+## A sign or stencilled plate from the agency's art (tools/branding), facing yaw (degrees); tilt
+## leans its top back; glow > 0 lights it (an exit sign).
+func _plate(file: String, size: Vector2, pos: Vector3, yaw := 0.0, tilt := 0.0, glow := 0.0) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = size
+	mi.mesh = q
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load("res://assets/branding/" + file)
+	m.roughness = 0.6
+	if glow > 0.0:
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = Color(glow, glow, glow)
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = pos
+	mi.rotation_degrees = Vector3(tilt, yaw, 0)
+	$Props.add_child(mi)
+	return mi
 
 
 func _loop_audio(stream: AudioStream, pos: Vector3, db: float) -> AudioStreamPlayer3D:

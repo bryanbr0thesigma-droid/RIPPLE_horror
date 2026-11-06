@@ -182,12 +182,27 @@ sign in the window).
 | `game/assets/props/lobby/ceiling_fan.glb` | The ceiling fan | [Poly Haven, Ceiling Fan](https://polyhaven.com/a/ceiling_fan) | Ulan Cabanilla | CC0 |
 | `game/assets/props/lobby/potted_plant_01.glb` | The plants | [Poly Haven, Potted Plant 01](https://polyhaven.com/a/potted_plant_01) | Rico Cilliers | CC0 |
 | `game/assets/props/lobby/potted_plant_04.glb`, `side_table_tall_01.glb`, `antique_ceramic_vase_01.glb` | The counter plant, the lamp table, the lamp's base | [Poly Haven](https://polyhaven.com/models) | James Ray Cock | CC0 |
-| `game/assets/lobby/seal.png` | The F.A.L.C.O.N. seal on the station sign and the framed notice | cut from the tape's label (see above) | — | CC0 parts |
 | `game/assets/audio/desk_bell.ogg` | The service bell's ding | synthesized for RIPPLE | — | ours |
 
-The leather armchair, the TV set, pictures and clock are reused from the office. The counter, key
-board, cubbies, signs, fireplace, soda machine, coffee station, brochure rack, window, blinds and
-neon sign are made in the game from simple shapes.
+The leather armchair and the TV set are reused from the office. The counter, key board, cubbies,
+fireplace, soda machine, coffee station, brochure rack, window, blinds and the clock are made in the
+game from simple shapes, and dressed with the station's art (below).
+
+## Station art and brands
+
+Everything in `game/assets/branding/` (except the app icon and splash) is drawn by the scripts in
+`tools/branding/` (`python3 make.py <out_dir>`): the F.A.L.C.O.N. logos, Pinewater Field Station's
+signs, the pamphlets, posters and certificate, the visitors' book and the memo, the Training
+Division sign and room titles, the noise gauge, the Shallow Halls' warning signs, equipment plates,
+exit sign and plaque, the RIPPLE logo and the menu header. The lobby's knock-off brands are
+deliberate parodies: Chlora-Cola (the soda machine), Floater's (the coffee can), Liminal Geographic
+(the magazines) and SORNY. No AI image model was used.
+
+Their sources and fonts are listed in `tools/branding/CREDITS.md`: public-domain clip art and ISO
+pictograms, OFL fonts, and the Wader's silhouette from the creature model, which carries its
+**CC BY 4.0** credit: "The Rake" by Sealife Fan 3, reworked for RIPPLE. Two magazine covers are
+homages to the Backrooms' Level 0 and Level Run, rendered in the engine from the game's own
+textures (no Backrooms images are used).
 
 ## Code libraries
 
