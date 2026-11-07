@@ -47,8 +47,6 @@ LINES = {
     "rm4":   "Count twice.",
     "rm5":   "Sign out.",
     "end":   "This concludes your orientation. Thank you for your service.",
-    # After the end of the program
-    "one":   "One person has not signed out.",
 }
 
 SUBS = {

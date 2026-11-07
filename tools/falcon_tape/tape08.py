@@ -60,10 +60,8 @@ def timeline():
                                      L("rm5", 1.6)], beds=[(0, "corp")]),
         Scene("outro", E.outro, [P(0.5), L("end", 3.4)], beds=[(0, "corp")], sfx=[(0.2, "jingle", 0.5)]),
         Scene("blank", S.blank, [P(2.2)], glitch=[(1.95, 0.25, 0.5)]),
-        Scene("stinger", E.stinger, [P(0.8), M("board"), P(0.6), L("one", 1.0), M("flash"), P(0.5), M("cut"), P(1.2),
-                                     M("static"), P(1.4), M("stop"), P(1.6), P(0.8)],
-              beds=[(0, "none")], sfx=[("flash", "static:0.06", 0.35), ("static", "static:1.4", 0.6)],
-              glitch=[("flash", 0.08, 0.5, False), ("e:one+0.9", 0.1, 0.4, False)], static=[("static", 1.4, 1.0)]),
+        Scene("end", E.tape_end, [P(0.8), M("static"), P(1.4), M("stop"), P(1.6), P(0.8)],
+              beds=[(0, "none")], sfx=[("static", "static:1.4", 0.6)], static=[("static", 1.4, 1.0)]),
     ]
 
 

@@ -14,7 +14,7 @@ TAPES = {
     "07-W": dict(title=("WATER SAFETY", "AND YOU"), spine="WATER SAFETY AND YOU",
                  sub=("A FIELD GUIDE TO LIMINAL ENTITY L-7", "\u201cTHE WADER\u201d"), time="3 MIN 18 SEC", suffix=""),
     "08-E": dict(title=("GOING IN,", "COMING OUT"), spine="GOING IN, COMING OUT",
-                 sub=("ENTRY AND EXIT PROCEDURES", "\u201cTHE POOLROOMS\u201d"), time="3 MIN 8 SEC", suffix="_08"),
+                 sub=("ENTRY AND EXIT PROCEDURES", "\u201cTHE POOLROOMS\u201d"), time="3 MIN 2 SEC", suffix="_08"),
 }
 TAPE = sys.argv[2] if len(sys.argv) > 2 else "07-W"
 T = TAPES[TAPE]

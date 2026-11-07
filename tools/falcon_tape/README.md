@@ -34,11 +34,11 @@ absolutely have to, and check there are no entities within a kilometre first; wa
 never jump, mark your way and stay in sight of your partner; leave the way you came, climb out
 slowly, and dry off before the threshold, because water must not leave the poolrooms. Then the
 headcount: count your team, count them again. If the number is lower, don't go back. If it is
-higher, don't tell them. It never shows the Wader; after the end, one person still hasn't signed
-out.
+higher, don't tell them. It never shows the Wader.
 
 The video is `media/falcon_tape_08.mp4`, with subtitles in `media/falcon_tape_08.srt`. The in-game
-copy is `game/assets/video/falcon_tape_08.ogv`, with its subtitles next to it.
+copy is `game/assets/video/falcon_tape_08.ogv`, with its subtitles next to it. Its labels are
+`media/labels/label_top_08.png` and `label_spine_08.png` (same sizes as 07-W's).
 
 ## What's in it
 

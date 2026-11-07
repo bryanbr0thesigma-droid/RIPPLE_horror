@@ -347,6 +347,15 @@ def mark(c, t, sc, back=False):
 
 
 # ---------------------------------------------------------------- 3. coming out
+DOOR_X = 52                     # the middle of the doorway to the station (come_out)
+
+
+def through_door(t, x0, start, dur):
+    """Walking left from x0 into the doorway, then gone into the dark beyond it: (x, alpha)."""
+    x = x0 - (x0 - DOOR_X) * ease(ramp(t, start, dur))
+    return x, 1 - ramp(t, start + dur, 0.35)
+
+
 def come_out(c, t, sc):
     """Back along the marks, up the ladder, and dry off at the threshold before crossing it."""
     m, e = sc.m, sc.e
@@ -389,13 +398,16 @@ def come_out(c, t, sc):
             puddle(c, x, dy + 1, 12 * wet + 4)
         if t >= dry1:
             ok_mark(c, x, dy - 120, 13)
+    else:                                                   # through the door, after the partner
+        x, a = through_door(t, th + 44, x_out + 0.7, 0.8)
+        if a > 0.02:
+            person(c, "walk" if a > 0.99 and x > DOOR_X + 1 else "stand", x, dy, 100, alpha=a)
+    if t < x_out:
+        person(c, "stand", partner_x, dy, 100)
     else:
-        x = th + 44 - 140 * ramp(t, x_out, 1.0)
-        if x > -20:
-            person(c, "walk", x, dy, 100)
-    px = partner_x if t < x_out else partner_x - 200 * ramp(t, x_out, 1.4)
-    if px > -20:
-        person(c, "stand" if t < x_out else "walk", px, dy, 100)
+        px, a = through_door(t, partner_x, x_out, 1.3)
+        if a > 0.02:
+            person(c, "walk" if a > 0.99 and px > DOOR_X + 1 else "stand", px, dy, 100, alpha=a)
     water(c, dx, W, sy, fy, t, bumps=surface_bumps(ev, t, 50, 1.4))
     c.dashed((th + 8, dy - 120), (th + 8, dy), RED, 2.5, 7, 5)
     c.text(th + 8, dy - 130, "THRESHOLD", 11, RED, "sans", "mm", 0, track=1)
@@ -543,33 +555,10 @@ def outro(c, t, sc):
     c.fade_to(BLACK, ramp(t, sc.dur - 1.3, 1.2))
 
 
-def book_page(c):
-    """The visitors' sign-in book, the row that was never signed out."""
-    c.rect(0, 0, W, H, fill=(236, 232, 214))
-    cols = [30, 220, 440, 530, 620]
-    c.rect(cols[0], 120, cols[-1], 152, fill=(214, 222, 232))
-    for i, h in enumerate(["NAME", "VISITING", "TIME IN", "TIME OUT"]):
-        c.text((cols[i] + cols[i + 1]) / 2, 136, h, 14, NAVY, "sans", "mm", 0, track=1)
-    for k in range(6):
-        c.line([(cols[0], 152 + k * 56), (cols[-1], 152 + k * 56)], (130, 160, 200), 1.5)
-    for x in cols:
-        c.line([(x, 120), (x, 152 + 5 * 56)], (200, 110, 110) if x == cols[1] else (130, 160, 200), 1.5)
-    y = 152 + 56 + 28
-    for x, s in [(cols[0] + 10, "R. Delgado"), (cols[1] + 10, "Survey, Pool 4"), (cols[2] + 10, "2:10")]:
-        c.text(x, y, s, 27, (30, 30, 34), "hand", "lm", 0)
-    c.circle(575, y, 38, outline=RED, width=3)
-    c.text(320, 66, "VISITORS' REGISTER", 20, NAVY, "sans", "mm", 0, track=3)
-
-
-def stinger(c, t, sc):
+def tape_end(c, t, sc):
+    """After the program: black, a burst of static, and the tape stops."""
     m = sc.m
     c.rect(0, 0, W, H, fill=BLACK)
-    if m["board"] <= t < m["flash"]:
-        c.text(320, 190, "PERSONNEL CURRENTLY INSIDE:", 20, WHITE, "mono", "mm", 0)
-        if int(t * 2.5) % 2 == 0 or t < m["one"]:
-            c.text(320, 270, "1", 90, RED, "mono", "mm", 0)
-    elif m["flash"] <= t < m["cut"]:
-        book_page(c)
-    elif m["stop"] <= t < m["stop"] + 1.6:
+    if m["stop"] <= t < m["stop"] + 1.6:
         c.rect(0, 0, W, H, fill=VCR_BLUE)
-        osd(c, "STOP ■")
+        osd(c, "STOP \u25a0")
