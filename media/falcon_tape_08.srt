@@ -150,7 +150,3 @@ Sign out.
 00:02:47,876 --> 00:02:52,061
 This concludes your orientation. Thank you for your service.
 
-39
-00:02:59,061 --> 00:03:01,148
-One person has not signed out.
-
