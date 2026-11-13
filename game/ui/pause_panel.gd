@@ -1,5 +1,6 @@
 extends Control
-## In-game pause menu: resume or leave to the title screen.
+## In-game pause menu (the menu button): resume, the host can take everyone back to the lobby, or
+## leave to the title. Leaving takes a second press, so a stray click doesn't end anyone's game.
 
 signal resumed
 
@@ -36,7 +37,24 @@ func _ready() -> void:
 		code.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(code)
 	v.add_child(_button("Resume", func(): resumed.emit()))
-	v.add_child(_button("Leave to title", func(): Game.go_to_menu("You left the game.")))
+	var lv = Game.level
+	if Net.is_host() and Game.use_lobby and lv and lv.get("mode") == "game":
+		v.add_child(_button("Everyone back to the lobby", func():
+			resumed.emit()
+			Net.return_to_lobby()))
+	var ends_it := Net.is_host() and Net.players.size() > 1
+	var leave := _button("Leave to title", Callable())
+	leave.pressed.connect(func():
+		if leave.has_meta("armed"):
+			Game.go_to_menu("You left the game.")
+			return
+		leave.set_meta("armed", true)
+		leave.text = "Press again: ends it for everyone" if ends_it else "Press again to leave"
+		get_tree().create_timer(3.0).timeout.connect(func():
+			if is_instance_valid(leave):
+				leave.remove_meta("armed")
+				leave.text = "Leave to title"))
+	v.add_child(leave)
 
 
 func _button(text: String, cb: Callable) -> Button:
@@ -56,5 +74,6 @@ func _button(text: String, cb: Callable) -> Button:
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("pressed", hover)
 	b.add_theme_color_override("font_color", Color(0.85, 0.92, 0.93))
-	b.pressed.connect(cb)
+	if cb.is_valid():
+		b.pressed.connect(cb)
 	return b

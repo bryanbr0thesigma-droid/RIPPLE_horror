@@ -27,6 +27,7 @@ var _in_pack := [false, false]
 func _ready() -> void:
 	set_as_top_level(true)
 	current = true
+	Game.focus_changed.connect(_on_focus)
 	$MovementWater.rig = self
 	for p in [$LeftHand/CollisionHandLeft/FunctionPickup, $RightHand/CollisionHandRight/FunctionPickup]:
 		# An item in one hand sits on XR Tools' "held" layer; the other hand must see that layer too,
@@ -142,6 +143,12 @@ func _on_hand_hit(other: Node3D, i: int) -> void:
 	var v: Vector3 = (hand.global_position - _last_hand_pos[i]) * Engine.physics_ticks_per_second
 	if v.length() > 1.2:
 		Game.level.push_player(other.get_meta("peer_id"), v.limit_length(4.0) * 0.9)
+
+
+## The headset's menu is over the game: no hands or controllers in it (they come back after).
+func _on_focus(focussed: bool) -> void:
+	left.visible = focussed
+	right.visible = focussed
 
 
 func toggle_pause() -> void:

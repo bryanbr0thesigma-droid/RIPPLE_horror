@@ -56,6 +56,10 @@ var _wood: StandardMaterial3D
 var _brass: StandardMaterial3D
 var _clock_h: Node3D
 var _clock_m: Node3D
+var _countdown := 0          # seconds until the game starts (0: not starting)
+var _leave_t := 0.0          # how long you've stood on the doormat by the way out
+var _ips: Array[String] = []
+var _ips_t := 0.0
 
 
 func build(lv: Node3D) -> void:
@@ -307,6 +311,9 @@ func _front() -> void:
 	_pic("door_decal.png", Vector2(0.6, 0.6), Vector3(-2.8, 1.2, Z1 - 0.03), Vector3.ZERO, 0.0, true)
 	# A coir doormat inside the door, with the seal woven into it.
 	_box(Vector3(0.95, 0.012, 0.62), Vector3(-2.8, 0.006, 3.05), _flat(Color(0.28, 0.2, 0.12), 0.95))
+	# The way out: stand on the mat by the door for a moment to leave the station (and the session).
+	_pic("exit_sign.png", Vector2(0.44, 0.22), Vector3(-2.8, 2.33, Z1 - 0.012), Vector3(0, 180, 0), 1.2)
+	_text("STAND HERE TO LEAVE", Vector3(-2.8, 0.02, 2.7), 0.0, 0.0014, Color(0.85, 0.75, 0.5), 32).rotation_degrees = Vector3(-90, 180, 0)
 	_pic("rug_logo.png", Vector2(0.5, 0.5), Vector3(-2.8, 0.0125, 3.05), Vector3(-90, 0, 0), 0.0, true)
 	# The window: frame, mullion, sill.
 	G.block(-1.68, 2.88, 0.77, 0.85, zf0 - 0.08, zf1, _wood)
@@ -692,6 +699,7 @@ func _process(delta: float) -> void:
 		var f := 1.0 + 0.06 * sin(_t * 1.7) + 0.04 * sin(_t * 2.9 + 1.3)
 		_fire_light.light_energy = 1.0 * f
 		_fire_mat.albedo_color = Color(1.0, 0.45, 0.12) * (1.3 + 0.05 * f)
+	_check_leaving(delta)
 	_info_t -= delta
 	if _info_t <= 0.0:
 		_info_t = 0.5
@@ -708,6 +716,26 @@ func _process(delta: float) -> void:
 		subs.text = ""
 
 
+## Standing on the doormat by the front door for two seconds leaves the station: back to the title
+## (for the host that ends the session for everyone, so the board says so).
+func _check_leaving(delta: float) -> void:
+	var me = level.local_player
+	if not me or Game.fader.busy or _countdown > 0:
+		_leave_t = 0.0
+		return
+	var p: Vector3 = me.body_position()
+	if p.x > -3.3 and p.x < -2.3 and p.z > 2.85:
+		if _leave_t == 0.0:
+			Game.notify("Leaving the field station... step back to stay." if not (Net.is_host() and Net.players.size() > 1)
+				else "Leaving ends the game for everyone... step back to stay.")
+		_leave_t += delta
+		if _leave_t >= 2.0:
+			_leave_t = -1000.0
+			Game.go_to_menu("You left the field station.")
+	elif _leave_t > 0.0:
+		_leave_t = 0.0
+
+
 func _update_info() -> void:
 	var names := []
 	for id in Net.players:
@@ -719,16 +747,29 @@ func _update_info() -> void:
 	if Net.room_code != "":
 		code = "ROOM CODE  %s\n" % Net.room_code
 	elif Net.is_online() and Net.is_host():
-		var ips := Net.local_addresses()
-		if not ips.is_empty():
-			code = "ON THIS WI-FI  %s\n" % ips[0]
+		_ips_t -= 0.5
+		if _ips_t <= 0.0:
+			_ips_t = 5.0
+			_ips = Net.local_addresses()
+		if not _ips.is_empty():
+			code = "ON THIS WI-FI  %s\n" % _ips[0]
 	var start := "RING THE BELL AT THE DESK TO START" if Net.is_host() or not Net.is_online() \
 		else "WAITING FOR %s TO RING THE BELL" % host_name
+	if _countdown > 0:
+		start = "GOING IN IN %d . . ." % _countdown
 	info.text = "WELCOME TO THE FIELD STATION\n\n%sHERE (%d/%d): %s\n\n%s\n\nTHE TAPES ARE ON THE COFFEE TABLE" % [
 		code, names.size(), Net.MAX_PLAYERS, ", ".join(names), start]
 
 
-## The tape went in (true) or came out (false): play it on everyone's TV.
+## The host rang the bell: n seconds to go (a tick each second on everyone's headset).
+func on_countdown(n: int) -> void:
+	_countdown = n
+	if n > 0:
+		level._sfx("ding", BELL)
+		Game.notify("Going in in %d..." % n)
+	_update_info()
+
+
 ## The tape in the VCR changed: which ("" when it's empty).
 func on_vhs(which: String) -> void:
 	var on := which != ""

@@ -215,6 +215,25 @@ func _go_game() -> void:
 	Game.start_level("game")
 
 
+## Host: after a round, everyone goes back to the lobby together (the session stays open).
+func return_to_lobby() -> void:
+	if not is_host() or phase == "lobby":
+		return
+	phase = "lobby"
+	_switching = true
+	ready_peers = []
+	for pid in players:
+		if pid != 1:
+			rpc_id(pid, "_go_lobby")
+	Game.start_level("lobby")
+
+
+@rpc("authority", "call_remote", "reliable")
+func _go_lobby() -> void:
+	ready_peers.clear()
+	Game.start_level("lobby")
+
+
 ## Host -> a player who just joined: where everyone is (the lobby or the game).
 @rpc("authority", "call_remote", "reliable")
 func _welcome(where: String) -> void:

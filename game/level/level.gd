@@ -68,6 +68,7 @@ var state := {
 	"cover": false,
 	"all_escaped": false,
 	"vhs": "",              # lobby: the tape playing in the VCR ("" when none)
+	"countdown": 0,         # lobby: seconds until the game starts (0: not starting)
 }
 var escaped: Dictionary = {}      # host: peer id -> bool
 
@@ -838,6 +839,9 @@ func _apply_state(key: String) -> void:
 		"vhs":
 			if has_node("Lobby"):
 				get_node("Lobby").on_vhs(state.vhs)
+		"countdown":
+			if has_node("Lobby"):
+				get_node("Lobby").on_countdown(int(state.countdown))
 		"all_escaped":
 			if state.all_escaped and mode == "tutorial":
 				Game.notify("Training complete. You're ready for the Shallow Halls.")
@@ -846,7 +850,13 @@ func _apply_state(key: String) -> void:
 						Profile.tutorial_done = true
 						Profile.save()
 						Game.go_to_menu("Training complete. You're ready for the Shallow Halls."))
-			elif state.all_escaped:
+			elif state.all_escaped and Game.use_lobby and Net.is_host():
+				# A hosted session: everyone back to the station's lobby together, ready for another go.
+				broadcast_message("Everyone escaped! Back to the field station in a few seconds.")
+				get_tree().create_timer(8.0).timeout.connect(func():
+					if Game.level == self:
+						Net.return_to_lobby())
+			elif state.all_escaped and not Game.use_lobby:
 				Game.notify("Everyone escaped! Back to the title in a few seconds.")
 				get_tree().create_timer(8.0).timeout.connect(func():
 					if Game.level == self:
@@ -935,10 +945,9 @@ func _srv_request(action: String, args: Array) -> void:
 					broadcast_message("The generator is starting up%s." % (" fast (distilled water)" if distilled_part > 0.5 else ""))
 		"lever" when mode == "lobby":
 			play_sfx("ding", lever_point)
-			if sender == 1:
-				broadcast_message("Starting the game...")
-				get_tree().create_timer(1.0).timeout.connect(Net.start_game)
-			else:
+			if sender == 1 and state.countdown == 0:
+				_lobby_countdown()
+			elif sender != 1:
 				broadcast_message("Only the host can start the game.")
 		"vhs_in":
 			var tname := str(args[0]) if args.size() > 0 else "Tape"
@@ -988,6 +997,17 @@ func _srv_request(action: String, args: Array) -> void:
 func broadcast_message(text: String) -> void:
 	Game.notify(text)
 	Net.send(self, &"_message", [text])
+
+
+## Host: the bell's been rung. Five seconds on the letter board, then everyone goes in together.
+func _lobby_countdown() -> void:
+	for n in [5, 4, 3, 2, 1]:
+		if Game.level != self or mode != "lobby":
+			return
+		set_state("countdown", n)
+		await get_tree().create_timer(1.0).timeout
+	if Game.level == self and mode == "lobby":
+		Net.start_game()
 
 
 @rpc("authority", "call_remote", "reliable")

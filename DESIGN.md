@@ -355,6 +355,25 @@ Everything else is coordination through the level.
   then you respawn. If everyone is caught, restart from the last checkpoint.
 - **Solo:** every two-player task has a solo alternative.
 
+## Coming and going (VR conventions)
+
+- **Loading never freezes the view.** The Quest's own splash covers the engine starting (Meta asks
+  for something head-tracked within 4 seconds of launch). A tiny boot scene then shows a loading
+  sign in the dark while the title or the first-boot tape loads in the background. Every scene
+  change fades to black, loads in the background behind the same sign (it stays put in the world
+  as you look around), switches, and fades back in (`game/core/scene_fader.gd`).
+- **Going in:** in the lobby the host rings the bell; the letter board counts down five seconds
+  with a ding each second, and everyone fades into the Shallow Halls together.
+- **Coming back:** when everyone escapes in a hosted session, everyone returns to the lobby
+  together for another go (solo play still ends at the title). In the pause menu the host can also
+  take everyone back to the lobby.
+- **Leaving:** walk to the station's front door and stand on the mat (EXIT over the door, "stand
+  here to leave" on the floor) for two seconds; stepping back cancels. Or the pause menu's "Leave",
+  which needs a second press (for the host it ends the game for everyone, and says so).
+- **The headset's menu:** opening it (the Meta button) hides your hands and controllers, and on
+  your own (solo, the tutorial) the game pauses until you close it (Meta's VRC.Quest.Input.4 and
+  Functional.2). With others in the session it carries on.
+
 ## Tech
 
 - **Engine:** Godot 4 (latest stable), OpenXR

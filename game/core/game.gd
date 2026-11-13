@@ -3,6 +3,7 @@ extends Node
 
 signal message(text: String)
 signal recentered   # after the Meta-button recenter
+signal focus_changed(has_focus: bool)   # the Quest's menu opened over the game (false) or closed
 
 const LEVEL_SCENE := "res://level/level.tscn"
 const MENU_SCENE := "res://ui/main.tscn"
@@ -14,6 +15,8 @@ var level: Node = null          # the running level (level.gd)
 var level_mode := "game"        # what the next level scene builds: "game", "lobby" or "tutorial"
 var use_lobby := false          # hosting from the menu: everyone waits in the lobby first
 var menu_message := ""          # shown on the menu after leaving a game
+var fader: Node3D               # scene changes fade through a loading void (core/scene_fader.gd)
+var has_focus := true           # false while the headset's own menu is open over the game
 
 ## Command-line options after "--": --desktop, --host, --join=IP, --name=NAME, --autotest=NAME
 var args: Dictionary = {}
@@ -25,6 +28,9 @@ func _ready() -> void:
 		var kv := s.split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else true
 	_setup_desktop_input()
+	fader = preload("res://core/scene_fader.gd").new()
+	fader.name = "Fader"
+	add_child(fader)
 	Net.session_ended.connect(_on_session_ended)
 	# A kill stacks a screech, tearing, cracks and bites at once: a limiter on the master bus keeps
 	# that from clipping into noise.
@@ -56,11 +62,27 @@ func start_xr() -> bool:
 		# headset leaves that to the game, so face forward where the player is looking.
 		if not xr_interface.pose_recentered.is_connected(recenter):
 			xr_interface.pose_recentered.connect(recenter)
+		# Focus: the Meta button's menu takes input away from the game (Meta's VRC.Quest.Input.4).
+		if xr_interface.has_signal("session_visible") and not xr_interface.session_visible.is_connected(_on_focus):
+			xr_interface.session_visible.connect(_on_focus.bind(false))
+			xr_interface.session_focussed.connect(_on_focus.bind(true))
 		var rate := 72.0
 		if xr_interface.has_method("get_display_refresh_rate"):
 			rate = maxf(xr_interface.get_display_refresh_rate(), 72.0)
 		Engine.physics_ticks_per_second = int(rate)
 	return vr_mode
+
+
+## The headset's menu opened (false) or closed (true). Hands and controllers hide while it's open,
+## and on your own (solo, the tutorial) the game pauses (VRC.Quest.Functional.2); with others in
+## the session it carries on, as it has to for them.
+func _on_focus(focussed: bool) -> void:
+	if focussed == has_focus:
+		return
+	has_focus = focussed
+	var alone: bool = Net.is_offline_session() or (Net.players.size() <= 1 and level != null and level.get("mode") != "lobby")
+	get_tree().paused = not focussed and alone and level != null
+	focus_changed.emit(focussed)
 
 
 ## Recenter the view: the headset's current spot and facing become the play area's centre and
@@ -72,7 +94,7 @@ func recenter() -> void:
 
 ## The first-boot tape (also "Watch the tape" on the main menu).
 func play_intro() -> void:
-	get_tree().change_scene_to_file.call_deferred(INTRO_SCENE)
+	fader.go(INTRO_SCENE)
 
 
 ## Whether to play the tape now: on the first launch only, and never in tests or quick starts.
@@ -87,7 +109,7 @@ func start_level(mode := "game") -> void:
 	level_mode = mode
 	if mode != "tutorial":
 		Net.phase = mode
-	get_tree().change_scene_to_file.call_deferred(LEVEL_SCENE)
+	fader.go(LEVEL_SCENE)
 
 
 ## The training annex, on your own (no one can join).
@@ -106,9 +128,9 @@ func enter_session() -> void:
 
 func go_to_menu(reason := "") -> void:
 	menu_message = reason
-	Net.leave(true)
-	level = null
-	get_tree().change_scene_to_file.call_deferred(MENU_SCENE)
+	fader.go(MENU_SCENE, func():
+		Net.leave(true)
+		level = null)
 
 
 func notify(text: String) -> void:

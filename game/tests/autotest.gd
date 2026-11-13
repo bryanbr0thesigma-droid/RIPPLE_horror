@@ -39,7 +39,8 @@ func _run() -> void:
 		Profile.intro_seen = false
 		Profile.tutorial_done = false
 		Game.play_intro()
-		await wait(4.0)
+		await wait_for(func(): return get_tree().current_scene != null and get_tree().current_scene.name == "Intro", 25.0)
+		await wait(1.5)
 		var intro = get_tree().current_scene
 		check(intro != null and intro.name == "Intro", "the intro scene is running")
 		check(intro.video != null and intro.video.stream != null, "the tape is loaded")
@@ -127,6 +128,10 @@ func _run() -> void:
 			await _lobby_client()
 		"lobby_soak":
 			await _lobby_soak()
+		"lobby_leave":
+			await _lobby_leave()
+		"round_return":
+			await _round_return()
 		"tutorial_shot", "lobby_shot", "halls_shot":
 			await _room_shots()
 		"body_shot":
@@ -217,6 +222,32 @@ func _lobby_test() -> void:
 	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.local_player != null, 20.0)
 	check(started, "the host pulls START and the game begins")
 	check(started and Game.level.creature != null, "the game has the creature")
+
+
+## Leaving the station: stand on the mat by the front door and you're back at the title.
+func _lobby_leave() -> void:
+	var L = Game.level
+	check(L.mode == "lobby", "in the lobby")
+	_rig().teleport(Vector3(-2.8, 0.05, 3.1))
+	await wait(0.8)
+	check(Game.level == L, "a moment on the mat doesn't leave yet")
+	var left := await wait_for(func(): return get_tree().current_scene != null and get_tree().current_scene.scene_file_path == Game.MENU_SCENE, 10.0)
+	# (The test's own --host makes the title host again straight away, so check how it got there.)
+	check(left and Game.menu_message == "You left the field station.", "standing on the mat by the door leaves the station (to the title)")
+
+
+## After a round in a hosted session everyone goes back to the lobby, not out to the title.
+func _round_return() -> void:
+	var L = Game.level
+	check(L.mode == "lobby", "the session starts in the lobby")
+	L.request("lever")
+	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.local_player != null, 25.0)
+	check(started, "the bell counts down and the game starts")
+	if not started:
+		return
+	Game.level.set_state("all_escaped", true)
+	var back := await wait_for(func(): return Game.level != null and Game.level.mode == "lobby" and Game.level.local_player != null, 25.0)
+	check(back and Net.is_online(), "everyone escaped: back to the lobby, still hosting")
 
 
 ## A long wait in the lobby (the "cyberpsychosis" glitch: after a while everything turned into
