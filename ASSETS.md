@@ -134,6 +134,10 @@ tape, made on the `claude/wizardly-gates-b0selv` branch (`tools/falcon_tape/`, w
 and sounds are public domain or CC0 (ISO 7010 signs, Openclipart's falcon by papapishu and stick
 figures by rones, OpenGameArt static by xhunterko) plus the game's own sounds and creature model.
 
+`game/assets/video/falcon_tape_08.ogv` (with `falcon_tape_08.srt`): the second tape, 08-E "Going In,
+Coming Out" (entry and exit procedures), made the same way on the same branch
+(`tools/falcon_tape/tape08.py`) from the same sources. It lies next to the first one in the lobby.
+
 **Open question:** the narration is Microsoft Sam (SAPI 4), Microsoft's own voice. It is not CC0
 or CC BY, so crediting it doesn't make it free to use commercially. Before a paid release it
 should be re-voiced with a freely licensed synthesizer (e.g. Flite or eSpeak), or kept knowingly.
@@ -150,7 +154,7 @@ The user chose to keep Sam for now.
 | `game/assets/props/intro_side_table.glb` | The table the tape lies on | [Poly Haven, Side Table 01](https://polyhaven.com/a/side_table_01) | James Ray Cock | CC0 |
 | `game/assets/props/intro_vcr.glb` | The VCR | [Sketchfab, "VCR Player"](https://sketchfab.com/3d-models/98951dfd481b432b883b128222ea24ae) | twunnyphaiv | CC BY 4.0 |
 | `game/assets/props/intro_tape.glb` | The VHS tape | [Sketchfab, "VHS"](https://sketchfab.com/3d-models/c11a8596c3314677a8b9321e141de275) | Terizmeh | CC BY 4.0 |
-| `game/assets/intro/tape_label.png`, `tape_spine.png` | The tape's F.A.L.C.O.N. labels | made for RIPPLE on the `claude/wizardly-gates-b0selv` branch (`media/labels/`), with the falcon by papapishu (Openclipart, CC0) | — | CC0 parts |
+| `game/assets/intro/tape_label.png`, `tape_spine.png`, `tape_label_08.png`, `tape_spine_08.png` | The tapes' F.A.L.C.O.N. labels (07-W and 08-E) | made for RIPPLE on the `claude/wizardly-gates-b0selv` branch (`media/labels/`), with the falcon by papapishu (Openclipart, CC0) | — | CC0 parts |
 
 | `game/assets/intro/office/carpet_*` | The office carpet | [ambientCG, Carpet 012](https://ambientcg.com/view?id=Carpet012) | Lennart Demes | CC0 |
 | `game/assets/intro/office/wall_*` | The office wallpaper (tinted beige) | [ambientCG, Wallpaper 001 A](https://ambientcg.com/view?id=Wallpaper001A) | Lennart Demes | CC0 |

@@ -1,6 +1,6 @@
-# Draws the two cassette labels for the F.A.L.C.O.N. tape: the spine (side) label and the face (top)
+# Draws the two cassette labels for a F.A.L.C.O.N. tape: the spine (side) label and the face (top)
 # label, at real VHS label proportions (spine 146 x 19 mm, face 78 x 46 mm).
-#   python3 labels.py <out_dir>
+#   python3 labels.py <out_dir> [tape: 07-W (default) or 08-E]
 import os, sys, math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -10,6 +10,15 @@ import gfx
 
 OUT = sys.argv[1]
 os.makedirs(OUT, exist_ok=True)
+TAPES = {
+    "07-W": dict(title=("WATER SAFETY", "AND YOU"), spine="WATER SAFETY AND YOU",
+                 sub=("A FIELD GUIDE TO LIMINAL ENTITY L-7", "\u201cTHE WADER\u201d"), time="3 MIN 18 SEC", suffix=""),
+    "08-E": dict(title=("GOING IN,", "COMING OUT"), spine="GOING IN, COMING OUT",
+                 sub=("ENTRY AND EXIT PROCEDURES", "\u201cTHE POOLROOMS\u201d"), time="3 MIN 2 SEC", suffix="_08"),
+}
+TAPE = sys.argv[2] if len(sys.argv) > 2 else "07-W"
+T = TAPES[TAPE]
+CAT = "FAL-" + TAPE.replace("-", "") + "-91"
 PAPER = (234, 229, 213)
 NAVY = (18, 32, 92)
 GOLD = (214, 172, 58)
@@ -80,24 +89,24 @@ tracked(d, (W / 2, 132), "FEDERAL AGENCY FOR LIMINAL CLASSIFICATION & OCCULT NAT
 sd = 340
 face.paste(s := seal(sd), (60, band + 52), s)
 x0 = 60 + sd + 56
-tracked(d, (x0, band + 82), "ORIENTATION TAPE 07-W", f(MONO, 40), RED, 2)
-d.text((x0, band + 128), "WATER SAFETY", font=f(SANS, 92), fill=NAVY, anchor="la")
-d.text((x0, band + 228), "AND YOU", font=f(SANS, 92), fill=NAVY, anchor="la")
-tracked(d, (x0 + 2, band + 352), "A FIELD GUIDE TO LIMINAL ENTITY L-7", f(SANS, 30), INK, 2)
-tracked(d, (x0 + 2, band + 392), "“THE WADER”", f(SANS, 30), RED, 3)
+tracked(d, (x0, band + 82), f"ORIENTATION TAPE {TAPE}", f(MONO, 40), RED, 2)
+d.text((x0, band + 128), T["title"][0], font=f(SANS, 92), fill=NAVY, anchor="la")
+d.text((x0, band + 228), T["title"][1], font=f(SANS, 92), fill=NAVY, anchor="la")
+tracked(d, (x0 + 2, band + 352), T["sub"][0], f(SANS, 30), INK, 2)
+tracked(d, (x0 + 2, band + 392), T["sub"][1], f(SANS, 30), RED, 3)
 # the warning strip and the small print
 yb = H - 178
 d.rectangle([40, yb, W - 40, yb + 54], fill=RED)
 tracked(d, (W / 2, yb + 28), "FOR AUTHORIZED PERSONNEL ONLY", f(SANS, 36), (246, 240, 230), 8, "m")
 small = f(MONO, 32)
-d.text((44, H - 92), "RUNNING TIME 3 MIN 18 SEC · VHS SP · COLOR", font=small, fill=INK, anchor="lm")
-d.text((W - 44, H - 92), "CAT. NO. FAL-07W-91", font=small, fill=INK, anchor="rm")
+d.text((44, H - 92), f"RUNNING TIME {T['time']} · VHS SP · COLOR", font=small, fill=INK, anchor="lm")
+d.text((W - 44, H - 92), f"CAT. NO. {CAT}", font=small, fill=INK, anchor="rm")
 d.text((W / 2, H - 46), "© 1991 F.A.L.C.O.N. TRAINING DIVISION  ·  DUPLICATION PROHIBITED",
        font=f(SANS, 28), fill=INK, anchor="mm")
 d.rectangle([14, 14, W - 15, H - 15], outline=NAVY, width=3)
 st = stamp("RESTRICTED", 520, 140, 3, 52)
 face.paste(st, (W - 540, band + 348), st)
-face.save(f"{OUT}/label_top.png")
+face.save(f"{OUT}/label_top{T['suffix']}.png")
 
 # ---------------------------------------------------------------- spine (side) label, 146 x 19 mm
 W2, H2 = 2048, 266
@@ -107,16 +116,16 @@ d.rectangle([0, 0, 300, H2], fill=NAVY)
 sp.paste(s := seal(228), (36, 19), s)
 d.rectangle([300, 0, 312, H2], fill=RED)
 d.rectangle([312, 0, 318, H2], fill=GOLD)
-d.text((356, H2 / 2 - 4), "WATER SAFETY AND YOU", font=f(SANS, 82), fill=NAVY, anchor="lm")
-tw = f(SANS, 82).getlength("WATER SAFETY AND YOU") - 4
+d.text((356, H2 / 2 - 4), T["spine"], font=f(SANS, 82), fill=NAVY, anchor="lm")
+tw = f(SANS, 82).getlength(T["spine"]) - 4
 tracked(d, (356 + tw + 34, H2 / 2 - 32), "ORIENTATION", f(MONO, 34), RED, 1)
-tracked(d, (356 + tw + 34, H2 / 2 + 20), "TAPE 07-W", f(MONO, 34), RED, 1)
+tracked(d, (356 + tw + 34, H2 / 2 + 20), f"TAPE {TAPE}", f(MONO, 34), RED, 1)
 d.rectangle([W2 - 330, 0, W2, H2], fill=NAVY)
 d.rectangle([W2 - 342, 0, W2 - 330, H2], fill=RED)
 tracked(d, (W2 - 165, H2 / 2 - 30), "F.A.L.C.O.N.", f(SANS, 38), (240, 238, 228), 5, "m")
 tracked(d, (W2 - 165, H2 / 2 + 34), "VHS · SP", f(SANS, 30), GOLD, 6, "m")
 d.rectangle([0, H2 - 10, W2 - 342, H2], fill=RED)
-sp.save(f"{OUT}/label_spine.png")
+sp.save(f"{OUT}/label_spine{T['suffix']}.png")
 
 # a side-by-side preview for approval
 pv = Image.new("RGB", (W2 + 80, H + H2 + 160), (40, 42, 48))
@@ -125,5 +134,5 @@ pd.text((40, 30), "TOP LABEL (78 x 46 mm)", font=f(SANS, 30), fill=(220, 220, 22
 pv.paste(face, (40, 60))
 pd.text((40, H + 100), "SIDE / SPINE LABEL (146 x 19 mm)", font=f(SANS, 30), fill=(220, 220, 220), anchor="lm")
 pv.paste(sp, (40, H + 130))
-pv.save(f"{OUT}/labels_preview.png")
+pv.save(f"{OUT}/labels_preview{T['suffix']}.png")
 print("ok")

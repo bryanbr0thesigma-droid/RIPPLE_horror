@@ -6,6 +6,7 @@ extends XROrigin3D
 @onready var left: XRController3D = $LeftHand
 @onready var right: XRController3D = $RightHand
 @onready var body: XRToolsPlayerBody = $PlayerBody
+var _body_placed := false
 
 const POINTER := preload("res://addons/godot-xr-tools/functions/function_pointer.tscn")
 const VIEWPORT_3D := preload("res://addons/godot-xr-tools/objects/viewport_2d_in_3d.tscn")
@@ -222,6 +223,12 @@ func _on_recentered() -> void:
 
 
 func teleport(p: Vector3) -> void:
+	# The player body is top-level: until it first moves it still sits at the world origin, and
+	# teleporting from there put the rig the spawn point's distance away twice over (outside the
+	# lobby's wall, falling out of the map). Bring it under the rig first.
+	if not _body_placed:
+		_body_placed = true
+		body.global_position = global_position
 	body.teleport(Transform3D(body.global_transform.basis, p))
 
 

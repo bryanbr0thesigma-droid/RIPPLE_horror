@@ -11,6 +11,7 @@ from narration import LINES, SUBS
 from vhs import vhs
 
 FPS = 30
+NAME = "falcon_tape"       # output file names (tape08.py sets its own)
 SLOWED = {}               # lines played slower and lower (none now)
 
 
@@ -439,15 +440,15 @@ def main():
             Image.fromarray(vhs(draw_frame(gt), gt, fi, g, st)).save(f"{a.out_dir}/still_{gt:07.2f}.png")
             Image.fromarray(draw_frame(gt)).save(f"{a.out_dir}/clean_{gt:07.2f}.png")
         return
-    srt(TL, f"{a.out_dir}/falcon_tape.srt")
+    srt(TL, f"{a.out_dir}/{NAME}.srt")
     write_layout(TL, total, f"{a.out_dir}/layout.json")
-    wav = f"{a.out_dir}/falcon_tape_audio.wav"
+    wav = f"{a.out_dir}/{NAME}_audio.wav"
     if not a.no_audio:
         build_audio(TL, total, voices, clips, wav)
         print("audio done")
     if a.no_video:
         return
-    vid = f"{a.out_dir}/falcon_tape_video.mp4"
+    vid = f"{a.out_dir}/{NAME}_video.mp4"
     n = int(total * FPS)
     w, h = a.size.split("x")
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "640x480", "-r", str(FPS),
@@ -460,7 +461,7 @@ def main():
                 print(f"frame {i}/{n}", flush=True)
     enc.stdin.close()
     enc.wait()
-    out = f"{a.out_dir}/falcon_tape.mp4"
+    out = f"{a.out_dir}/{NAME}.mp4"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", vid, "-i", wav, "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
                     "-shortest", "-movflags", "+faststart", out], check=True)
     print("wrote", out)

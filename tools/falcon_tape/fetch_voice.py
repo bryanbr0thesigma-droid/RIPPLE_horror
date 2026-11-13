@@ -1,11 +1,11 @@
 # Downloads each narration line read by Microsoft Sam (the SAPI 4 voice from Windows 95 to XP)
 # from tetyys.com's SAPI4 service, which runs the original voice. Writes voice/<id>.wav and skips
 # lines already downloaded, so the service is only asked once per line.
-#   python3 fetch_voice.py [voice_dir]
-import os, sys, time, urllib.parse, urllib.request
-from narration import LINES
+#   python3 fetch_voice.py [voice_dir] [narration module, default narration (tape 07-W)]
+import importlib, os, sys, time, urllib.parse, urllib.request
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "voice"
+LINES = importlib.import_module(sys.argv[2] if len(sys.argv) > 2 else "narration").LINES
 URL = "https://www.tetyys.com/SAPI4/SAPI4?"
 os.makedirs(OUT, exist_ok=True)
 for key, text in LINES.items():

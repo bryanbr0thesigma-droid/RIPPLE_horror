@@ -7,8 +7,10 @@ extends Node3D
 ## banker's lamp; behind it the dormitory keys on their hooks, the staff mail cubbies and the
 ## station's carved sign with the F.A.L.C.O.N. seal. An orange cone fireplace in the corner, a coffee
 ## station, a rack of F.A.L.C.O.N. pamphlets and a glowing soda machine. By the TV: a couch, a leather
-## armchair and a coffee table on a plaid rug, where the F.A.L.C.O.N. tape lies. Put it in the VCR
-## and it plays on the TV for everyone, with subtitles, and pops back out when it ends.
+## armchair and a coffee table on a plaid rug, where the two F.A.L.C.O.N. tapes lie (07-W and 08-E).
+## Put one in the VCR and it plays on the TV for everyone, with subtitles, and pops back out when it
+## ends. The pamphlets, magazines, coffee cups and some of the keys can be picked up and thrown, and
+## the soda machine's buttons drop Chlora-Cola cans. The furniture is solid.
 
 const INTRO := preload("res://intro/intro.gd")
 const LOBBY := "res://assets/lobby/"
@@ -24,7 +26,13 @@ const BELL := Vector3(-1.2, 1.07, -1.76)
 ## The TV corner: the office's TV set, turned to stand against the east wall.
 const TV_CORNER := Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0.6, 0.0, -0.6))
 const COFFEE_TABLE := Vector3(2.6, 0.0, -0.6)
-const FIREPLACE := Vector3(-3.25, 0.0, 2.75)
+const FIREPLACE := Vector3(3.3, 0.0, 2.85)         # the south-east corner, clear of the door
+const SODA_TRAY := Vector3(-3.17, 0.335, -1.42)      # where a can from the machine lands
+## The two tapes: their videos and subtitles.
+const TAPES := {
+	"Tape": ["res://assets/video/falcon_tape.ogv", "res://assets/video/falcon_tape.srt"],
+	"Tape08": ["res://assets/video/falcon_tape_08.ogv", "res://assets/video/falcon_tape_08.srt"],
+}
 const SPAWNS: Array[Vector3] = [Vector3(0.0, 0.05, 1.8), Vector3(-1.0, 0.05, 1.2), Vector3(0.9, 0.05, 1.0), Vector3(-0.2, 0.05, 0.4)]
 
 var level: Node3D
@@ -77,7 +85,10 @@ func _environment(env: Environment) -> void:
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.06, 0.04, 0.03)
 	env.fog_density = 0.02
-	env.glow_enabled = true
+	# Bloom only on a monitor. On the Quest (Compatibility renderer) glow adds a full-screen pass that
+	# fights the headset's dynamic foveation: once the GPU warms up, the lobby broke down into
+	# flashing colours (the "cyberpsychosis" glitch). Not worth the risk, or the frame time.
+	env.glow_enabled = not Game.vr_mode
 	env.glow_intensity = 0.6
 	env.glow_bloom = 0.02
 	env.glow_hdr_threshold = 1.15      # only lamps, neon, the fire and the window bloom
@@ -215,6 +226,29 @@ func _light(pos: Vector3, c: Color, energy: float, rng: float) -> OmniLight3D:
 
 func _prop(path: String, pos: Vector3, yaw: float, parent: Node3D = null) -> Node3D:
 	return OfficeRoom.prop(parent if parent else level, path, pos, yaw)
+
+
+## An invisible solid box so you can't walk through a piece of furniture: size, its bottom centre
+## at `at`, turned by yaw (degrees); `local` moves it within the furniture's own frame.
+func _solid(at: Vector3, size: Vector3, yaw := 0.0, local := Vector3.ZERO) -> void:
+	var body := StaticBody3D.new()
+	body.collision_layer = LevelGeometry.L_WORLD
+	body.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size
+	cs.shape = sh
+	cs.position = local + Vector3(0, size.y * 0.5, 0)
+	body.add_child(cs)
+	body.position = at
+	body.rotation_degrees.y = yaw
+	level.add_child(body)
+
+
+## A small thing to pick up (items/prop.gd), turned by rot (degrees).
+func _thing(item_name: String, pos: Vector3, rot := Vector3.ZERO) -> void:
+	level._spawn_item("prop", item_name, pos)
+	level.items[item_name].rotation_degrees = rot
 
 
 # --- The room ------------------------------------------------------------------------------------
@@ -411,6 +445,9 @@ func _behind_counter() -> void:
 			_cyl(0.005, 0.005, 0.04, Vector3(hx, hy, zw + 0.02), _brass).rotation_degrees.x = 90.0
 			if n in gone:
 				continue
+			if n in [1, 6, 10, 17]:           # these keys come off their hooks
+				_thing("Fob%d" % (101 + n), Vector3(hx, hy - 0.11, zw + 0.035))
+				continue
 			_box(Vector3(0.012, 0.06, 0.004), Vector3(hx, hy - 0.04, zw + 0.035), _brass)
 			_box(Vector3(0.035, 0.07, 0.008), Vector3(hx, hy - 0.11, zw + 0.035), _flat(fob_cols[n % 4], 0.35))
 			var tag := _pic("keyfob.png", Vector2(0.035, 0.07), Vector3(hx, hy - 0.11, zw + 0.0395))
@@ -474,6 +511,16 @@ func _west_wall() -> void:
 	for i in 6:
 		_box(Vector3(0.02, 0.06, 0.055), Vector3(xw + 0.73, 1.45 - i * 0.12, -1.62), _glow(Color(0.95, 0.85, 0.6), 0.9))
 	_box(Vector3(0.02, 0.12, 0.3), Vector3(xw + 0.73, 0.35, -1.42), _flat(Color(0.05, 0.05, 0.05), 0.5))
+	# Press a button (grab it, or interact) and a can drops into the tray: six in the machine.
+	G.block(xw + 0.72, xw + 0.88, 0.24, 0.27, -1.58, -1.26, _flat(Color(0.12, 0.12, 0.12), 0.4, 0.6))
+	var buttons := preload("res://items/lever_handle.gd").new("soda", 0.22)
+	buttons.name = "SodaButtons"
+	level.get_node("Props").add_child(buttons)
+	buttons.global_position = Vector3(xw + 0.76, 1.15, -1.62)
+	for i in 6:
+		var can := "Soda%d" % (i + 1)
+		level._spawn_item("prop", can, SODA_TRAY)
+		level.items[can].set_stowed(level.IN_MACHINE)
 	_pic("soda_side.png", Vector2(0.7, 1.4), Vector3(xw + 0.36, 0.95, -0.947))
 	_pic("soda_side.png", Vector2(0.7, 1.4), Vector3(xw + 0.36, 0.95, -1.753), Vector3(0, 180, 0))
 	# Free coffee: a little cabinet with a coffee maker, its pot, cups and sugar.
@@ -488,22 +535,23 @@ func _west_wall() -> void:
 	for i in 4:
 		_cyl(0.035, 0.03, 0.09, Vector3(xw + 0.3, 0.925 + i * 0.03, 0.42), cup)
 	_label_can(0.05, 0.15, Vector3(xw + 0.24, 0.955, 0.6), "coffee_label.png")      # Floater's
+	_thing("Cup1", Vector3(xw + 0.38, 0.925, 0.17))
+	_thing("Cup2", Vector3(xw + 0.38, 0.925, 0.27))
 	_text("COFFEE\nSTAFF & VISITORS", Vector3(X0 + 0.035, 1.55, 0.25), 90.0, 0.0018, Color(0.35, 0.15, 0.05), 48)
 	# F.A.L.C.O.N. pamphlets for visitors and new staff.
 	G.block(xw, xw + 0.04, 0.95, 1.75, 1.05, 1.85, _wood)
 	_text("TAKE ONE", Vector3(xw + 0.045, 1.81, 1.45), 90.0, 0.0016, Color(0.25, 0.12, 0.05), 40)
 	# WATER SAFETY, YOUR FIRST DAY, LIMINAL ENTITIES, IF YOU ARE TAKEN, STAFF BENEFITS, WET FOOTPRINTS?
-	var paper := _flat(Color(0.9, 0.88, 0.82), 0.8)
 	for r in 3:
 		G.block(xw + 0.04, xw + 0.1, 1.0 + r * 0.25, 1.03 + r * 0.25, 1.05, 1.85, _wood)
 		for c in 3:
 			var i := (r * 3 + c) % 6
-			var z := 1.18 + c * 0.25
-			var b := _box(Vector3(0.012, 0.2, 0.1), Vector3(xw + 0.07, 1.13 + r * 0.25, z), paper)
-			b.rotation_degrees.z = -8.0
-			_pic("pamphlet_%d.png" % (i + 1), Vector2(0.1, 0.2), Vector3(0.0065, 0, 0), Vector3(0, 90, 0), 0.0, false, b)
-	# Visitor rules, by the end of the counter.
+			_thing("Pamphlet%d_%d" % [i + 1, r * 3 + c], Vector3(xw + 0.07, 1.13 + r * 0.25, 1.18 + c * 0.25), Vector3(-8, 90, 0))
+	# Visitor rules, by the end of the counter; no splashing, by the door.
 	_pic("poster_4.png", Vector2(0.6, 0.8), Vector3(X0 + 0.006, 1.55, -2.75), Vector3(0, 90, 0))
+	_pic("poster_3.png", Vector2(0.6, 0.8), Vector3(X0 + 0.006, 1.55, 2.55), Vector3(0, 90, 0))
+	_prop(P + "potted_plant_01.glb", Vector3(-3.62, 0.0, 3.1), 0.0)
+	_solid(Vector3(-3.62, 0.0, 3.1), Vector3(0.5, 1.3, 0.5))
 
 
 ## An orange cone fireplace in the corner, on a stone hearth, with a fire flickering in it.
@@ -516,8 +564,10 @@ func _fireplace() -> void:
 	_cyl(0.1, 0.1, H - 1.14, f + Vector3(0, 1.14 + (H - 1.14) * 0.5, 0), _flat(Color(0.1, 0.1, 0.1), 0.5, 0.6))
 	for leg in [Vector3(0.28, 0, 0.18), Vector3(-0.28, 0, 0.18), Vector3(0, 0, -0.32)]:
 		_cyl(0.02, 0.02, 0.06, f + leg + Vector3(0, 0.09, 0), _flat(Color(0.1, 0.1, 0.1), 0.5, 0.6))
-	# The opening faces into the room (north-east), with the fire inside.
-	var face := Vector3(0.75, 0, -0.65).normalized()
+	_solid(f, Vector3(0.95, 1.2, 0.95))
+	_solid(f + Vector3(0, 1.2, 0), Vector3(0.22, H - 1.2, 0.22))
+	# The opening faces into the room (north-west), towards the armchair, with the fire inside.
+	var face := Vector3(-0.72, 0, -0.69).normalized()
 	var mouth := MeshInstance3D.new()
 	var mq := QuadMesh.new()
 	mq.size = Vector2(0.42, 0.32)
@@ -548,25 +598,28 @@ func _tv_nook() -> void:
 	rug.position = Vector3(2.55, 0.006, -0.6)
 	level.add_child(rug)
 	_prop(P + "sofa_03.glb", Vector3(1.5, 0.0, -0.6), 90.0)
+	_solid(Vector3(1.5, 0.0, -0.6), Vector3(2.73, 0.48, 0.92), 90.0)                              # the seat
+	_solid(Vector3(1.5, 0.0, -0.6), Vector3(2.73, 1.0, 0.3), 90.0, Vector3(0, 0, -0.31))          # its back
 	_prop("res://assets/props/intro_armchair.glb", Vector3(2.75, 0.0, 1.55), 149.0)
+	_solid(Vector3(2.75, 0.0, 1.55), Vector3(0.82, 0.5, 0.98), 149.0)
+	_solid(Vector3(2.75, 0.0, 1.55), Vector3(0.82, 1.0, 0.26), 149.0, Vector3(0, 0, -0.36))
 	_prop(P + "coffeetable_01.glb", COFFEE_TABLE, 90.0)
 	level._hidden_block(COFFEE_TABLE.x - 0.45, COFFEE_TABLE.x + 0.45, 0.0, 0.52, COFFEE_TABLE.z - 0.7, COFFEE_TABLE.z + 0.7)
 	# Three old issues of Liminal Geographic, the right way up for whoever's on the couch.
-	for m in [[3, Vector3(2.75, 0.5245, -1.05), 15.0], [1, Vector3(2.8, 0.527, -0.97), -10.0], [2, Vector3(2.68, 0.5245, -0.1), 4.0]]:
-		_pic("magazine_%d.png" % m[0], Vector2(0.21, 0.279), m[1], Vector3(-90, -90.0 + m[2], 0))
+	for m in [[3, Vector3(2.75, 0.527, -1.05), 15.0], [1, Vector3(2.82, 0.534, -0.97), -10.0], [2, Vector3(2.7, 0.527, -0.05), 4.0]]:
+		_thing("Magazine%d" % m[0], m[1], Vector3(-90, -90.0 + m[2], 0))
 	# A table lamp on a tall side table at the end of the couch: the vase is its base.
 	_prop(P + "side_table_tall_01.glb", Vector3(1.45, 0.0, 1.15), 0.0)
+	_solid(Vector3(1.45, 0.0, 1.15), Vector3(0.4, 1.4, 0.4))
 	_prop(P + "antique_ceramic_vase_01.glb", Vector3(1.45, 0.76, 1.15), 0.0).scale = Vector3.ONE * 0.8
 	var shade := _cyl(0.12, 0.2, 0.24, Vector3(1.45, 1.27, 1.15), _glow(Color(1.0, 0.86, 0.62), 1.1))
 	shade.material_override.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_light(Vector3(1.45, 1.2, 1.15), Color(1.0, 0.78, 0.5), 0.8, 3.5)
-	_prop(P + "potted_plant_01.glb", Vector3(3.55, 0.0, 2.95), 0.0)
 	_prop(P + "potted_plant_01.glb", Vector3(3.55, 0.0, -3.0), 120.0)
-	# Agency posters: the safety rule over the TV corner, recruiting over the armchair, and the
-	# no-splashing one by the window.
+	_solid(Vector3(3.55, 0.0, -3.0), Vector3(0.5, 1.3, 0.5))
+	# Agency posters: the safety rule over the TV corner, recruiting over the armchair.
 	_pic("poster_1.png", Vector2(0.6, 0.8), Vector3(X1 - 0.006, 1.55, -2.3), Vector3(0, -90, 0))
 	_pic("poster_2.png", Vector2(0.6, 0.8), Vector3(X1 - 0.006, 1.6, 1.6), Vector3(0, -90, 0))
-	_pic("poster_3.png", Vector2(0.6, 0.8), Vector3(3.45, 1.55, Z1 - 0.006), Vector3(0, 180, 0))
 	# The TV set, turned to face the room from the east wall.
 	var corner := Node3D.new()
 	corner.name = "TVCorner"
@@ -582,7 +635,6 @@ func _tv_nook() -> void:
 	led_mat = tvs.led_mat
 	subs = tvs.subs
 	video.finished.connect(_on_tape_end)
-	_cues = INTRO._load_srt("res://assets/video/falcon_tape.srt")
 	SLOT = TV_CORNER * OfficeRoom.SLOT
 	var vcr_body := StaticBody3D.new()
 	vcr_body.add_to_group("vcr")
@@ -596,6 +648,7 @@ func _tv_nook() -> void:
 	corner.add_child(vcr_body)
 	level._hidden_block(X1 - 0.6, X1, 0.0, 0.83, -1.26, 0.06)        # the cabinet, to stand things on
 	level._spawn_item("tape", "Tape", COFFEE_TABLE + Vector3(-0.1, 0.53, 0.25))
+	level._spawn_item("tape", "Tape08", COFFEE_TABLE + Vector3(-0.15, 0.53, -0.05))     # 08-E, the second tape
 
 
 ## The felt letter board: the room code and who's here.
@@ -632,9 +685,10 @@ func _process(delta: float) -> void:
 		_clock_m.rotation.z = -TAU * mins / 60.0
 		_clock_h.rotation.z = -TAU * (fmod(now.hour, 12.0) + mins / 60.0) / 12.0
 	if _fire_light:
-		var f := 0.85 + 0.15 * sin(_t * 9.0) + 0.1 * sin(_t * 23.0 + 1.3) + 0.06 * sin(_t * 41.0)
-		_fire_light.light_energy = 1.1 * f
-		_fire_mat.albedo_color = Color(1.0, 0.45, 0.12) * (1.2 + 0.3 * f)
+		# A slow, gentle glow: nothing that flickers 3-30 times a second (that can set off seizures).
+		var f := 1.0 + 0.06 * sin(_t * 1.7) + 0.04 * sin(_t * 2.9 + 1.3)
+		_fire_light.light_energy = 1.0 * f
+		_fire_mat.albedo_color = Color(1.0, 0.45, 0.12) * (1.3 + 0.05 * f)
 	_info_t -= delta
 	if _info_t <= 0.0:
 		_info_t = 0.5
@@ -667,16 +721,21 @@ func _update_info() -> void:
 			code = "ON THIS WI-FI  %s\n" % ips[0]
 	var start := "RING THE BELL AT THE DESK TO START" if Net.is_host() or not Net.is_online() \
 		else "WAITING FOR %s TO RING THE BELL" % host_name
-	info.text = "WELCOME TO THE FIELD STATION\n\n%sHERE (%d/%d): %s\n\n%s\n\nTHE TAPE IS ON THE COFFEE TABLE" % [
+	info.text = "WELCOME TO THE FIELD STATION\n\n%sHERE (%d/%d): %s\n\n%s\n\nTHE TAPES ARE ON THE COFFEE TABLE" % [
 		code, names.size(), Net.MAX_PLAYERS, ", ".join(names), start]
 
 
 ## The tape went in (true) or came out (false): play it on everyone's TV.
-func on_vhs(on: bool) -> void:
+## The tape in the VCR changed: which ("" when it's empty).
+func on_vhs(which: String) -> void:
+	var on := which != ""
 	if on == playing:
 		return
 	playing = on
 	if on:
+		var t: Array = TAPES.get(which, TAPES["Tape"])
+		video.stream = load(t[0])
+		_cues = INTRO._load_srt(t[1])
 		led_mat.albedo_color = Color(0.2, 1.0, 0.3)
 		led_mat.emission = Color(0.2, 1.0, 0.3)
 		screen_mat.albedo_texture = null
@@ -703,7 +762,10 @@ func on_vhs(on: bool) -> void:
 func _on_tape_end() -> void:
 	if not (Net.is_host() or not Net.is_online()):
 		return
-	level.set_state("vhs", false)
+	var which: String = level.state.vhs
+	level.set_state("vhs", "")
+	if which == "":
+		return
 	var out := SLOT + (TV_CORNER.basis * Vector3(0, -0.01, 0.2))
-	level._set_item_stowed_at("Tape", 0, out)
-	Net.send(level, &"_set_item_stowed_at", ["Tape", 0, out])
+	level._set_item_stowed_at(which, 0, out)
+	Net.send(level, &"_set_item_stowed_at", [which, 0, out])

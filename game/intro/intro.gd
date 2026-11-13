@@ -427,7 +427,7 @@ func _environment() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.8, 0.5, 0.36)         # warm: the setting sun through the window
 	env.ambient_light_energy = 0.08
-	env.glow_enabled = true                                  # the window and the light through it bloom
+	env.glow_enabled = not Game.vr_mode                      # the window bloom (not on the Quest: see lobby_room.gd)
 	env.glow_intensity = 0.7
 	env.glow_bloom = 0.04
 	env.glow_hdr_threshold = 0.9

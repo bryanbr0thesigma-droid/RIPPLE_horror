@@ -1,10 +1,13 @@
 extends XRToolsPickable
 ## The pool cover lever's handle. Grab it (VR) or press interact on it (desktop) to pull it.
+## Also the lobby's service bell, and the soda machine's buttons (another request, a bigger reach).
 
+var request_name := "lever"
 var _cooldown := 0.0
 
 
-func _init() -> void:
+func _init(req := "lever", radius := 0.12) -> void:
+	request_name = req
 	collision_layer = LevelGeometry.L_ITEMS
 	collision_mask = 0
 	freeze = true
@@ -14,7 +17,7 @@ func _init() -> void:
 	add_to_group("lever")
 	var cs := CollisionShape3D.new()
 	var sh := SphereShape3D.new()
-	sh.radius = 0.12
+	sh.radius = radius
 	cs.shape = sh
 	add_child(cs)
 
@@ -34,4 +37,4 @@ func pull() -> void:
 	if _cooldown > 0.0:
 		return
 	_cooldown = 1.5
-	Game.level.request("lever")
+	Game.level.request(request_name)

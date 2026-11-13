@@ -20,10 +20,13 @@ const ItemScripts := {
 	"flashlight": preload("res://items/flashlight.gd"),
 	"bag": preload("res://items/bag.gd"),
 	"tape": preload("res://items/tape.gd"),
+	"prop": preload("res://items/prop.gd"),
 }
 const LobbyScript := preload("res://level/lobby_room.gd")
 const TutorialScript := preload("res://level/tutorial_course.gd")
 const IN_VCR := -999          # an item's "stowed" value while it's inside the lobby's VCR
+const IN_MACHINE := -998      # ... and while a can is still in the lobby's soda machine
+const TAPES := ["Tape", "Tape08"]
 const SFX := {
 	"splash_big": preload("res://assets/audio/splash_big.ogg"),
 	"splash_small": preload("res://assets/audio/splash_small.ogg"),
@@ -64,7 +67,7 @@ var state := {
 	"gen": 0,               # 0 off, 1 starting up, 2 running
 	"cover": false,
 	"all_escaped": false,
-	"vhs": false,           # lobby: the tape is playing
+	"vhs": "",              # lobby: the tape playing in the VCR ("" when none)
 }
 var escaped: Dictionary = {}      # host: peer id -> bool
 
@@ -938,12 +941,28 @@ func _srv_request(action: String, args: Array) -> void:
 			else:
 				broadcast_message("Only the host can start the game.")
 		"vhs_in":
-			var tape_item = items.get("Tape")
-			if mode == "lobby" and tape_item and not state.vhs and tape_item.stowed == 0:
-				_set_item_stowed_at("Tape", IN_VCR, get_node("Lobby").SLOT)
-				Net.send(self, &"_set_item_stowed_at", ["Tape", IN_VCR, get_node("Lobby").SLOT])
+			var tname := str(args[0]) if args.size() > 0 else "Tape"
+			var tape_item = items.get(tname)
+			if mode == "lobby" and tname in TAPES and tape_item and state.vhs == "" and tape_item.stowed == 0:
+				_set_item_stowed_at(tname, IN_VCR, get_node("Lobby").SLOT)
+				Net.send(self, &"_set_item_stowed_at", [tname, IN_VCR, get_node("Lobby").SLOT])
 				play_sfx("clank", get_node("Lobby").SLOT)
-				set_state("vhs", true)
+				set_state("vhs", tname)
+		"soda" when mode == "lobby":
+			# A button on the machine: the next can drops into the tray.
+			var tray: Vector3 = get_node("Lobby").SODA_TRAY
+			play_sfx("clank", tray)
+			var can := ""
+			for i in range(1, 7):
+				var it = items.get("Soda%d" % i)
+				if it and it.stowed == IN_MACHINE:
+					can = it.name
+					break
+			if can == "":
+				broadcast_message("The machine hums. SOLD OUT.")
+			else:
+				_set_item_stowed_at(can, 0, tray)
+				Net.send(self, &"_set_item_stowed_at", [can, 0, tray])
 		"lever":
 			play_sfx("clank", lever_point)
 			if state.gen == 2 and not state.cover:

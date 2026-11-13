@@ -9,6 +9,8 @@ const TAPE := preload("res://assets/video/falcon_tape.ogv")
 const OFFICE := "res://assets/intro/office/"
 const LABEL_TEX := preload("res://assets/intro/tape_label.png")
 const SPINE_TEX := preload("res://assets/intro/tape_spine.png")
+const LABEL_TEX_08 := preload("res://assets/intro/tape_label_08.png")     # tape 08-E, "Going In, Coming Out"
+const SPINE_TEX_08 := preload("res://assets/intro/tape_spine_08.png")
 
 const ROOM := Rect2(-3.0, -3.4, 6.0, 6.4)             # x, z, width, depth
 const DOOR_Z := 3.0
@@ -320,12 +322,13 @@ static func curved_screen(size: Vector2, curve: Vector2) -> ArrayMesh:
 	return st.commit()
 
 
-static func tape_model() -> Node3D:
-	# The tape lies on the side table, spine towards the door, with the F.A.L.C.O.N. labels.
+static func tape_model(tape_08 := false) -> Node3D:
+	# The tape lies on the side table, spine towards the door, with the F.A.L.C.O.N. labels
+	# (07-W's, or the second tape's).
 	var tape := Node3D.new()
 	tape.add_child(load("res://assets/props/intro_tape.glb").instantiate())
-	for l in [[LABEL_TEX, Vector2(0.0790, 0.0466), Vector3(0.0005, 0.0268, 0.004), Vector3(-90, 0, 0)],
-			[SPINE_TEX, Vector2(0.1448, 0.0188), Vector3(0.0, 0.0133, 0.0528), Vector3.ZERO]]:
+	for l in [[LABEL_TEX_08 if tape_08 else LABEL_TEX, Vector2(0.0790, 0.0466), Vector3(0.0005, 0.0268, 0.004), Vector3(-90, 0, 0)],
+			[SPINE_TEX_08 if tape_08 else SPINE_TEX, Vector2(0.1448, 0.0188), Vector3(0.0, 0.0133, 0.0528), Vector3.ZERO]]:
 		var m := MeshInstance3D.new()
 		var q := QuadMesh.new()
 		q.size = l[1]

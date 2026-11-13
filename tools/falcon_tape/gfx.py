@@ -10,6 +10,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = f"{HERE}/assets"
 W, H = 640, 480
 S = 2
+TAPE_ID = "07-W"          # which tape this is: shown on the colour bars and in the corner
 
 NAVY = (14, 26, 86)
 NAVY2 = (28, 46, 128)
@@ -157,7 +158,7 @@ def bug(c, title):
     c.rect(0, 440, 40 + tw(title, 12), 462, fill=(10, 16, 50))
     c.rect(0, 440, 6, 462, fill=RED)
     c.text(16, 451, title, 12, WHITE, "sans", "lm", 0)
-    c.text(624, 451, "F.A.L.C.O.N.  \u00b7  07-W", 11, (170, 176, 196), "sans", "rm", 0, track=1)
+    c.text(624, 451, f"F.A.L.C.O.N.  \u00b7  {TAPE_ID}", 11, (170, 176, 196), "sans", "rm", 0, track=1)
 
 
 # ---------------------------------------------------------------- simulated water

@@ -125,6 +125,8 @@ func _run() -> void:
 			await _lobby_host()
 		"lobby_client":
 			await _lobby_client()
+		"lobby_soak":
+			await _lobby_soak()
 		"tutorial_shot", "lobby_shot", "halls_shot":
 			await _room_shots()
 		"body_shot":
@@ -178,14 +180,100 @@ func _lobby_test() -> void:
 	check(L.items.has("Tape") and lobby.info.text.find("HERE (1/") >= 0, "the tape is on the table and the sign lists who's here")
 	var tape = L.items["Tape"]
 	tape.global_position = lobby.SLOT + Vector3(0, 0.02, 0.05)     # dropped on the VCR
-	var playing := await wait_for(func(): return L.state.vhs, 5.0)
+	var playing := await wait_for(func(): return L.state.vhs != "", 5.0)
 	check(playing and lobby.playing and tape.stowed == L.IN_VCR, "the tape goes into the VCR and plays on the TV")
 	await wait(1.0)
 	check(lobby.video.is_playing(), "the video is running")
+	check(lobby.video.stream.resource_path.ends_with("falcon_tape.ogv"), "it's tape 07-W")
+	# The tape ends: it pops out. Then the second tape plays its own video.
+	lobby._on_tape_end()
+	await wait(0.3)
+	check(L.state.vhs == "" and tape.stowed == 0 and not lobby.playing, "at the end the tape pops back out")
+	var tape8 = L.items.get("Tape08")
+	check(tape8 != null, "the second tape (08-E) is on the table too")
+	if tape8:
+		tape8.global_position = lobby.SLOT + Vector3(0, 0.02, 0.05)
+		var p8 := await wait_for(func(): return L.state.vhs == "Tape08", 5.0)
+		check(p8 and lobby.video.stream.resource_path.ends_with("falcon_tape_08.ogv") and lobby.subs != null, "tape 08-E goes in and plays its own video")
+	# Things to pick up, the soda machine and solid furniture.
+	var things := true
+	for n in ["Pamphlet1_0", "Pamphlet6_5", "Magazine1", "Magazine3", "Cup1", "Fob102"]:
+		things = things and L.items.has(n) and L.items[n].visible
+	check(things, "pamphlets, magazines, cups and keys are things to pick up")
+	var soda = L.items.get("Soda1")
+	check(soda != null and soda.stowed == L.IN_MACHINE and not soda.visible, "the cans start inside the soda machine")
+	L.request("soda")
+	await wait(0.3)
+	check(soda != null and soda.stowed == 0 and soda.visible and soda.global_position.distance_to(lobby.SODA_TRAY) < 0.2, "a button drops a can into the tray")
+	var space: PhysicsDirectSpaceState3D = L.get_world_3d().direct_space_state
+	var solid := true
+	for at in [Vector3(1.5, 2.0, -0.6), Vector3(2.75, 2.0, 1.55), lobby.FIREPLACE + Vector3(0.3, 2.0, 0.0)]:
+		var q := PhysicsRayQueryParameters3D.create(at, at + Vector3.DOWN * 1.95, LevelGeometry.L_WORLD)
+		var hit: Dictionary = space.intersect_ray(q)
+		solid = solid and not hit.is_empty() and hit.position.y > 0.3
+	check(solid, "the couch, the armchair and the fireplace are solid")
+	check(Vector2(lobby.FIREPLACE.x, lobby.FIREPLACE.z).distance_to(Vector2(-2.8, 3.4)) > 2.0, "the fireplace is clear of the door")
 	L.request("lever")
 	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.local_player != null, 20.0)
 	check(started, "the host pulls START and the game begins")
 	check(started and Game.level.creature != null, "the game has the creature")
+
+
+## A long wait in the lobby (the "cyberpsychosis" glitch: after a while everything turned into
+## flashing colours). Nothing may drift into NaN or huge numbers: bones, nodes, lights, items.
+## --minutes=N of game time (run with --fixed-fps to go faster than real time); --spike adds a
+## 3-second freeze halfway, like taking the headset off.
+func _lobby_soak() -> void:
+	var L = Game.level
+	var me = L.local_player
+	if Game.args.has("suit"):
+		Profile.codes.append("34")
+		Profile.suit = int(Game.args.suit)
+		me.rebuild_self_body()
+	var minutes := float(Game.args.get("minutes", "3"))
+	var bad := ""
+	var t := 0.0
+	var spiked := false
+	while t < minutes * 60.0 and bad == "":
+		await wait(5.0)
+		t += 5.0
+		if Game.args.has("spike") and not spiked and t >= minutes * 30.0:
+			spiked = true
+			OS.delay_msec(3000)
+		bad = _first_broken(get_tree().root)
+		if int(t) % 60 == 0:
+			print("soak: %d s, %d nodes, %d objects, %.0f MB video" % [int(t), Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+				Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0])
+	check(bad == "", "after %.0f s in the lobby nothing has gone NaN or flown off%s" % [t, "" if bad == "" else " (first: %s)" % bad])
+
+
+func _first_broken(n: Node) -> String:
+	if n is Node3D and not (n as Node3D).is_visible_in_tree():
+		return ""                  # hidden (parked bodies, stowed items): not drawn
+	if n is Node3D and n.is_inside_tree():
+		var xf: Transform3D = (n as Node3D).global_transform
+		if not (xf.origin.is_finite() and xf.basis.x.is_finite() and xf.basis.y.is_finite() and xf.basis.z.is_finite()) or xf.origin.length() > 5000.0:
+			return "%s at %s" % [n.get_path(), xf.origin]
+	if n is Skeleton3D:
+		var sk := n as Skeleton3D
+		for b in sk.get_bone_count():
+			if sk.get_bone_name(b) == "_rootJoint" or sk.get_bone_name(b).begins_with("Root_"):
+				continue           # the latex model's armature root sits far below it in its rest pose (no skin on it)
+			var p := sk.global_transform * sk.get_bone_global_pose(b)       # bones in metres, in the world
+			if not (p.origin.is_finite() and p.basis.x.is_finite() and p.basis.y.is_finite() and p.basis.z.is_finite()) \
+					or p.origin.distance_to(sk.global_position) > 20.0:
+				var owner_rig := sk.get_parent()
+				while owner_rig and not (owner_rig is SuitRig) and owner_rig != get_tree().root:
+					owner_rig = owner_rig.get_parent()
+				return "%s bone %s at %s; skeleton at %s; rig %s (%s, first person %s)" % [sk.get_path(), sk.get_bone_name(b), p.origin, sk.global_position,
+					owner_rig.name if owner_rig else "?", owner_rig.get_parent().name if owner_rig and owner_rig.get_parent() else "?", owner_rig.get("first_person") if owner_rig else "?"]
+	if n is Light3D and not is_finite((n as Light3D).light_energy):
+		return "%s energy %s" % [n.get_path(), (n as Light3D).light_energy]
+	for c in n.get_children():
+		var r := _first_broken(c)
+		if r != "":
+			return r
+	return ""
 
 
 ## Pictures of each tutorial room (or the lobby), from the desktop camera.
