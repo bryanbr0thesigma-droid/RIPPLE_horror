@@ -267,7 +267,8 @@ func _shell() -> void:
 		G.block(X0, X1, H - 0.16, H, z - 0.09, z + 0.09, _wood)
 	# The ceiling fan turns slowly; a dim light in its middle.
 	_fan = _prop(P + "ceiling_fan.glb", Vector3(1.0, H - 0.516, -0.2), 0.0)
-	_light(Vector3(1.0, H - 0.6, -0.2), Color(1.0, 0.8, 0.55), 0.35, 5.0)
+	if not Game.vr_mode:        # on the headset every light is another pass over the walls: only the ones that matter
+		_light(Vector3(1.0, H - 0.6, -0.2), Color(1.0, 0.8, 0.55), 0.35, 5.0)
 
 
 ## The front wall: the glass door and the big window, venetian blinds, dusk outside, the station's
@@ -333,7 +334,8 @@ func _front() -> void:
 	var open := _text("OPEN 24 HRS", Vector3(1.4, 1.15, Z1 - 0.17), 0.0, 0.0018, Color(2.2, 0.3, 0.2), 64)
 	open.shaded = false
 	open.double_sided = true
-	_light(Vector3(1.4, 1.6, Z1 - 0.5), Color(0.3, 0.55, 1.0), 0.7, 3.0)
+	if not Game.vr_mode:
+		_light(Vector3(1.4, 1.6, Z1 - 0.5), Color(0.3, 0.55, 1.0), 0.7, 3.0)
 	# Dusk light slanting in through the blinds.
 	var dir := Vector3(0.12, -0.22, -1.0).normalized()
 	var beam_grad := Gradient.new()
@@ -632,6 +634,7 @@ func _tv_nook() -> void:
 	video = tvs.video
 	screen_mat = tvs.screen_mat
 	tv_light = tvs.tv_light
+	tv_light.visible = not Game.vr_mode
 	led_mat = tvs.led_mat
 	subs = tvs.subs
 	video.finished.connect(_on_tape_end)
@@ -747,9 +750,13 @@ func on_vhs(which: String) -> void:
 			screen_mat.albedo_texture = video.get_parent().get_texture()
 			tv_light.light_color = Color(0.75, 0.85, 1.0)
 			tv_light.light_energy = 0.55)
+		video.get_parent().render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		tv_light.visible = true
 		video.play()
 	else:
 		video.stop()
+		video.get_parent().render_target_update_mode = SubViewport.UPDATE_DISABLED
+		tv_light.visible = not Game.vr_mode           # an empty blue screen doesn't need a light on the headset
 		led_mat.albedo_color = Color(0.6, 0.05, 0.05)
 		led_mat.emission = Color(0.8, 0.05, 0.0)
 		screen_mat.albedo_texture = null

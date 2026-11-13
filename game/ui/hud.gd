@@ -47,6 +47,10 @@ func set_hint(text: String) -> void:
 	_hint.text = text
 
 
+var _addrs: Array[String] = []
+var _addr_t := 0.0
+
+
 func _process(delta: float) -> void:
 	_msg_time -= delta
 	_msg.modulate.a = clampf(_msg_time, 0.0, 1.0)
@@ -57,7 +61,10 @@ func _process(delta: float) -> void:
 	if Net.is_host() and Net.is_online_room():
 		lines.append("Online room code: %s" % Net.room_code if Net.room_code != "" else "Getting a room code...")
 	elif Net.is_host():
-		var addrs := Net.local_addresses()
-		lines.append("Hosting. Friends join at: %s" % (", ".join(addrs) if addrs.size() > 0 else "?"))
+		_addr_t -= delta
+		if _addr_t <= 0.0:                    # asking the system for its addresses every frame was slow
+			_addr_t = 3.0
+			_addrs = Net.local_addresses()
+		lines.append("Hosting. Friends join at: %s" % (", ".join(_addrs) if _addrs.size() > 0 else "?"))
 	lines.append("Players: %d" % Net.players.size())
 	_info.text = "\n".join(lines)

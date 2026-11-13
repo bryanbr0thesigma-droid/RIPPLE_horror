@@ -259,7 +259,8 @@ static func tv_set(root: Node3D) -> Dictionary:
 	# The tape plays through a 640x480 viewport onto a screen curved like the TV's glass.
 	var vp := SubViewport.new()
 	vp.size = Vector2i(640, 480)
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.render_target_update_mode = SubViewport.UPDATE_DISABLED       # drawn only while a tape plays
+	vp.name = "TapeViewport"
 	root.add_child(vp)
 	var video := VideoStreamPlayer.new()
 	video.stream = TAPE
@@ -267,6 +268,9 @@ static func tv_set(root: Node3D) -> Dictionary:
 	video.size = Vector2(640, 480)
 	video.volume_db = -1.0
 	vp.add_child(video)
+	# Draw the viewport only while the video plays (an idle one redrawn every frame cost the headset
+	# for nothing, in the lobby that people sit in for minutes).
+	video.finished.connect(func(): vp.render_target_update_mode = SubViewport.UPDATE_DISABLED)
 	var screen := MeshInstance3D.new()
 	screen.mesh = curved_screen(SCREEN_SIZE, SCREEN_CURVE)
 	var screen_mat := StandardMaterial3D.new()

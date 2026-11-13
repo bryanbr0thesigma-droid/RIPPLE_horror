@@ -213,6 +213,7 @@ func _press_play() -> void:
 	await _hand_to(at.call(0.04), 0.25)
 	# The tape starts: a flicker of static, then the picture.
 	_tv_on()
+	video.get_parent().render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	video.play()
 	_playing = true
 	_look = SCREEN
