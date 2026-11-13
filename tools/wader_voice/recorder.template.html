@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wader Voice Recorder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html { color-scheme: light; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+/*SHARED_CSS*/
+/* The recorder's own parts */
+@media (min-width: 860px) {
+  main.wrap { grid-template-areas: "record record" "takes needs" "send send"; }
+  main.wrap > .record { grid-area: record; }
+  main.wrap > .takes-sec { grid-area: takes; }
+  main.wrap > .needs { grid-area: needs; }
+  main.wrap > .send { grid-area: send; grid-column: auto; }
+}
+.recbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.btn.rec.big { font-size: 20px; padding: 16px 24px; min-width: 180px; justify-content: center; }
+.btn.rec.live { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.btn.rec.live .dot { border-radius: 2px; background: var(--red); }
+.level { flex: 1 1 180px; display: grid; gap: 4px; min-width: 0; }
+.level .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); }
+.level .bar i { display: block; height: 100%; width: 0; background: var(--ok); }
+.level .bar i.hot { background: var(--red); }
+.level .time { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.send { background: var(--card); border: 1.5px solid var(--line); padding: 18px; }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.send a { color: inherit; }
+.btn[disabled] { opacity: .5; cursor: default; }
+</style>
+</head>
+<body>
+<div class="band">
+  <div class="wrap">
+    <p class="eyebrow">F.A.L.C.O.N. · Training Division · Form TD-19a · Voice sample recorder</p>
+    <h1>Wader Voice Recorder</h1>
+    <p>Tap Record, click with your mouth, tap Stop. Hear it as the Wader, then save your takes for the Voice Booth.</p>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="record" aria-labelledby="rec-h">
+    <h2 id="rec-h">Record a take</h2>
+    <fieldset class="kinds" id="kinds">
+      <legend>What is this take?</legend>
+      <input type="radio" name="kind" id="kind-single" value="single" checked><label for="kind-single">Single clicks</label>
+      <input type="radio" name="kind" id="kind-slow" value="slow"><label for="kind-slow">Slow burst</label>
+      <input type="radio" name="kind" id="kind-fast" value="fast"><label for="kind-fast">Fast burst</label>
+      <input type="radio" name="kind" id="kind-rattle" value="rattle"><label for="kind-rattle">Long rattle</label>
+    </fieldset>
+    <p class="kindhint" id="kindhint"></p>
+    <div class="recbar">
+      <button class="btn rec big" type="button" id="rec" aria-pressed="false"><span class="dot" aria-hidden="true"></span><span id="rec-label">Record</span></button>
+      <div class="level"><div class="bar"><i id="level"></i></div><span class="time" id="time">Mic off</span></div>
+      <button class="btn quiet" type="button" id="example">Hear an example</button>
+    </div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <p class="fine">Your browser asks to use the microphone the first time. Recordings stay on this phone until you save them: this page uploads nothing. The example is a synthetic click, not your voice.</p>
+  </section>
+
+  <section class="takes-sec" aria-labelledby="takes-h">
+    <h2 id="takes-h">Your takes</h2>
+    <div class="takes" id="takes">
+      <p class="empty" id="empty">No takes yet. Each one shows up here with its waveform and the clicks it found, to play raw or as the Wader.</p>
+    </div>
+  </section>
+
+  <section class="send" aria-labelledby="send-h">
+    <h2 id="send-h">Send them to Claude</h2>
+    <ol class="steps">
+      <li>Tap <strong>Save takes to this phone</strong>. It downloads one file, <strong>wader-takes.json</strong>.</li>
+      <li>Open the <a href="https://claude.ai/artifact/G3RuHpfqHscuwr7UJruKgK" target="_blank" rel="noopener">Wader Voice Booth</a>.</li>
+      <li>Tap <strong>Add recordings</strong> there and pick that file.</li>
+    </ol>
+    <div class="actions">
+      <button class="btn" type="button" id="save" disabled>Save takes to this phone</button>
+      <a class="btn quiet" href="https://claude.ai/artifact/G3RuHpfqHscuwr7UJruKgK" target="_blank" rel="noopener">Open the Voice Booth</a>
+    </div>
+    <p class="status" id="save-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="needs" aria-labelledby="needs-h">
+    <h2 id="needs-h">What the Wader needs</h2>
+    <ul id="needs"></ul>
+    <ul class="tips">
+      <li>Quiet room, phone a hand's width from your mouth and a little to the side.</li>
+      <li>Leave half a second between clicks.</li>
+      <li>Mix tongue clicks, throat clicks and a low croaky rattle.</li>
+      <li>Lots of rough takes beat a few careful ones.</li>
+    </ul>
+    <p class="fine">The Wader preview is close to what the game will get: pitched down, thickened, with a pool hall's echo.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const takes = new Map();          // id -> take
+/*SHARED_JS*/
+
+  // ---------- the microphone ----------
+  const MAX_TAKE = 60;              // seconds; a take stops by itself after this
+  let stream = null, recording = false, chunks = [], recStart = 0, livePeak = 0, dirty = false;
+
+  function paintRec() {
+    $("#rec").classList.toggle("live", recording);
+    $("#rec").setAttribute("aria-pressed", recording ? "true" : "false");
+    $("#rec-label").textContent = recording ? "Stop" : "Record";
+    if (!recording) { $("#level").style.width = "0"; $("#time").textContent = stream ? "Mic ready" : "Mic off"; }
+  }
+  async function micOn() {
+    if (stream) return true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setStatus("This browser can't use the microphone. Try Chrome or Safari.", true); return false; }
+    try {
+      // No echo cancelling or noise suppression: they swallow clicks.
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    } catch (e) {
+      setStatus(e && (e.name === "NotAllowedError" || e.name === "SecurityError") ? "The microphone is blocked. Allow it for this page in your browser's site settings, then tap Record again." : "No microphone was found.", true);
+      return false;
+    }
+    const c = audio(true), src = c.createMediaStreamSource(stream), proc = c.createScriptProcessor(4096, 1, 1), mute = c.createGain();
+    mute.gain.value = 0;
+    proc.onaudioprocess = (e) => {
+      const d = e.inputBuffer.getChannelData(0); let p = 0;
+      for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > p) p = v; }
+      if (p > livePeak) livePeak = p;
+      if (recording) chunks.push(new Float32Array(d));
+    };
+    src.connect(proc); proc.connect(mute); mute.connect(c.destination);
+    return true;
+  }
+  function meter() {
+    if (!recording) return;
+    const s = (performance.now() - recStart) / 1000, lv = $("#level"), hot = livePeak > 0.97;
+    lv.style.width = Math.min(100, Math.sqrt(livePeak) * 100) + "%"; lv.classList.toggle("hot", hot);
+    $("#time").textContent = s.toFixed(1) + " s" + (hot ? " · too loud" : "");
+    livePeak *= 0.9;
+    if (s >= MAX_TAKE) { stopRec(); return; }
+    requestAnimationFrame(meter);
+  }
+  async function toggleRec() {
+    if (recording) { stopRec(); return; }
+    stopAll();
+    setStatus("");
+    if (!(await micOn())) { paintRec(); return; }
+    audio(true);
+    chunks = []; livePeak = 0; recording = true; recStart = performance.now();
+    paintRec(); meter();
+  }
+  function stopRec() {
+    if (!recording) return;
+    recording = false; paintRec();
+    let n = 0; for (const c of chunks) n += c.length;
+    const x = new Float32Array(n); let o = 0;
+    for (const c of chunks) { x.set(c, o); o += c.length; }
+    chunks = [];
+    addTake(x, audio(false).sampleRate, kindNow());
+  }
+  function addTake(x0, rate, kind) {
+    const x = trimSilence(x0, rate), seconds = x.length / rate, peak = peakOf(x);
+    if (peak < 0.006) { setStatus("Nothing was heard. Check the microphone is allowed and not muted, then try again.", true); return; }
+    if (seconds < 0.08) { setStatus("That was too short to keep. Try again.", true); return; }
+    let n = 0; for (const t of takes.values()) n = Math.max(n, t.n || 0);
+    const onsets = findClicks(x, rate);
+    const t = { id: newId(), n: n + 1, name: "Take " + (n + 1), kind, seconds, clicks: onsets.length, peak, rate,
+      x, onsets, peaks: summarize(x, 140), ticks: onsets.map((v) => Math.round(v / x.length * 1000) / 1000), status: "new" };
+    takes.set(t.id, t); dirty = true;
+    setStatus(t.name + ": " + fmtSec(seconds) + ", " + t.clicks + (t.clicks === 1 ? " click" : " clicks") + " found.");
+    render();
+  }
+
+  // ---------- saving ----------
+  function savePack() {
+    const list = [...takes.values()].sort((a, b) => a.n - b.n);
+    if (!list.length) return;
+    const pack = { wader_pack: 1, made: new Date().toISOString(),
+      takes: list.map((t) => ({ name: t.name, kind: t.kind, sampleRate: t.rate, seconds: Math.round(t.seconds * 100) / 100, wav_base64: b64(wavBytes(t.x, t.rate)) })) };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(pack)], { type: "application/json" }));
+    const a = document.createElement("a"); a.href = url; a.download = "wader-takes.json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    for (const t of list) t.status = "packed";
+    dirty = false; render();
+    $("#save-status").textContent = "Saved " + list.length + (list.length === 1 ? " take" : " takes") + " as wader-takes.json (in your downloads). Now open the Voice Booth and add that file.";
+  }
+
+  // ---------- drawing ----------
+  function takeCard(t) {
+    const card = el("article", "take"); card.dataset.id = t.id;
+    const head = el("header"); head.appendChild(el("h3", "", t.name + " · " + (KINDS[t.kind] || KINDS.single).label));
+    head.appendChild(el("span", "meta", fmtSec(t.seconds) + " · " + t.clicks + (t.clicks === 1 ? " click" : " clicks") + " · peak " + fmtDb(t.peak)));
+    card.appendChild(head);
+    const chips = el("div", "chips");
+    chips.appendChild(el("span", "chip " + (t.status === "packed" ? "saved" : "local"), t.status === "packed" ? "In the saved file" : "Not saved yet"));
+    if (t.peak >= 0.985) chips.appendChild(el("span", "chip warn", "Too loud: hold the phone a little further away"));
+    else if (t.peak < 0.06) chips.appendChild(el("span", "chip warn", "Very quiet: get closer to the phone"));
+    card.appendChild(chips);
+    const wave = el("div", "wave"); wave.appendChild(waveSvg(t)); const h = el("div", "head"); h.hidden = true; wave.appendChild(h); card.appendChild(wave);
+    const plays = el("div", "plays");
+    for (const [mode, label] of [["wader", "Play as the Wader"], ["raw", "Play raw"], ["patrol", "Patrol burst"], ["alert", "Alert burst"]]) {
+      const b = el("button", "btn small", label); b.type = "button"; b.dataset.play = mode; b.dataset.label = label; b.setAttribute("aria-pressed", "false"); plays.appendChild(b);
+    }
+    card.appendChild(plays);
+    const row = el("div", "row2"), lab = el("label", "", "Kind "), sel = el("select"); sel.id = "kind-of-" + t.id; sel.dataset.kindOf = "1";
+    for (const k in KINDS) { const o = el("option", "", KINDS[k].label); o.value = k; if (k === t.kind) o.selected = true; sel.appendChild(o); }
+    lab.appendChild(sel); row.appendChild(lab);
+    if (confirmId === t.id) {
+      const c = el("span", "confirm", "Delete this take? ");
+      const yes = el("button", "btn small", "Delete"); yes.type = "button"; yes.dataset.del = "yes";
+      const no = el("button", "btn small quiet", "Keep"); no.type = "button"; no.dataset.del = "no";
+      c.appendChild(yes); c.appendChild(no); row.appendChild(c);
+    } else { const d = el("button", "btn small quiet", "Delete"); d.type = "button"; d.dataset.del = "ask"; row.appendChild(d); }
+    card.appendChild(row);
+    return card;
+  }
+  function render() {
+    const list = $("#takes"), sorted = [...takes.values()].sort((a, b) => b.n - a.n);
+    list.querySelectorAll(".take").forEach((n) => n.remove());
+    $("#empty").hidden = sorted.length > 0;
+    for (const t of sorted) list.appendChild(takeCard(t));
+    paintPlaying();
+    if (playing && playing.head) { cancelAnimationFrame(raf); tick(); }
+    renderNeeds();
+    $("#save").disabled = sorted.length === 0;
+    $("#save").textContent = dirty || !sorted.length ? "Save takes to this phone" : "Save again";
+  }
+
+  // ---------- events ----------
+  $("#rec").addEventListener("click", toggleRec);
+  $("#save").addEventListener("click", savePack);
+  $("#example").addEventListener("click", () => { if (recording) return; audio(true); if (playing && playing.id === "example") stopAll(); else example(); });
+  $("#kinds").addEventListener("change", () => { $("#kindhint").textContent = KINDS[kindNow()].hint; });
+  $("#kindhint").textContent = KINDS[kindNow()].hint;
+  $("#takes").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const id = b.closest("[data-id]").dataset.id, t = takes.get(id);
+    if (b.dataset.play && t && !recording) { audio(true); play(t, b.dataset.play); }
+    else if (b.dataset.del === "ask") { confirmId = id; render(); }
+    else if (b.dataset.del === "no") { confirmId = ""; render(); }
+    else if (b.dataset.del === "yes") { if (playing && playing.id === id) stopAll(); takes.delete(id); confirmId = ""; dirty = takes.size > 0; render(); }
+  });
+  $("#takes").addEventListener("change", (e) => {
+    const s = e.target.closest("select[data-kind-of]"); if (!s) return;
+    const t = takes.get(s.closest("[data-id]").dataset.id); if (!t || t.kind === s.value) return;
+    t.kind = s.value; t.status = "new"; dirty = true; render();
+  });
+  window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+  window.addEventListener("pagehide", () => { if (stream) { for (const tr of stream.getTracks()) tr.stop(); stream = null; } });
+  render(); paintRec();
+})();
+</script>
+</body>
+</html>

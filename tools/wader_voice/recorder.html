@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wader Voice Recorder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html { color-scheme: light; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+/* Layout: an agency intake form. A navy header band, then one column on a phone (record, takes,
+   what's still needed); on a wide screen the checklist sits beside the takes. */
+:root {
+  --paper: #E9E4D4;
+  --card: #F3EFE3;
+  --ink: #12205C;
+  --muted: #4A557F;
+  --line: rgba(18, 32, 92, .24);
+  --band: #12205C;
+  --band-ink: #E9E4D4;
+  --gold: #ECC446;
+  --gold-ink: #7A5E00;
+  --red: #B21E24;
+  --red-ink: #FFF7EC;
+  --ok: #1F6B45;
+  --wave: #12205C;
+  --focus: #B21E24;
+  --text: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0B1230; --card: #121B45; --ink: #E9E4D4; --muted: #A7AECB;
+    --line: rgba(233, 228, 212, .22); --band: #16256A; --band-ink: #E9E4D4;
+    --gold: #ECC446; --gold-ink: #ECC446; --red: #D8434A; --red-ink: #FFF7EC;
+    --ok: #6CC79A; --wave: #C9CEE6; --focus: #ECC446; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0B1230; --card: #121B45; --ink: #E9E4D4; --muted: #A7AECB;
+  --line: rgba(233, 228, 212, .22); --band: #16256A; --band-ink: #E9E4D4;
+  --gold: #ECC446; --gold-ink: #ECC446; --red: #D8434A; --red-ink: #FFF7EC;
+  --ok: #6CC79A; --wave: #C9CEE6; --focus: #ECC446; color-scheme: dark;
+}
+
+body { background: var(--paper); color: var(--ink); font-family: var(--text); font-size: 16px; line-height: 1.5; }
+* { box-sizing: border-box; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+h1, h2, h3 { margin: 0; text-wrap: balance; line-height: 1.15; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Header band */
+.band { background: var(--band); color: var(--band-ink); border-bottom: 6px solid var(--red); box-shadow: 0 3px 0 var(--gold); }
+.band .wrap { padding-block: 22px 24px; display: grid; gap: 8px; }
+.band .eyebrow { color: var(--gold); }
+.band h1 { font-size: clamp(30px, 6vw, 44px); font-weight: 800; letter-spacing: .01em; }
+.band p { max-width: 60ch; opacity: .92; }
+
+main.wrap { padding-block: 26px 48px; display: grid; gap: 28px; }
+@media (min-width: 860px) {
+  main.wrap { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+  .record, .notice { grid-column: 1 / -1; }
+}
+section { display: grid; gap: 14px; min-width: 0; }
+h2 { font-size: 15px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+
+/* Record */
+.record { background: var(--card); border: 1.5px solid var(--line); padding: 18px; gap: 16px; }
+.kinds { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
+.kinds legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+.kinds input { position: absolute; opacity: 0; pointer-events: none; }
+.kinds label { border: 1.5px solid var(--line); padding: 8px 12px; cursor: pointer; font-weight: 600; font-size: 14px; background: var(--paper); }
+.kinds input:checked + label { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.kinds input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+.kindhint { color: var(--muted); font-size: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pick { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.btn { font: inherit; font-weight: 700; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+a.btn { text-decoration: none; }
+.btn:hover { background: color-mix(in srgb, var(--ink) 9%, transparent); }
+.btn.rec { background: var(--red); border-color: var(--red); color: var(--red-ink); font-size: 17px; padding: 12px 18px; }
+.btn.rec:hover { filter: brightness(1.08); background: var(--red); }
+.btn.rec .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red-ink); }
+.btn.small { min-height: 38px; padding: 6px 11px; font-size: 14px; }
+.btn.on { background: var(--ink); color: var(--paper); }
+.btn.quiet { border-color: var(--line); font-weight: 600; }
+.pick:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+.fine { color: var(--muted); font-size: 14px; max-width: 68ch; }
+.status { font-weight: 600; min-height: 1.5em; }
+.status.bad { color: var(--red); }
+
+.notice { border-left: 5px solid var(--gold); background: var(--card); padding: 12px 14px; font-size: 15px; }
+
+/* Takes */
+.takes { display: grid; gap: 12px; }
+.empty { border: 1.5px dashed var(--line); padding: 22px 18px; color: var(--muted); }
+.take { background: var(--card); border: 1.5px solid var(--line); padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.take header { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; justify-content: space-between; }
+.take h3 { font-size: 18px; font-weight: 800; }
+.meta { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--mono); font-size: 12px; letter-spacing: .04em; padding: 3px 8px; border: 1.5px solid currentColor; }
+.chip.saved { color: var(--ok); }
+.chip.saving, .chip.local { color: var(--muted); }
+.chip.failed, .chip.warn { color: var(--red); }
+.wave { position: relative; height: 72px; background: var(--paper); border: 1px solid var(--line); overflow: hidden; }
+.wave svg { display: block; width: 100%; height: 100%; }
+.wave path { fill: var(--wave); }
+.wave line { stroke: var(--gold-ink); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.wave .head { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--red); left: 0; }
+.wave .later { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+.plays { display: flex; flex-wrap: wrap; gap: 8px; }
+.row2 { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.row2 select { font: inherit; font-size: 14px; padding: 6px 8px; background: var(--paper); color: var(--ink); border: 1.5px solid var(--line); min-height: 38px; }
+.row2 label { font-size: 14px; color: var(--muted); display: inline-flex; gap: 8px; align-items: center; }
+.confirm { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+
+/* Checklist */
+.needs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.needs li { display: grid; gap: 5px; }
+.needs .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.needs .name { font-weight: 700; }
+.needs .count { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.needs .what { font-size: 14px; color: var(--muted); }
+.meter { height: 8px; background: var(--card); border: 1px solid var(--line); }
+.meter i { display: block; height: 100%; background: var(--ink); width: 0; }
+.meter.done i { background: var(--ok); }
+.needs ul.tips { list-style: disc; margin: 0; padding-left: 18px; gap: 6px; font-size: 14px; color: var(--muted); }
+.needs ul.tips li { display: list-item; }
+
+/* The recorder's own parts */
+@media (min-width: 860px) {
+  main.wrap { grid-template-areas: "record record" "takes needs" "send send"; }
+  main.wrap > .record { grid-area: record; }
+  main.wrap > .takes-sec { grid-area: takes; }
+  main.wrap > .needs { grid-area: needs; }
+  main.wrap > .send { grid-area: send; grid-column: auto; }
+}
+.recbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.btn.rec.big { font-size: 20px; padding: 16px 24px; min-width: 180px; justify-content: center; }
+.btn.rec.live { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.btn.rec.live .dot { border-radius: 2px; background: var(--red); }
+.level { flex: 1 1 180px; display: grid; gap: 4px; min-width: 0; }
+.level .bar { height: 14px; background: var(--paper); border: 1px solid var(--line); }
+.level .bar i { display: block; height: 100%; width: 0; background: var(--ok); }
+.level .bar i.hot { background: var(--red); }
+.level .time { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.send { background: var(--card); border: 1.5px solid var(--line); padding: 18px; }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.send a { color: inherit; }
+.btn[disabled] { opacity: .5; cursor: default; }
+</style>
+</head>
+<body>
+<div class="band">
+  <div class="wrap">
+    <p class="eyebrow">F.A.L.C.O.N. · Training Division · Form TD-19a · Voice sample recorder</p>
+    <h1>Wader Voice Recorder</h1>
+    <p>Tap Record, click with your mouth, tap Stop. Hear it as the Wader, then save your takes for the Voice Booth.</p>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="record" aria-labelledby="rec-h">
+    <h2 id="rec-h">Record a take</h2>
+    <fieldset class="kinds" id="kinds">
+      <legend>What is this take?</legend>
+      <input type="radio" name="kind" id="kind-single" value="single" checked><label for="kind-single">Single clicks</label>
+      <input type="radio" name="kind" id="kind-slow" value="slow"><label for="kind-slow">Slow burst</label>
+      <input type="radio" name="kind" id="kind-fast" value="fast"><label for="kind-fast">Fast burst</label>
+      <input type="radio" name="kind" id="kind-rattle" value="rattle"><label for="kind-rattle">Long rattle</label>
+    </fieldset>
+    <p class="kindhint" id="kindhint"></p>
+    <div class="recbar">
+      <button class="btn rec big" type="button" id="rec" aria-pressed="false"><span class="dot" aria-hidden="true"></span><span id="rec-label">Record</span></button>
+      <div class="level"><div class="bar"><i id="level"></i></div><span class="time" id="time">Mic off</span></div>
+      <button class="btn quiet" type="button" id="example">Hear an example</button>
+    </div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <p class="fine">Your browser asks to use the microphone the first time. Recordings stay on this phone until you save them: this page uploads nothing. The example is a synthetic click, not your voice.</p>
+  </section>
+
+  <section class="takes-sec" aria-labelledby="takes-h">
+    <h2 id="takes-h">Your takes</h2>
+    <div class="takes" id="takes">
+      <p class="empty" id="empty">No takes yet. Each one shows up here with its waveform and the clicks it found, to play raw or as the Wader.</p>
+    </div>
+  </section>
+
+  <section class="send" aria-labelledby="send-h">
+    <h2 id="send-h">Send them to Claude</h2>
+    <ol class="steps">
+      <li>Tap <strong>Save takes to this phone</strong>. It downloads one file, <strong>wader-takes.json</strong>.</li>
+      <li>Open the <a href="https://claude.ai/artifact/G3RuHpfqHscuwr7UJruKgK" target="_blank" rel="noopener">Wader Voice Booth</a>.</li>
+      <li>Tap <strong>Add recordings</strong> there and pick that file.</li>
+    </ol>
+    <div class="actions">
+      <button class="btn" type="button" id="save" disabled>Save takes to this phone</button>
+      <a class="btn quiet" href="https://claude.ai/artifact/G3RuHpfqHscuwr7UJruKgK" target="_blank" rel="noopener">Open the Voice Booth</a>
+    </div>
+    <p class="status" id="save-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="needs" aria-labelledby="needs-h">
+    <h2 id="needs-h">What the Wader needs</h2>
+    <ul id="needs"></ul>
+    <ul class="tips">
+      <li>Quiet room, phone a hand's width from your mouth and a little to the side.</li>
+      <li>Leave half a second between clicks.</li>
+      <li>Mix tongue clicks, throat clicks and a low croaky rattle.</li>
+      <li>Lots of rough takes beat a few careful ones.</li>
+    </ul>
+    <p class="fine">The Wader preview is close to what the game will get: pitched down, thickened, with a pool hall's echo.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const takes = new Map();          // id -> take
+  const $ = (s, r = document) => r.querySelector(s);
+  const KINDS = {
+    single: { label: "Single clicks", goal: 15, unit: "clicks", what: "Separate clicks with a gap between them. These get sequenced into bursts.", hint: "One click at a time, with a short gap after each. About 15 to 20." },
+    slow:   { label: "Slow bursts",   goal: 5,  unit: "takes",  what: "1 to 2 seconds each, calm and curious.", hint: "A calm, curious run of clicks, 1 to 2 seconds." },
+    fast:   { label: "Fast bursts",   goal: 3,  unit: "takes",  what: "2 to 3 seconds, agitated or speeding up.", hint: "Agitated or speeding up, 2 to 3 seconds." },
+    rattle: { label: "Long rattle",   goal: 1,  unit: "take",   what: "Optional: 5 to 10 seconds, close up, for when it's feeling around next to you.", hint: "Optional. One long close-up rattle, 5 to 10 seconds." },
+  };
+  const MAX_SECONDS = 120;
+  let ctx = null, fx = null;
+  let live = [], playing = null, playTimer = 0, raf = 0;
+  let confirmId = "";
+
+  // ---------- small helpers ----------
+  const fmtSec = (s) => (s < 10 ? s.toFixed(1) : String(Math.round(s))) + " s";
+  const fmtDb = (p) => (p > 0 ? (Math.round(20 * Math.log10(p)) + " dB").replace("-", "−") : "silent");
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const setStatus = (text, bad) => { const el = $("#status"); el.textContent = text; el.classList.toggle("bad", !!bad); };
+  const kindNow = () => (document.querySelector('input[name="kind"]:checked') || {}).value || "single";
+  const newId = () => "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  // ---------- audio maths ----------
+  function toMono(buf) {
+    const n = buf.length, out = new Float32Array(n), chs = buf.numberOfChannels;
+    for (let c = 0; c < chs; c++) { const d = buf.getChannelData(c); for (let i = 0; i < n; i++) out[i] += d[i] / chs; }
+    return out;
+  }
+  // Cut the silence off both ends, keeping a fifth of a second.
+  function trimSilence(x, rate) {
+    const thr = 0.004; let a = 0, b = x.length - 1;
+    while (a < x.length && Math.abs(x[a]) < thr) a++;
+    while (b > a && Math.abs(x[b]) < thr) b--;
+    if (a >= x.length) return x.slice(0, Math.min(x.length, Math.round(rate * 0.5)));
+    const pad = Math.round(rate * 0.2);
+    return x.slice(Math.max(0, a - pad), Math.min(x.length, b + pad));
+  }
+  function peakOf(x) { let p = 0; for (let i = 0; i < x.length; i++) { const v = Math.abs(x[i]); if (v > p) p = v; } return p; }
+  // Where the clicks start (sample positions): a jump well above the last 60 ms and above a floor.
+  function findClicks(x, rate) {
+    const hop = Math.max(1, Math.round(rate * 0.002)), n = Math.floor(x.length / hop);
+    const env = new Float32Array(n); let peak = 0;
+    for (let i = 0; i < n; i++) { let m = 0; const o = i * hop; for (let j = 0; j < hop; j++) { const v = Math.abs(x[o + j]); if (v > m) m = v; } env[i] = m; if (m > peak) peak = m; }
+    const pre = new Float64Array(n + 1);                       // running totals, for the level just before
+    for (let i = 0; i < n; i++) pre[i + 1] = pre[i] + env[i];
+    const thr = Math.max(peak * 0.16, 0.012), gap = 35, out = [];
+    let last = -1e9;
+    for (let i = 0; i < n; i++) {
+      const lo = Math.max(0, i - 30), hi = Math.max(0, i - 2);  // the 60 ms before, leaving out the last 4 ms
+      const bg = hi > lo ? (pre[hi] - pre[lo]) / (hi - lo) : 0;
+      if (env[i] > thr && env[i] > bg * 2.2 && i - last > gap) { out.push(i * hop); last = i; }
+    }
+    return out;
+  }
+  function summarize(x, buckets) {
+    const out = [], step = x.length / buckets;
+    for (let b = 0; b < buckets; b++) { let m = 0; const a = Math.floor(b * step), e = Math.floor((b + 1) * step); for (let i = a; i < e; i++) { const v = Math.abs(x[i]); if (v > m) m = v; } out.push(Math.round(m * 100) / 100); }
+    return out;
+  }
+  function wavBytes(x, rate) {
+    const n = x.length, b = new ArrayBuffer(44 + n * 2), v = new DataView(b);
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); str(8, "WAVE"); str(12, "fmt "); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+    v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, "data"); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) { const s = Math.max(-1, Math.min(1, x[i])); v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true); }
+    return new Uint8Array(b);
+  }
+  function wavToFloat(u8) {
+    const v = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), rate = v.getUint32(24, true), n = Math.floor((u8.byteLength - 44) / 2);
+    const x = new Float32Array(n);
+    for (let i = 0; i < n; i++) x[i] = v.getInt16(44 + i * 2, true) / 0x8000;
+    return { x, rate };
+  }
+  function b64(u8) { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+  function unb64(str) { const bin = atob(str), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+
+  // ---------- the Wader's sound ----------
+  function audio(resume) {
+    if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); fx = buildFx(ctx); }
+    if (resume && ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+  function poolHall(c) {            // a tiled hall's echo: 2.6 s of darkening noise and a few early slaps
+    const len = Math.round(c.sampleRate * 2.6), ir = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch); let lp = 0;
+      for (let i = 0; i < len; i++) { const t = i / c.sampleRate; lp += ((Math.random() * 2 - 1) - lp) * (0.5 - 0.3 * Math.min(1, t)); d[i] = lp * Math.exp(-6.9 * t / 2.4); }
+      for (const [ms, g] of [[23, .5], [41, .36], [67, .28], [97, .2]]) d[Math.round(c.sampleRate * (ms + ch * 3) / 1000)] += g;
+    }
+    return ir;
+  }
+  function buildFx(c) {
+    const bus = c.createGain();
+    const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 70;
+    const comb = c.createDelay(0.05); comb.delayTime.value = 0.0085;       // a throat: ~118 Hz resonance
+    const fb = c.createGain(); fb.gain.value = 0.42;
+    const combMix = c.createGain(); combMix.gain.value = 0.55;
+    const body = c.createBiquadFilter(); body.type = "peaking"; body.frequency.value = 700; body.Q.value = 0.9; body.gain.value = 5;
+    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200;
+    const shape = c.createWaveShaper(); const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const v = i / 511.5 - 1; curve[i] = Math.tanh(v * 2.2) / Math.tanh(2.2); }
+    shape.curve = curve;
+    const comp = c.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.12;
+    const dry = c.createGain(); dry.gain.value = 0.8;
+    const verb = c.createConvolver(); verb.buffer = poolHall(c);
+    const wet = c.createGain(); wet.gain.value = 0.4;
+    bus.connect(hp); hp.connect(body); hp.connect(comb); comb.connect(fb); fb.connect(comb); comb.connect(combMix); combMix.connect(body);
+    body.connect(lp); lp.connect(shape); shape.connect(comp);
+    comp.connect(dry); comp.connect(verb); verb.connect(wet);
+    dry.connect(c.destination); wet.connect(c.destination);
+    return { bus };
+  }
+  function bufOf(t) { if (!t.buf) { const c = audio(false); t.buf = c.createBuffer(1, t.x.length, t.rate); t.buf.copyToChannel(t.x, 0); } return t.buf; }
+  const normGain = (t) => Math.min(8, 0.85 / Math.max(t.peak, 0.01));
+
+  function stopAll() {
+    for (const s of live) { try { s.stop(); } catch (e) { /* already stopped */ } }
+    live = []; playing = null; clearTimeout(playTimer); cancelAnimationFrame(raf);
+    paintPlaying();
+  }
+  // One click through the Wader's throat: three copies at different pitches (short, so they stay together).
+  function clickVoice(c, buf, when, off, dur, rate, gain) {
+    for (const [mul, delay, type, freq, lg] of [[1, 0, "", 0, 1], [0.66, 0.012, "lowpass", 420, 0.6], [1.45, 0, "highpass", 2600, 0.2]]) {
+      const src = c.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate * mul;
+      const g = c.createGain(), t0 = when + delay, len = dur / (rate * mul);
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(gain * lg, t0 + 0.003);
+      g.gain.setValueAtTime(gain * lg, t0 + Math.max(0.004, len - 0.02)); g.gain.linearRampToValueAtTime(0, t0 + len);
+      if (type) { const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; src.connect(f); f.connect(g); } else src.connect(g);
+      g.connect(fx.bus); src.start(t0, off, dur); live.push(src);
+    }
+  }
+  function clickSegs(t) {
+    const segs = [], on = t.onsets;
+    for (let i = 0; i < on.length; i++) {
+      const a = Math.max(0, on[i] - Math.round(t.rate * 0.004)), b = Math.min(i + 1 < on.length ? on[i + 1] : t.x.length, on[i] + Math.round(t.rate * 0.14));
+      if (b - a > t.rate * 0.01) segs.push({ off: a / t.rate, dur: (b - a) / t.rate });
+    }
+    return segs;
+  }
+  function play(t, mode) {
+    const same = playing && playing.id === t.id && playing.mode === mode;
+    stopAll();
+    if (same) return;
+    const c = audio(true), buf = bufOf(t), g = normGain(t), t0 = c.currentTime + 0.06;
+    let dur = 0, head = false;
+    if (mode === "raw") {
+      const src = c.createBufferSource(), gn = c.createGain(); src.buffer = buf; gn.gain.value = g; src.connect(gn); gn.connect(c.destination); src.start(t0); live.push(src);
+      dur = buf.duration; head = true;
+    } else if (mode === "wader") {
+      const src = c.createBufferSource(), gn = c.createGain(); src.buffer = buf; src.playbackRate.value = 0.6; gn.gain.value = g; src.connect(gn); gn.connect(fx.bus); src.start(t0); live.push(src);
+      dur = buf.duration / 0.6; head = true;
+    } else {
+      const segs = clickSegs(t), alert = mode === "alert";
+      if (segs.length < 2) {                       // no separate clicks found: a slice of the take instead
+        const len = Math.min(buf.duration, alert ? 2.0 : 1.4), off = rnd(0, Math.max(0, buf.duration - len));
+        const src = c.createBufferSource(), gn = c.createGain(); src.buffer = buf; src.playbackRate.value = alert ? 0.68 : 0.6; gn.gain.value = g; src.connect(gn); gn.connect(fx.bus); src.start(t0, off, len); live.push(src);
+        dur = len / 0.6;
+      } else {
+        const n = Math.round(alert ? rnd(10, 16) : rnd(5, 9)); let when = t0, prev = -1;
+        for (let k = 0; k < n; k++) {
+          let i = Math.floor(Math.random() * segs.length); if (i === prev) i = (i + 1) % segs.length; prev = i;
+          clickVoice(c, buf, when, segs[i].off, segs[i].dur, alert ? rnd(0.6, 0.76) : rnd(0.55, 0.68), g * (alert ? rnd(0.7, 1) : rnd(0.5, 0.9)));
+          when += alert ? rnd(0.13, 0.05) * (1 - 0.4 * k / n) + 0.03 : (Math.random() < 0.25 ? rnd(0.3, 0.5) : rnd(0.1, 0.24));
+        }
+        dur = when - t0 + 0.3;
+      }
+    }
+    playing = { id: t.id, mode, t0, dur, head };
+    playTimer = setTimeout(stopAll, (dur + (mode === "raw" ? 0.15 : 1.2)) * 1000);
+    paintPlaying();
+    if (head) tick();
+  }
+  function tick() {
+    if (!playing || !playing.head) return;
+    const el = document.querySelector('.take[data-id="' + playing.id + '"] .head');
+    if (el) { const f = Math.max(0, Math.min(1, (ctx.currentTime - playing.t0) / playing.dur)); el.hidden = false; el.style.left = (f * 100) + "%"; }
+    raf = requestAnimationFrame(tick);
+  }
+  function paintPlaying() {
+    document.querySelectorAll(".take .head").forEach((h) => { h.hidden = true; });
+    document.querySelectorAll("[data-play]").forEach((b) => {
+      const on = !!playing && b.closest("[data-id]").dataset.id === playing.id && b.dataset.play === playing.mode;
+      b.classList.toggle("on", on); b.textContent = on ? "Stop" : b.dataset.label; b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    const ex = $("#example"); const exOn = !!playing && playing.id === "example";
+    ex.classList.toggle("on", exOn); ex.textContent = exOn ? "Stop" : "Hear an example";
+  }
+  // A synthetic tongue click, so the Wader's treatment can be heard before any recording.
+  let exampleTake = null;
+  function example() {
+    if (!exampleTake) {
+      const rate = 48000, x = new Float32Array(rate * 3), on = [];
+      for (let k = 0; k < 10; k++) {
+        const at = Math.round(rate * (0.1 + k * 0.28)); on.push(at); const f = 1100 + Math.random() * 900;
+        for (let i = 0; i < rate * 0.05; i++) { const t = i / rate; x[at + i] += (Math.random() * 2 - 1) * Math.exp(-t / 0.004) * 0.7 + Math.sin(2 * Math.PI * f * t) * Math.exp(-t / 0.011) * 0.5; }
+      }
+      exampleTake = { id: "example", x, rate, onsets: on, peak: peakOf(x) };
+    }
+    play(exampleTake, "patrol");
+  }
+
+  // ---------- drawing (shared) ----------
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function waveSvg(t) {
+    const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 1000 100"); svg.setAttribute("preserveAspectRatio", "none"); svg.setAttribute("aria-hidden", "true");
+    const p = t.peaks || [], w = 1000 / Math.max(1, p.length), top = Math.max(0.05, ...p);
+    let d = "";
+    for (let i = 0; i < p.length; i++) { const h = Math.max(1.5, p[i] / top * 46); d += "M" + (i * w + w * 0.15).toFixed(1) + " " + (50 - h).toFixed(1) + "h" + (w * 0.7).toFixed(1) + "v" + (h * 2).toFixed(1) + "h-" + (w * 0.7).toFixed(1) + "z"; }
+    const path = document.createElementNS(NS, "path"); path.setAttribute("d", d); svg.appendChild(path);
+    for (const f of t.ticks || []) { const l = document.createElementNS(NS, "line"); l.setAttribute("x1", f * 1000); l.setAttribute("x2", f * 1000); l.setAttribute("y1", 0); l.setAttribute("y2", 9); svg.appendChild(l); }
+    return svg;
+  }
+  function renderNeeds() {
+    const ul = $("#needs"); ul.textContent = "";
+    for (const k in KINDS) {
+      const K = KINDS[k]; let have = 0;
+      for (const t of takes.values()) if (t.kind === k) have += k === "single" ? t.clicks : 1;
+      const li = el("li"), top = el("div", "top");
+      top.appendChild(el("span", "name", K.label));
+      top.appendChild(el("span", "count", have + " of " + K.goal + " " + K.unit));
+      li.appendChild(top);
+      const m = el("div", "meter" + (have >= K.goal ? " done" : "")), bar = el("i"); bar.style.width = Math.min(100, have / K.goal * 100) + "%"; m.appendChild(bar); li.appendChild(m);
+      li.appendChild(el("span", "what", K.what));
+      ul.appendChild(li);
+    }
+  }
+
+  // ---------- the microphone ----------
+  const MAX_TAKE = 60;              // seconds; a take stops by itself after this
+  let stream = null, recording = false, chunks = [], recStart = 0, livePeak = 0, dirty = false;
+
+  function paintRec() {
+    $("#rec").classList.toggle("live", recording);
+    $("#rec").setAttribute("aria-pressed", recording ? "true" : "false");
+    $("#rec-label").textContent = recording ? "Stop" : "Record";
+    if (!recording) { $("#level").style.width = "0"; $("#time").textContent = stream ? "Mic ready" : "Mic off"; }
+  }
+  async function micOn() {
+    if (stream) return true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setStatus("This browser can't use the microphone. Try Chrome or Safari.", true); return false; }
+    try {
+      // No echo cancelling or noise suppression: they swallow clicks.
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    } catch (e) {
+      setStatus(e && (e.name === "NotAllowedError" || e.name === "SecurityError") ? "The microphone is blocked. Allow it for this page in your browser's site settings, then tap Record again." : "No microphone was found.", true);
+      return false;
+    }
+    const c = audio(true), src = c.createMediaStreamSource(stream), proc = c.createScriptProcessor(4096, 1, 1), mute = c.createGain();
+    mute.gain.value = 0;
+    proc.onaudioprocess = (e) => {
+      const d = e.inputBuffer.getChannelData(0); let p = 0;
+      for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > p) p = v; }
+      if (p > livePeak) livePeak = p;
+      if (recording) chunks.push(new Float32Array(d));
+    };
+    src.connect(proc); proc.connect(mute); mute.connect(c.destination);
+    return true;
+  }
+  function meter() {
+    if (!recording) return;
+    const s = (performance.now() - recStart) / 1000, lv = $("#level"), hot = livePeak > 0.97;
+    lv.style.width = Math.min(100, Math.sqrt(livePeak) * 100) + "%"; lv.classList.toggle("hot", hot);
+    $("#time").textContent = s.toFixed(1) + " s" + (hot ? " · too loud" : "");
+    livePeak *= 0.9;
+    if (s >= MAX_TAKE) { stopRec(); return; }
+    requestAnimationFrame(meter);
+  }
+  async function toggleRec() {
+    if (recording) { stopRec(); return; }
+    stopAll();
+    setStatus("");
+    if (!(await micOn())) { paintRec(); return; }
+    audio(true);
+    chunks = []; livePeak = 0; recording = true; recStart = performance.now();
+    paintRec(); meter();
+  }
+  function stopRec() {
+    if (!recording) return;
+    recording = false; paintRec();
+    let n = 0; for (const c of chunks) n += c.length;
+    const x = new Float32Array(n); let o = 0;
+    for (const c of chunks) { x.set(c, o); o += c.length; }
+    chunks = [];
+    addTake(x, audio(false).sampleRate, kindNow());
+  }
+  function addTake(x0, rate, kind) {
+    const x = trimSilence(x0, rate), seconds = x.length / rate, peak = peakOf(x);
+    if (peak < 0.006) { setStatus("Nothing was heard. Check the microphone is allowed and not muted, then try again.", true); return; }
+    if (seconds < 0.08) { setStatus("That was too short to keep. Try again.", true); return; }
+    let n = 0; for (const t of takes.values()) n = Math.max(n, t.n || 0);
+    const onsets = findClicks(x, rate);
+    const t = { id: newId(), n: n + 1, name: "Take " + (n + 1), kind, seconds, clicks: onsets.length, peak, rate,
+      x, onsets, peaks: summarize(x, 140), ticks: onsets.map((v) => Math.round(v / x.length * 1000) / 1000), status: "new" };
+    takes.set(t.id, t); dirty = true;
+    setStatus(t.name + ": " + fmtSec(seconds) + ", " + t.clicks + (t.clicks === 1 ? " click" : " clicks") + " found.");
+    render();
+  }
+
+  // ---------- saving ----------
+  function savePack() {
+    const list = [...takes.values()].sort((a, b) => a.n - b.n);
+    if (!list.length) return;
+    const pack = { wader_pack: 1, made: new Date().toISOString(),
+      takes: list.map((t) => ({ name: t.name, kind: t.kind, sampleRate: t.rate, seconds: Math.round(t.seconds * 100) / 100, wav_base64: b64(wavBytes(t.x, t.rate)) })) };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(pack)], { type: "application/json" }));
+    const a = document.createElement("a"); a.href = url; a.download = "wader-takes.json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    for (const t of list) t.status = "packed";
+    dirty = false; render();
+    $("#save-status").textContent = "Saved " + list.length + (list.length === 1 ? " take" : " takes") + " as wader-takes.json (in your downloads). Now open the Voice Booth and add that file.";
+  }
+
+  // ---------- drawing ----------
+  function takeCard(t) {
+    const card = el("article", "take"); card.dataset.id = t.id;
+    const head = el("header"); head.appendChild(el("h3", "", t.name + " · " + (KINDS[t.kind] || KINDS.single).label));
+    head.appendChild(el("span", "meta", fmtSec(t.seconds) + " · " + t.clicks + (t.clicks === 1 ? " click" : " clicks") + " · peak " + fmtDb(t.peak)));
+    card.appendChild(head);
+    const chips = el("div", "chips");
+    chips.appendChild(el("span", "chip " + (t.status === "packed" ? "saved" : "local"), t.status === "packed" ? "In the saved file" : "Not saved yet"));
+    if (t.peak >= 0.985) chips.appendChild(el("span", "chip warn", "Too loud: hold the phone a little further away"));
+    else if (t.peak < 0.06) chips.appendChild(el("span", "chip warn", "Very quiet: get closer to the phone"));
+    card.appendChild(chips);
+    const wave = el("div", "wave"); wave.appendChild(waveSvg(t)); const h = el("div", "head"); h.hidden = true; wave.appendChild(h); card.appendChild(wave);
+    const plays = el("div", "plays");
+    for (const [mode, label] of [["wader", "Play as the Wader"], ["raw", "Play raw"], ["patrol", "Patrol burst"], ["alert", "Alert burst"]]) {
+      const b = el("button", "btn small", label); b.type = "button"; b.dataset.play = mode; b.dataset.label = label; b.setAttribute("aria-pressed", "false"); plays.appendChild(b);
+    }
+    card.appendChild(plays);
+    const row = el("div", "row2"), lab = el("label", "", "Kind "), sel = el("select"); sel.id = "kind-of-" + t.id; sel.dataset.kindOf = "1";
+    for (const k in KINDS) { const o = el("option", "", KINDS[k].label); o.value = k; if (k === t.kind) o.selected = true; sel.appendChild(o); }
+    lab.appendChild(sel); row.appendChild(lab);
+    if (confirmId === t.id) {
+      const c = el("span", "confirm", "Delete this take? ");
+      const yes = el("button", "btn small", "Delete"); yes.type = "button"; yes.dataset.del = "yes";
+      const no = el("button", "btn small quiet", "Keep"); no.type = "button"; no.dataset.del = "no";
+      c.appendChild(yes); c.appendChild(no); row.appendChild(c);
+    } else { const d = el("button", "btn small quiet", "Delete"); d.type = "button"; d.dataset.del = "ask"; row.appendChild(d); }
+    card.appendChild(row);
+    return card;
+  }
+  function render() {
+    const list = $("#takes"), sorted = [...takes.values()].sort((a, b) => b.n - a.n);
+    list.querySelectorAll(".take").forEach((n) => n.remove());
+    $("#empty").hidden = sorted.length > 0;
+    for (const t of sorted) list.appendChild(takeCard(t));
+    paintPlaying();
+    if (playing && playing.head) { cancelAnimationFrame(raf); tick(); }
+    renderNeeds();
+    $("#save").disabled = sorted.length === 0;
+    $("#save").textContent = dirty || !sorted.length ? "Save takes to this phone" : "Save again";
+  }
+
+  // ---------- events ----------
+  $("#rec").addEventListener("click", toggleRec);
+  $("#save").addEventListener("click", savePack);
+  $("#example").addEventListener("click", () => { if (recording) return; audio(true); if (playing && playing.id === "example") stopAll(); else example(); });
+  $("#kinds").addEventListener("change", () => { $("#kindhint").textContent = KINDS[kindNow()].hint; });
+  $("#kindhint").textContent = KINDS[kindNow()].hint;
+  $("#takes").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const id = b.closest("[data-id]").dataset.id, t = takes.get(id);
+    if (b.dataset.play && t && !recording) { audio(true); play(t, b.dataset.play); }
+    else if (b.dataset.del === "ask") { confirmId = id; render(); }
+    else if (b.dataset.del === "no") { confirmId = ""; render(); }
+    else if (b.dataset.del === "yes") { if (playing && playing.id === id) stopAll(); takes.delete(id); confirmId = ""; dirty = takes.size > 0; render(); }
+  });
+  $("#takes").addEventListener("change", (e) => {
+    const s = e.target.closest("select[data-kind-of]"); if (!s) return;
+    const t = takes.get(s.closest("[data-id]").dataset.id); if (!t || t.kind === s.value) return;
+    t.kind = s.value; t.status = "new"; dirty = true; render();
+  });
+  window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+  window.addEventListener("pagehide", () => { if (stream) { for (const tr of stream.getTracks()) tr.stop(); stream = null; } });
+  render(); paintRec();
+})();
+</script>
+</body>
+</html>
