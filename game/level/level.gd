@@ -24,6 +24,7 @@ const ItemScripts := {
 }
 const LobbyScript := preload("res://level/lobby_room.gd")
 const TutorialScript := preload("res://level/tutorial_course.gd")
+const DeepEndScript := preload("res://level/deep_end.gd")
 const IN_VCR := -999          # an item's "stowed" value while it's inside the lobby's VCR
 const IN_MACHINE := -998      # ... and while a can is still in the lobby's soda machine
 const TAPES := ["Tape", "Tape08"]
@@ -69,6 +70,7 @@ var state := {
 	"all_escaped": false,
 	"vhs": "",              # lobby: the tape playing in the VCR ("" when none)
 	"countdown": 0,         # lobby: seconds until the game starts (0: not starting)
+	"map": "halls",         # lobby: where the host is taking everyone
 }
 var escaped: Dictionary = {}      # host: peer id -> bool
 
@@ -133,6 +135,7 @@ func _ready() -> void:
 		node.name = n
 		add_child(node)
 	mode = Game.level_mode
+	state.map = Game.level_map          # the lobby keeps the last choice (a joiner hears it from the host)
 	G = LevelGeometry.new(self)
 	_environment()
 	match mode:
@@ -146,6 +149,13 @@ func _ready() -> void:
 			course.name = "Tutorial"
 			add_child(course)
 			course.build(self)
+		_ when Game.level_map == "deep_end":
+			var deep: Node = DeepEndScript.new()
+			deep.name = "DeepEnd"
+			add_child(deep)
+			deep.build(self)
+			_build_navigation()
+			_build_creature()
 		_:
 			_build_start_room()
 			_build_hall_a()
@@ -302,7 +312,7 @@ func _make_staff_door(o: Vector3) -> void:
 	dcs.position = Vector3(-0.54, 1.03, 0.0)
 	staff_door.add_child(dcs)
 	staff_leaf.add_child(staff_door)
-	var lock := G.block(15.86 + o.x, 15.9 + o.x, 0.9, 1.0, -4.6 + o.z, -4.48 + o.z, G.mat_rail, 0, $Props)
+	var lock := G.block(15.86 + o.x, 15.9 + o.x, 0.9 + o.y, 1.0 + o.y, -4.6 + o.z, -4.48 + o.z, G.mat_rail, 0, $Props)
 	lock.name = "Lock"
 
 
@@ -842,6 +852,11 @@ func _apply_state(key: String) -> void:
 		"countdown":
 			if has_node("Lobby"):
 				get_node("Lobby").on_countdown(int(state.countdown))
+		"map":
+			if mode == "lobby":
+				Game.level_map = str(state.map) if Game.MAPS.has(str(state.map)) else "halls"
+				if has_node("Lobby"):
+					get_node("Lobby").on_map(Game.level_map)
 		"all_escaped":
 			if state.all_escaped and mode == "tutorial":
 				Game.notify("Training complete. You're ready for the Shallow Halls.")
@@ -860,7 +875,7 @@ func _apply_state(key: String) -> void:
 				Game.notify("Everyone escaped! Back to the title in a few seconds.")
 				get_tree().create_timer(8.0).timeout.connect(func():
 					if Game.level == self:
-						Game.go_to_menu("You escaped the Shallow Halls. Thanks for playing the RIPPLE demo."))
+						Game.go_to_menu("You escaped %s. Thanks for playing the RIPPLE demo." % Game.MAPS.get(Game.level_map, "the poolrooms").capitalize()))
 
 
 ## Ask the host to do something to the world.
@@ -943,6 +958,14 @@ func _srv_request(action: String, args: Array) -> void:
 					gen_noise_timer = 0.0
 					set_state("gen", 1)
 					broadcast_message("The generator is starting up%s." % (" fast (distilled water)" if distilled_part > 0.5 else ""))
+		"destination" when mode == "lobby":
+			# The host flips the destination sign on the desk: the next level in the list.
+			play_sfx("clank", get_node("Lobby").DESTINATION)
+			if sender == 1 and state.countdown == 0:
+				var keys: Array = Game.MAPS.keys()
+				set_state("map", keys[(keys.find(state.map) + 1) % keys.size()])
+			elif sender != 1:
+				broadcast_message("Only the host can choose where to go.")
 		"lever" when mode == "lobby":
 			play_sfx("ding", lever_point)
 			if sender == 1 and state.countdown == 0:

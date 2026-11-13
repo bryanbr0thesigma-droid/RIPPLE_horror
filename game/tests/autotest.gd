@@ -130,6 +130,8 @@ func _run() -> void:
 			await _lobby_soak()
 		"lobby_leave":
 			await _lobby_leave()
+		"deep_end":
+			await _deep_end_test()
 		"round_return":
 			await _round_return()
 		"tutorial_shot", "lobby_shot", "halls_shot":
@@ -183,6 +185,12 @@ func _lobby_test() -> void:
 	check(L.creature == null and get_tree().get_nodes_in_group("creature").is_empty(), "no creature in the lobby")
 	var lobby = L.get_node("Lobby")
 	check(L.items.has("Tape") and lobby.info.text.find("HERE (1/") >= 0, "the tape is on the table and the sign lists who's here")
+	L.request("destination")
+	await wait(0.2)
+	check(L.state.map == "deep_end" and Game.level_map == "deep_end" and lobby._dest_label.text.contains("DEEP END"), "the host flips the desk sign to the Deep End")
+	L.request("destination")
+	await wait(0.2)
+	check(L.state.map == "halls" and Game.level_map == "halls", "and back to the Shallow Halls")
 	var tape = L.items["Tape"]
 	tape.global_position = lobby.SLOT + Vector3(0, 0.02, 0.05)     # dropped on the VCR
 	var playing := await wait_for(func(): return L.state.vhs != "", 5.0)
@@ -222,6 +230,54 @@ func _lobby_test() -> void:
 	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.local_player != null, 20.0)
 	check(started, "the host pulls START and the game begins")
 	check(started and Game.level.creature != null, "the game has the creature")
+
+
+## The Deep End (level 2, gray-box): it builds, the water is deep (you swim, it crawls), a fall
+## from the gallery is very loud and brings it, the key's on top of the tower, the door opens, the
+## exit ends it.
+const DEEP_FLOOR := -2.7
+
+func _deep_end_test() -> void:
+	var L = Game.level
+	var rig := _rig()
+	var C = L.creature
+	await wait(0.5)
+	check(L.has_node("DeepEnd"), "the Deep End is built")
+	var pool := WaterVolume.below(Vector3(4, -0.35, -20))
+	check(pool != null and pool.depth() > 2.0, "its pool is deep (%.1f m)" % (pool.depth() if pool else 0.0))
+	check(C != null and WaterVolume.below(Vector3(C.global_position.x, -0.35, C.global_position.z)) != null, "the creature is in the deep pool")
+	var key = L.items.get("Key")
+	check(key != null and key.global_position.y > 9.5, "the key is up on the diving tower")
+	var space: PhysicsDirectSpaceState3D = L.get_world_3d().direct_space_state
+	var solid := true
+	for at in [Vector3(3.5, 11, -28.5), Vector3(-6, 5, -28.5), Vector3(-13, 5, -8), Vector3(21, 5, -40), Vector3(1.5, 8.5, -26.5), Vector3(0.5, 5, -28.5)]:
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(at, at + Vector3.DOWN * 1.5, LevelGeometry.L_WORLD))
+		solid = solid and not hit.is_empty()
+	check(solid, "the tower's platforms, the beam and the galleries hold you")
+	var nav: NavigationRegion3D = L.get_node("CreatureNav")
+	var path := NavigationServer3D.map_get_path(nav.get_navigation_map(), Vector3(4, -1.3, -6), Vector3(4, -1.3, -36), true)
+	check(path.size() > 1 and path[path.size() - 1].distance_to(Vector3(4, -1.3, -36)) < 1.5, "the creature can swim round the tower, end to end")
+	# Off the west gallery into the water: very loud, and it comes. (First, while it's still
+	# patrolling: once it's heading for a nearer noise, a farther one doesn't pull it away.)
+	var loudest := [0.0]
+	NoiseBus.my_noise.connect(func(l: float): loudest[0] = maxf(loudest[0], l))
+	rig.teleport(Vector3(-10.5, 4.3, -18))
+	var charged := await wait_for(func(): return C.state == C.S.CHARGE, 8.0)
+	check(loudest[0] > 0.9, "a fall from the gallery is very loud (%.2f)" % loudest[0])
+	check(charged, "and the creature charges")
+	# You swim here, at the surface.
+	await wait(0.5)
+	var feet: Vector3 = rig.feet_position()
+	var swim: bool = rig.swimming if "swimming" in rig else L.local_player.in_water
+	check(swim and feet.y > DEEP_FLOOR + 0.3, "in the deep you swim, not stand on the bottom (feet at %.1f)" % feet.y)
+	rig.teleport(Vector3(21, 4.05, -38.5))
+	await wait(0.5)
+	L.request("unlock")
+	await wait(0.5)
+	check(L.state.staff_door, "the key opens the door up on the north-east gallery")
+	rig.teleport(Vector3(25, 4.05, -40))
+	var escaped := await wait_for(func(): return L.state.all_escaped, 6.0)
+	check(escaped, "everyone in the room behind it ends the level")
 
 
 ## Leaving the station: stand on the mat by the front door and you're back at the title.
@@ -315,6 +371,9 @@ func _room_shots() -> void:
 	if Game.level.mode == "tutorial":
 		views = [[Vector3(3.5, 0.05, 2.6), 0.15], [Vector3(7.6, 0.05, 2.9), -0.55], [Vector3(17.6, 0.05, 2.9), -0.65],
 			[Vector3(19.5, 0.05, 0.5), -1.75], [Vector3(29.5, 0.05, 0.5), 1.45], [Vector3(31.8, 0.05, -1.2), -1.25], [Vector3(41.5, 0.05, 2.9), -1.0], [Vector3(53.8, 0.05, 2.6), -0.85]]
+	elif Game.level.mode == "game" and Game.level_map == "deep_end":
+		views = [[Vector3(4, 0.05, -1.0), 0.0, 0.2], [Vector3(-13, 4.05, -5.5), -0.15, 0.0], [Vector3(-11.6, 4.05, -28.5), -1.5708, 0.05],
+			[Vector3(3.5, 10.05, -28.0), -1.2, -0.55], [Vector3(14, 0.05, -40.5), -2.6, 0.25], [Vector3(16, 4.05, -43), -1.9, 0.0]]
 	elif Game.level.mode == "game":       # the Shallow Halls' signs and plates
 		views = [[Vector3(4, 0.05, 5.0), PI], [Vector3(4, 0.05, -1.7), PI], [Vector3(14.4, 0.05, -2.4), -1.1],
 			[Vector3(0.5, 0.05, -18.7), -0.4, 0.3], [Vector3(20.8, 0.05, -4.2), 0.0, -0.3], [Vector3(10.3, -0.9, -42.6), 0.0, -0.1],
@@ -337,6 +396,9 @@ func _lobby_host() -> void:
 	var ok := await wait_for(func(): return L.players.size() >= 2, 30.0)
 	check(ok, "host: the other player arrives in the lobby")
 	await wait(2.0)
+	if Game.args.has("pick"):
+		L.request("destination")
+		await wait(0.5)
 	L.request("lever")
 	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.players.size() >= 2, 30.0)
 	check(started, "host: the game starts with both players")
@@ -348,6 +410,8 @@ func _lobby_client() -> void:
 	check(ok, "client: joined into the lobby and sees the host")
 	var started := await wait_for(func(): return Game.level != null and Game.level.mode == "game" and Game.level.players.size() >= 2, 40.0)
 	check(started, "client: moved into the game along with the host")
+	if Game.args.has("expect"):
+		check(started and Game.level.has_node("DeepEnd") == (str(Game.args.expect) == "deep_end"), "client: it's the level the host chose (%s)" % Game.level_map)
 	await wait(2.0)
 
 

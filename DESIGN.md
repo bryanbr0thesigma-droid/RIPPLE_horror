@@ -313,6 +313,36 @@ in order, so a team learns them by playing.
 - **Co-op moments:** splitting the two canteen trips, one player scanning with the lidar while the
   other carries, throwing a decoy to pull the creature away from a teammate, and handing items over.
 
+## Level 2: The Deep End (in progress)
+
+Built step by step in `game/level/deep_end.gd`. The host picks it on the destination sign on the
+lobby's desk (flip it; the letter board shows where everyone is going), or "Play solo: the Deep
+End" on the Play page. Where the Shallow Halls are about wading quietly, the Deep End is about
+height: one tall natatorium over a deep pool you can only swim in, with the Wader crawling along
+the bottom, and every fall into it very loud.
+
+**Pass 1 (gray-box, playable start to finish):**
+
+| # | Place | What happens |
+|---|---|---|
+| 1 | Start room | Plaque with the rules. Checkpoint. |
+| 2 | South deck | Dry tiles at the shallow end of the hall; the lidar and a flashlight in the start room. Checkpoint. |
+| 3 | The deep pool | 2.4 m deep, wall to wall. You swim at the surface; it crawls on the bottom. Ladders at both ends. |
+| 4 | West gallery, 4 m up | Reached by a ladder from the deck. Two gaps: one to jump, one with only a plank along the wall. VR hands can catch the edges. |
+| 5 | The beam | 40 cm wide, 13 m long, nothing to hold, from the gallery to the diving tower. |
+| 6 | Diving tower | Platforms at 4 m (where the beam lands), 7.5 m and 10 m, with ladders between them; the key on the top, a diving board over the water. A 1 m landing on its far side to climb out of the water (not up the tower). |
+| 7 | Back | The careful way (ladders, beam, gallery), or dive from 10 m (fast, the loudest thing in the game) and swim for the north ladder, then up to the north gallery (one more gap). |
+| 8 | Exit | The locked door on the north-east gallery; everyone inside ends the level. |
+
+**Next passes (one at a time, playtested in between):**
+1. A pump room off the north deck: the generator, and the mineral water at the bottom of the deep
+   end, so filling the canteen means diving for it. Power runs the lights and a lift up the tower.
+2. Real art: natatorium tiles and lane lines, a proper diving tower model, bleachers, a lifeguard
+   chair, the agency's signs, an echoing ambience.
+3. Co-op: a counterweight platform that needs one player on each end, inflatables drifting on the
+   water as moving stepping stones (Milestone 2's "floating inflatables").
+4. A lights-out or flooding event partway through.
+
 ## Comfort
 
 Platforming is the hardest thing to make comfortable in VR.

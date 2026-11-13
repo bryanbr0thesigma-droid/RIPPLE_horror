@@ -23,6 +23,7 @@ const Z1 := 3.5
 const H := 2.6
 const DUSK := Color(1.0, 0.52, 0.28)
 const BELL := Vector3(-1.2, 1.07, -1.76)
+const DESTINATION := Vector3(-0.55, 1.12, -1.7)   # the flip sign on the desk: where the host is taking everyone
 ## The TV corner: the office's TV set, turned to stand against the east wall.
 const TV_CORNER := Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0.6, 0.0, -0.6))
 const COFFEE_TABLE := Vector3(2.6, 0.0, -0.6)
@@ -57,6 +58,7 @@ var _brass: StandardMaterial3D
 var _clock_h: Node3D
 var _clock_m: Node3D
 var _countdown := 0          # seconds until the game starts (0: not starting)
+var _dest_label: Label3D
 var _leave_t := 0.0          # how long you've stood on the doormat by the way out
 var _ips: Array[String] = []
 var _ips_t := 0.0
@@ -430,6 +432,15 @@ func _counter() -> void:
 	dome.scale = Vector3(1, 0.75, 1)
 	level.add_child(dome)
 	_cyl(0.008, 0.006, 0.025, BELL + Vector3(0, 0.07, 0), _brass)
+	# The destination sign: the host flips it (grab, or interact) to choose the level.
+	_box(Vector3(0.44, 0.2, 0.02), DESTINATION + Vector3(0, 0.08, -0.12), _flat(Color(0.07, 0.125, 0.36), 0.6))
+	_dest_label = _text("", DESTINATION + Vector3(0, 0.08, -0.108), 0.0, 0.0011, Color(0.93, 0.85, 0.5), 32)
+	_text("FLIP TO CHOOSE (HOST)", DESTINATION + Vector3(0, -0.035, -0.1), 0.0, 0.0006, Color(0.15, 0.1, 0.06), 32)
+	var flip := preload("res://items/lever_handle.gd").new("destination", 0.12)
+	flip.name = "Destination"
+	level.get_node("Props").add_child(flip)
+	flip.global_position = DESTINATION
+	on_map(Game.level_map)
 	level.lever_point = BELL + Vector3(0, 0.05, 0)
 	var ring := preload("res://items/lever_handle.gd").new()
 	ring.name = "Bell"
@@ -755,10 +766,19 @@ func _update_info() -> void:
 			code = "ON THIS WI-FI  %s\n" % _ips[0]
 	var start := "RING THE BELL AT THE DESK TO START" if Net.is_host() or not Net.is_online() \
 		else "WAITING FOR %s TO RING THE BELL" % host_name
+	start = "TO: %s\n%s" % [Game.MAPS.get(Game.level_map, "?"), start]
 	if _countdown > 0:
 		start = "GOING IN IN %d . . ." % _countdown
 	info.text = "WELCOME TO THE FIELD STATION\n\n%sHERE (%d/%d): %s\n\n%s\n\nTHE TAPES ARE ON THE COFFEE TABLE" % [
 		code, names.size(), Net.MAX_PLAYERS, ", ".join(names), start]
+
+
+## Where the host is taking everyone (the sign on the desk and the letter board).
+func on_map(map: String) -> void:
+	if _dest_label:
+		_dest_label.text = "DESTINATION\n%s" % Game.MAPS.get(map, "?")
+	if info:
+		_update_info()
 
 
 ## The host rang the bell: n seconds to go (a tick each second on everyone's headset).

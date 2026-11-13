@@ -205,13 +205,14 @@ func start_game() -> void:
 	ready_peers = []
 	for pid in players:
 		if pid != 1:
-			rpc_id(pid, "_go_game")
+			rpc_id(pid, "_go_game", Game.level_map)
 	Game.start_level("game")
 
 
 @rpc("authority", "call_remote", "reliable")
-func _go_game() -> void:
+func _go_game(map := "halls") -> void:
 	ready_peers.clear()
+	Game.level_map = map if Game.MAPS.has(map) else "halls"
 	Game.start_level("game")
 
 
@@ -236,7 +237,8 @@ func _go_lobby() -> void:
 
 ## Host -> a player who just joined: where everyone is (the lobby or the game).
 @rpc("authority", "call_remote", "reliable")
-func _welcome(where: String) -> void:
+func _welcome(where: String, map := "halls") -> void:
+	Game.level_map = map if Game.MAPS.has(map) else "halls"
 	Game.start_level("lobby" if where == "lobby" else "game")
 
 
@@ -349,7 +351,7 @@ func _register(info: Dictionary) -> void:
 	for pid in players:
 		if pid != 1:
 			rpc_id(pid, "_set_players", players)
-	rpc_id(id, "_welcome", phase)
+	rpc_id(id, "_welcome", phase, Game.level_map)
 	players_changed.emit()
 
 

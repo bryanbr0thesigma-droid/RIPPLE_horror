@@ -112,7 +112,8 @@ func _build_play(parent: Control) -> void:
 		_room_label.text = "_"
 		show_page("room")))
 	p.add_child(_button("Host on this Wi-Fi", _host))
-	p.add_child(_button("Play solo", _solo))
+	p.add_child(_button("Play solo: the Shallow Halls", _solo))
+	p.add_child(_button("Play solo: the Deep End (new, in progress)", _solo.bind("deep_end"), 22))
 	p.add_child(_button("Tutorial: the training annex", func(): Game.start_tutorial()))
 	p.add_child(_label("Games on your Wi-Fi", 20, INK))
 	_hosts_box = VBoxContainer.new()
@@ -426,8 +427,9 @@ func show_page(page_name: String) -> void:
 		_status.text = ""
 
 
-func _solo() -> void:
+func _solo(map := "halls") -> void:
 	Game.use_lobby = false
+	Game.level_map = map
 	Profile.save()
 	Net.local_info.vr = Game.vr_mode
 	if Net.host() == OK:
